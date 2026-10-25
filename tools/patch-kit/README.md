@@ -24,8 +24,7 @@ What it gives you, in one line each:
 ## What you need
 
 - **Interstate '76 from GOG** (the "Arsenal" / Gold Windows version), installed with GOG Galaxy or the offline
-  installer. GOG has shipped two slightly different `i76.exe` builds over the years; both are handled, and the
-  setup tells you which one you have.
+  x
 - Windows 10 or 11 (64-bit) and any graphics card from the last ten years. (the developer plays on a GTX 1080 Ti at
   3440x1440 with the picture rendered at 2x; a weaker card gets the `--no-supersample` option below.)
 - Optional: an Xbox-style gamepad or a wheel - **plug it in before you start the game**, the 1997 engine only looks
@@ -42,12 +41,15 @@ What it gives you, in one line each:
    destination to the game folder.) The unzip itself overwrites nothing of the game. (If you forget *Unblock*,
    Windows asks once more when you start `PLAY.bat` - *More info* -> *Run anyway* - and the launcher then clears the
    download mark from the folder's files itself.)
-3. **Double-click `PLAY.bat`.** The first run does a one-time setup in a black window (about ten seconds): it
-   lists every file it changes and where it kept the original. A yellow line saying `i76.exe MD5 ... NOT the GOG
-   2019 build` is normal on a Galaxy install. Then the game starts. Later runs skip the setup.
+3. **Double-click `PLAY.bat`.** The first run does a one-time setup in a black window that takes a few seconds. It
+   then shows a short summary - what was installed, your monitor and field of view, how to start and how to undo -
+   and **waits for you to press a key** ("Press any key to start the game"). The full list of every file it changed
+   and where it kept the original is in `_i76e\setup.log`. Later runs skip the setup and start the game straight away.
 
-The game shows **PLEASE STAND BY** for up to a minute while it loads, then the intro movie - **Esc** skips it. If
-`PLAY.bat` ever refuses to start the game it says why and waits for a key.
+The game window may stay black for a few seconds, then shows a story text card and the intro movie - **Esc** skips
+it to the main menu. If `PLAY.bat` ever refuses to start the game it says why and waits for a key.
+
+**Nitro Pack?** The same zip works for *Interstate '76 Nitro Pack* from GOG - see "Nitro Pack" below.
 
 If the game lives under `C:\Program Files (x86)` and the setup reports *access denied*, run `PLAY.bat` once with
 right-click -> *Run as administrator*, or (better) tell Galaxy to install the game somewhere like `C:\Games`.
@@ -60,6 +62,7 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 | **`PLAY-PREVIEW.bat`** | **EXPERIMENTAL GRAPHICS PREVIEW.** The same base plus the developer's current graphics picks: smoother terrain shading and terrain that morphs in instead of popping, a 2.3 km view whose last quarter fades out to transparent (no fog colour), bushes at half density carried farther out, a rear-view mirror that sees 1 km with the main view's ground textures, a slightly softer nose-dive on jumps. Not finished, not gated - it exists so you can compare it with `PLAY.bat`. |
 | `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat` | The same two, but they boot **straight into mission 5** (the long ridge road down to the barn) with a stock car, skipping the menus and movies. The quickest way to look at the terrain. |
 | `PLAY-16x10.bat`, `PLAY-balanced.bat`, `PLAY-stock.bat`, `PLAY-i76.bat` | Written by the setup. `PLAY-16x10.bat` = the older tested 16:10 picture (a fallback if the widescreen one looks wrong); `PLAY-stock.bat` = the game with none of our engine changes (a control); the other two are variants of the stable set. |
+| `PLAY-Nitro.bat` | Only for the **Nitro Pack** folder (see "Nitro Pack" below). In a Gold folder it says so and does nothing. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
 | `INSTALL-EXTRAS.bat` | **Optional extras** (below): community maps, head look, Python for the debug tool, German voices, your own extra music. |
 
@@ -69,10 +72,30 @@ Options you can add after the launcher name (open a command window in the folder
   of twice that. Use it if the frame rate drops under ~60 or the card is weak / integrated. It is the same as
   `I76_RENDER_SCALE = '1'` in `presets\local.psd1` (Graphics settings, below), which keeps it for every launch.
 - `PLAY.bat --display 1920x1080` - size the picture for this monitor size instead of the one Windows reports
-  (for example when the game opens on the wrong monitor).
+  (for example when the game opens on the wrong monitor). The 3D is then rendered at twice that size.
 - `PLAY.bat --setup` - run the setup / display step only, without starting the game.
 - `PLAY.bat --voices de` / `--voices en` - German / English voice lines for this launch (needs the German voices extra).
 - `PLAY.bat --music-extra off` - this launch without your extra music (needs the extra music option).
+
+## Nitro Pack
+
+*Interstate '76 Nitro Pack* (GOG's `nitro.exe` version) gets the same treatment from the same zip; no compiler, no
+download of anything else.
+
+1. Find the Nitro Pack folder the same way (in Galaxy: *Manage installation* -> *Show folder*); it is the folder that
+   contains `nitro.exe`, often `C:\GOG Games\Interstate 76 Nitro Pack`.
+2. Unblock and unzip the kit INTO that folder, exactly as for Gold.
+3. **Double-click `PLAY-Nitro.bat`.** The first run sets the folder up in a few seconds, shows the same short summary and
+   waits for a key, then starts the game. (`PLAY.bat` in a Nitro folder hands over to `PLAY-Nitro.bat` by itself.)
+
+What Nitro gets: the same 41.667 ms simulation step at up to 120 fps, widescreen for your monitor's shape, the
+1.2 km view with the farther terrain / road / shadow detail, the ground and hull fixes, dgVoodoo 2.87.5, and Enter /
+Space / Y / N / Esc in the shell's popups. What it does not get (yet): our WASD key layout and the gamepad / wheel button
+layer (Nitro keeps **GOG's own Nitro keys**, plus mouse buttons and the gamepad's stick and buttons 1 / 3 / 4), the
+menu-mouse DLL, the graphics preview and the mission-5 launchers, and the debug dashboard. The options `--no-supersample`,
+`--display WxH`, `--setup` and `--resetup` work as for `PLAY.bat`. `UNINSTALL-i76e.bat` undoes it the same way.
+
+If you have both games, unzip the kit into each folder; the two installs do not share anything.
 
 ## Optional extras (`INSTALL-EXTRAS.bat`)
 
@@ -225,7 +248,7 @@ When you report, include: your monitor size and graphics card, which launcher, a
 in its folder on every start - **`mciproxy.log`** (what our fixes did, the display and pointer mapping, and any
 crash). Screenshots help a lot.
 
-Two things are different on the GOG Galaxy build of the game (the setup tells you which build you have): the
+Two things are different on the GOG Galaxy build of the game (`_i76e\setup.log` names the build you have): the
 music comes from GOG's own player rather than our fix, and a gamepad / wheel input can lag up to one simulation
 step (42 ms) behind a key press. Both are expected; we would still like to hear whether you notice the second.
 
@@ -234,24 +257,28 @@ step (42 ms) behind a key press. Both are expected; we would still like to hear 
 | symptom | what it usually is, and what to do |
 |---|---|
 | Black window, a tiny 4:3 window, or a 3dfx logo at start | dgVoodoo (the graphics layer) ignored our settings and used a global file. Delete `%APPDATA%\dgVoodoo\dgVoodoo.conf` (press Win+R, type `%APPDATA%\dgVoodoo`, Enter) and start again. |
-| PLEASE STAND BY forever | You are on Remote Desktop (the 3D cannot start there - use the PC itself), or something else grabbed the screen. Close it from Task Manager, start again, send `mciproxy.log`. |
+| Black screen (or PLEASE STAND BY) forever | You are on Remote Desktop (the 3D cannot start there - use the PC itself), or something else grabbed the screen. Close it from Task Manager, start again, send `mciproxy.log`. |
 | Picture stretched / off-centre / pointer misses the buttons | `PLAY.bat --display WxH` with your monitor's real size; or try `PLAY-16x10.bat`. Tell us either way. |
 | Low frame rate | `PLAY.bat --no-supersample`. Also close GOG Galaxy's overlay and any screen-recording / RGB software. There is no fps counter in the game; "smooth or not" is what we want to hear. |
 | No music in missions | On the Galaxy build of the game GOG's own music player is used (our fix cannot attach there): check that the game folder has a `music` folder with `2.mp3` ... `17.mp3`, and the AUDIO slider in the game's options. On the other build our fix plays the tracks. |
 | Gamepad / wheel has no buttons | Plug it in before starting. The button layer needs our key layout (the default). |
-| The game crashes | Send `mciproxy.log` - a line starting `CRASH:` says where. (One harmless `CRASH ... exe+0x99997` line at the very start is normal on the Galaxy build: a 1997 CPU-speed probe that Windows refuses; the game handles it itself.) |
+| The game crashes | Send `mciproxy.log` - a line starting `CRASH:` says where. (A line `pit-probe: handled probe (not a crash)` at the very start is normal: a 1997 CPU-speed probe that Windows refuses and the game handles itself. It is not a crash and has no `CRASH:` line.) |
+| The setup failed | The window shows the last lines of `_i76e\setup.log`; send the whole file. |
 | Windows SmartScreen / antivirus complains | The scripts are unsigned: *More info* -> *Run anyway*. Some scanners flag dgVoodoo's DLLs - a known false positive; the files are byte-identical to Dege's release (hashes in `_i76e\MD5SUMS`). |
 | "Access denied" during the setup | The folder is under Program Files: run `PLAY.bat` as administrator once, or install the game somewhere you own. |
 
 ## Uninstall
 
-Run `UNINSTALL-i76e.bat` (close the game first). It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`, `i76shell.dll`, `Strlkup.dll`,
-`input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: after it,
-every one of the GOG install's 371 files is byte-identical to a fresh install). Then delete the `PLAY*.bat` files,
+Run `UNINSTALL-i76e.bat` (close the game first). It asks you to press a key before it starts and again when it is done.
+It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`, `i76shell.dll` (Nitro: `nitshell.dll`), `Strlkup.dll`,
+`input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: right
+after it, every one of the GOG install's files is byte-identical to a fresh install). One file will differ if you have played: the game
+itself rewrites `Lee.fot` as you play (Gold), so a hash check after playing shows that one difference - that is the game's, not ours.
+Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`,
 `README-PATCH-KIT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
-`i76shell.dll.pre-i76e-keys`, `input.map.stock-*`) are safe to delete. Bookmarks stay: if the setup copied in our
-set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG Galaxy's *verify / repair* does the same
-job from GOG's side if you prefer.
+`i76shell.dll.pre-i76e-keys` / `nitshell.dll.pre-i76e-keys`, `input.map.stock-*` / `input.map.pre-windows-setup`) are safe to delete. Bookmarks
+stay: if the setup copied in our set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG
+Galaxy's *verify / repair* does the same job from GOG's side if you prefer.
 
 ## What is inside, and what it does to your copy
 

@@ -1,0 +1,39 @@
+{
+ "what": "i76-everywhere Nitro shell keyboard patches (F7 + M2/K1-K4: tools/patch-nitshell-f7.py then tools/patch-nitshell-modals.py), generated 2026-10-25 from GOG's NITSHELL.DLL; only OUR replacement bytes are listed (offset, hex), keyed by the md5 of the file they apply to; 'after' = md5 of the result (a32ffba6 = the shell main Nitro and the Macs run since 2026-10-24, NITRO-POLISH-2026-10-24 s.4)",
+ "bases": {
+  "f804f50d026d3986c0152971847af5db": {
+   "name": "GOG Nitro Pack NITSHELL.DLL (f804f50d)",
+   "size": 321536,
+   "after": "a32ffba60cf13951392cf5682af3f74e",
+   "runs": [
+    [448, "0088"],
+    [137416, "83c4149090"],
+    [137616, "e9ab700100"],
+    [137990, "e9756f0100"],
+    [138333, "e95e6e0100"],
+    [139230, "e91d6b0100"],
+    [139649, "e9ba690100"],
+    [140543, "e99c660100"],
+    [232000, "83f8010f844c8ffeffe8"],
+    [232014, "588bb02e6e0f"],
+    [232021, "8bcee8d417fdff85c00f84168ffeff8b0683f80d0f84538ffeff83f8200f844a8ffeffe9fd8efeff"],
+    [232064, "83f8010f848290feffe8"],
+    [232078, "588bb0ee6d0f"],
+    [232085, "8bcee89417fdff85c00f844c90feff8b0683f80d0f848790feff83f8200f847e90feffe93390feff"],
+    [232128, "83f8010f849991feff56e8"],
+    [232143, "588bb0ad6d0f"],
+    [232150, "8bcee85317fdff8b0e5e85c00f845f91feff83f90d0f849e91feff83f9200f849591feffe94891feff"],
+    [232192, "83f8010f84da94feff56e8"],
+    [232207, "588bb06d6d0f"],
+    [232214, "8bcee81317fdff8b0e5e85c00f84"],
+    [232229, "95feff83f8030f840595feff83f90d0f84f594feffe9e994feff"],
+    [232256, "83f8010f843d96feff56e8"],
+    [232271, "588bb02d6d0f"],
+    [232278, "8bcee8d316fdff8b0e5e85c00f84f595feff83f8030f845896feff83f9790f844896feff83f9590f843f96feff83f96e0f843d96feff83f94e0f843496feffe9c395feff"],
+    [232352, "83f8010f845f99feff56e8"],
+    [232367, "588bb0cd6c0f"],
+    [232374, "8bcee87316fdff8b0e5e85c00f84679afeff83f8030f84689afeff83f90d0f84679afeffe9509afeff"]
+   ]
+  }
+ }
+}

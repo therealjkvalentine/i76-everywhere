@@ -13,17 +13,18 @@
     Then <OutDir>\PLAY.bat (stable, tick19-42) / PLAY-PREVIEW.bat (preview) / PLAY-T05*.bat start it; UNINSTALL-i76e.bat
     puts the GOG files back. README-PATCH-KIT.md in the copy explains the launchers and keys.
 
-  Nitro Pack (nitro.exe): see -Game Nitro below (docs\records\FRESH-GOG-BUILD-2026-10-23.md).
+  Nitro Pack (nitro.exe): the same steps; step 4 runs i76e-prepare.ps1 -Game Nitro (since 2026-10-25 the kit's own Nitro route).
 
     tools\Build-From-GOG.ps1 -GogDir "C:\GOG Games\Interstate 76" -OutDir "C:\Games\I76-everywhere" [-Ref HEAD] [-Preset tick19-42]
                              [-Display 3440x1440] [-NoSupersample] [-DgVoodooDir <unpacked dgVoodoo2_87_5.zip>] [-DgVoodooFallbackDir <unpacked dgVoodoo2_87_3.zip>] [-AhkDir <AutoHotkeyU32.exe dir>]
   dgVoodoo 2.87.5 (the build's; 2.87.3's DirectDraw crashes at the first frame on Windows 11 26100.9711, docs/records/NITRO-WIN11-2026-10-25.md),
   dgVoodoo 2.87.3 (the kit's swap-back fallback) and AutoHotkey 1.1.37.02 are downloaded into %LOCALAPPDATA%\i76e-cache on first use when not given (the packer
-  checks every dgVoodoo file's md5 against the release). Needs: git, the VS 2019 Build Tools (C++ x86), PowerShell 5.1.
+  checks every dgVoodoo file's md5 against the release). Needs: git and PowerShell 5.1; the VS 2019 Build Tools (C++ x86) only to build the proxy -
+  without them (or with -Proxy <Strlkup.dll>) the prebuilt proxy is used. A player needs none of this: the Patch Kit zip does the same for Gold and Nitro.
 #>
 param([Parameter(Mandatory)][string]$GogDir, [Parameter(Mandatory)][string]$OutDir, [string]$Ref = 'HEAD',
       [ValidateSet('auto', 'Gold', 'Nitro')][string]$Game = 'auto', [string]$Preset = '',
-      [string]$Display = '', [switch]$NoSupersample, [string]$DgVoodooDir = '', [string]$DgVoodooFallbackDir = '', [string]$AhkDir = '', [switch]$Force)
+      [string]$Display = '', [switch]$NoSupersample, [string]$DgVoodooDir = '', [string]$DgVoodooFallbackDir = '', [string]$AhkDir = '', [string]$Proxy = '', [switch]$Force)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
@@ -72,48 +73,46 @@ if (-not $AhkDir) {
     }
 }
 
-# ---- 1. the proxy from the commit -------------------------------------------------------------------------------------------
+# ---- 1. the proxy: -Proxy <dll>, else built from the commit (MSVC), else the commit's own prebuilt music-fix\Strlkup.dll ---------
+# clean-install 2026-10-25 (B6): a player has no compiler; the Patch Kit zip is the no-compiler route for Gold AND Nitro, and this
+# script now takes the same prebuilt proxy when the VS 2019 Build Tools are missing.
 $pdir = Join-Path $work 'proxy'
-$b = & (Join-Path $PSScriptRoot 'build-proxy.ps1') -Ref $sha -OutDir $pdir
-if ($LASTEXITCODE) { Die 'the proxy build failed (see above)' }
-Say "    $b"
-$proxy = Join-Path $pdir 'Strlkup.dll'
-
-if ($Game -eq 'Gold') {
-    # ---- 2. the overlay stage (package-patch-kit.ps1: the guard keeps every game file out) ----------------------------------------
-    $stage = Join-Path $work 'stage'
-    & (Join-Path $PSScriptRoot 'package-patch-kit.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -DgVoodooFallbackDir $DgVoodooFallbackDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
-    if ($LASTEXITCODE) { Die 'package-patch-kit.ps1 failed' }
-    # ---- 3. the copy, the overlay over it ------------------------------------------------------------------------------------------
-    Say "    copying $GogDir -> $OutDir"
-    Copy-Item -LiteralPath $GogDir -Destination $OutDir -Recurse
-    Copy-Item -Path (Join-Path $stage '*') -Destination $OutDir -Recurse -Force
-    # ---- 4. the first-run setup + display fit (what the first PLAY.bat does), without starting the game -----------------------------
-    $pa = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $OutDir '_i76e\i76e-prepare.ps1'), '-Preset', $(if ($Preset) { $Preset } else { 'tick19-42' }))
-    if ($Display) { $pa += @('-Display', $Display) }
-    if ($NoSupersample) { $pa += '-NoSupersample' }
-    & powershell.exe @pa
-    if ($LASTEXITCODE) { Die "i76e-prepare.ps1 exited $LASTEXITCODE - the copy is set up only partly; read the lines above" }
-    Say "=== done: $OutDir\PLAY.bat (stable) / PLAY-PREVIEW.bat (graphics preview); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green'
-    exit 0
+$vcvars = 'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars32.bat'
+if ($Proxy) {
+    if (-not (Test-Path -LiteralPath $Proxy)) { Die "-Proxy $Proxy not found" }
+    $proxy = (Resolve-Path -LiteralPath $Proxy).Path; $proxyFrom = 'given (-Proxy)'
+} elseif (Test-Path -LiteralPath $vcvars) {
+    $b = & (Join-Path $PSScriptRoot 'build-proxy.ps1') -Ref $sha -OutDir $pdir
+    if ($LASTEXITCODE) { Die 'the proxy build failed (see above)' }
+    Say "    $b"
+    $proxy = Join-Path $pdir 'Strlkup.dll'; $proxyFrom = "built from $sha"
+} else {
+    New-Item -ItemType Directory -Force $pdir | Out-Null
+    $proxy = Join-Path $pdir 'Strlkup.dll'
+    $p = Start-Process git -ArgumentList @('-C', "`"$repo`"", 'show', "${sha}:music-fix/Strlkup.dll") -NoNewWindow -Wait -PassThru -RedirectStandardOutput $proxy
+    if ($p.ExitCode -or -not (Test-Path -LiteralPath $proxy) -or (Get-Item -LiteralPath $proxy).Length -lt 100000) { Die "no compiler (VS 2019 Build Tools) and no prebuilt music-fix\Strlkup.dll at $sha - pass -Proxy <Strlkup.dll> (the Patch Kit zip carries one in _i76e\repo\music-fix)" }
+    $proxyFrom = "the prebuilt music-fix\Strlkup.dll committed at $sha (no compiler on this PC)"
 }
+Say "    proxy: $proxyFrom, md5 $(Md5 $proxy)"
 
-# ---- Nitro ----------------------------------------------------------------------------------------------------------------------
-# The same overlay stage, used here only as the repo copy at that commit's proxy (its _i76e\repo holds setup-windows.ps1, the presets,
-# u32x, the tools, and music-fix\Strlkup.dll = the proxy just built); nothing of the Gold launchers / README goes into the Nitro copy.
+# ---- 2. the overlay stage (package-patch-kit.ps1: the guard keeps every game file out) ------------------------------------------
 $stage = Join-Path $work 'stage'
 & (Join-Path $PSScriptRoot 'package-patch-kit.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -DgVoodooFallbackDir $DgVoodooFallbackDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
 if ($LASTEXITCODE) { Die 'package-patch-kit.ps1 failed' }
+# ---- 3. the copy, the overlay over it (the same as unzipping the kit into the GOG folder) ------------------------------------------
 Say "    copying $GogDir -> $OutDir"
 Copy-Item -LiteralPath $GogDir -Destination $OutDir -Recurse
-if (-not $Display) { Add-Type -AssemblyName System.Windows.Forms; $bd = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $Display = "$($bd.Width)x$($bd.Height)" }
-# setup-windows.ps1 -Exe nitro.exe with a preset (stock unless named): dgVoodoo's Glide for GOG's OpenGLide, the proxy, the preset,
-# the wide conf for this display, PLAY-Nitro.bat. dgVoodoo from the full 2.87.5 release folder (the overlay stage carries the Gold
-# set): setup-windows deploys Glide / Glide2x / Glide3x / DDraw / D3DImm and, on Nitro, D3D8 / D3D9. Controls: GOG's Nitro map is kept (-Controls stock; this repo's input.map is
-# linted against i76.exe's tokens and the pad / wheel layers were made for Gold).
-$sa = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $stage '_i76e\repo\setup-windows.ps1'), '-GameDir', $OutDir, '-Exe', 'nitro.exe',
-        '-DgVoodooDir', $DgVoodooDir, '-Preset', $(if ($Preset) { $Preset } else { 'nitro-tick42' }), '-NoShortcut', '-Display', $Display, '-Controls', 'stock')
-& powershell.exe @sa
-if ($LASTEXITCODE) { Die "setup-windows.ps1 exited $LASTEXITCODE - read the lines above" }
-Say "=== done: $OutDir\PLAY-Nitro.bat (preset $(if ($Preset) { $Preset } else { 'nitro-tick42' })); PLAY-stock.bat = no engine switches ===" 'Green'
+Copy-Item -Path (Join-Path $stage '*') -Destination $OutDir -Recurse -Force
+# ---- 4. the first-run setup + display fit (what the first PLAY.bat / PLAY-Nitro.bat does), without starting the game ----------------
+# Gold: preset tick19-42; Nitro (2026-10-25: the kit's Nitro route, i76e-prepare.ps1 -Game Nitro): preset nitro-tick42, GOG's Nitro
+# keys, dgVoodoo 2.87.5 incl. D3D8 / D3D9, the Nitro shell keys. -Display not given = the monitor of the PC the copy is played on
+# is read again by every PLAY*.bat (clean-install B8: building elsewhere no longer bakes this PC's monitor in).
+$pa = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $OutDir '_i76e\i76e-prepare.ps1'), '-Game', $Game, '-NoPause')
+if ($Preset) { $pa += @('-Preset', $Preset) }
+if ($Display) { $pa += @('-Display', $Display) }
+if ($NoSupersample) { $pa += '-NoSupersample' }
+& powershell.exe @pa
+if ($LASTEXITCODE) { Die "i76e-prepare.ps1 exited $LASTEXITCODE - the copy is set up only partly; read the lines above and $OutDir\_i76e\setup.log" }
+if ($Game -eq 'Gold') { Say "=== done: $OutDir\PLAY.bat (stable) / PLAY-PREVIEW.bat (graphics preview); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
+else { Say "=== done: $OutDir\PLAY-Nitro.bat (preset $(if ($Preset) { $Preset } else { 'nitro-tick42' })); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
 exit 0

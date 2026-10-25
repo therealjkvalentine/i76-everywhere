@@ -107,7 +107,10 @@ param(
     [string]$Display = '',
     # 2026-10-23 (tester build, tools\package-patch-kit.ps1): a widescreen preset on a display no wider than 4:3 is set up at
     # that shape (Make-Wide-Conf.ps1 -AllowNarrow: a 4:3 picture, nothing widened) instead of being refused
-    [switch]$AllowNarrow
+    [switch]$AllowNarrow,
+    # 2026-10-25 (Patch Kit, Nitro): do not write the launcher .bat (PLAY-i76.bat / PLAY-Nitro.bat); the kit ships its own
+    # PLAY-Nitro.bat (setup + display step first), which this script would otherwise overwrite.
+    [switch]$NoLauncher
 )
 
 $ErrorActionPreference = 'Stop'
@@ -203,12 +206,18 @@ if (-not (Test-Path $exePath)) {
 }
 if ($isNitro) {
     Write-Host "Nitro Pack ($Exe): same engine, same recipe - no built-in FPS limiter, so the conf cap is load-bearing here."
+    $nmd5 = (Get-FileHash $exePath -Algorithm MD5).Hash.ToLower()
+    if ($nmd5 -eq '28b8ae276e88f4ffb13f17df159f09dc') { Write-Host "$Exe is the GOG Nitro Pack build (28b8ae27): expected, nothing to do." }
+    else { Write-Host "$Exe MD5 = $nmd5 (not the GOG build 28b8ae27 the Nitro preset was run on; the proxy checks every patch site's bytes and skips a mismatch, mciproxy.log lists each)." }
 } else {
     # after a first run i76.exe carries the u32x import rename; the build is identified by the kept original
     $md5From = if (Test-Path "$exePath.u32xorig") { "$exePath.u32xorig" } else { $exePath }
     $md5 = (Get-FileHash $md5From -Algorithm MD5).Hash.ToLower()
     if ($md5 -eq '60abf7bc699da72476128ddce991a3d1') {
         Write-Host "i76.exe is the known-good GOG 2019 / AiO build (20 FPS limiter built in)." -ForegroundColor Green
+    } elseif ($md5 -eq '9a232dcc2c164648cff20c414c1f9698') {
+        # clean-install 2026-10-25: the build GOG ships today (2.1.0.17); every Patch Kit test ran on it. Informational, not a warning.
+        Write-Host "i76.exe is GOG build 2.1.0.17 (9a232dcc): expected, nothing to do."
     } else {
         Write-Host "i76.exe MD5 = $md5 - NOT the GOG 2019 build (60abf7bc...) the presets were gated on." -ForegroundColor Yellow
         if ($fastPreset) {
@@ -801,6 +810,7 @@ if (-not $isNitro) {
 }
 $batName = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY-i76.bat' }
 $bat = Join-Path $GameDir $batName
+if ($NoLauncher) { $bat = Join-Path $env:TEMP "i76e-launcher-not-written-$PID.bat" }   # -NoLauncher: written to TEMP and deleted below
 $launch = "start `"`" /min powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0PLAY-i76.ps1`" -GameDir `"%~dp0.`" -Exe $Exe"
 $play16 = Join-Path $GameDir 'PLAY-16x10.bat'
 # best-wide: each .bat puts its own conf in place first, as the daily driver's PLAY.bat / PLAY-16x10.bat do
@@ -830,11 +840,12 @@ if ($fastPreset) {
     $staleStock = Join-Path $GameDir 'PLAY-stock.bat'
     if (-not $isNitro -and (Test-Path $staleStock)) { Remove-Item $staleStock -Force }
 }
+if ($NoLauncher) { Remove-Item -LiteralPath $bat -Force -ErrorAction SilentlyContinue; $bat = Join-Path $GameDir $batName; $NoShortcut = $true; Write-Host "(-NoLauncher: $batName not written; the Patch Kit's own launcher starts the game)" }
 # Desktop shortcut is a convenience, NOT load-bearing - never let it abort setup
 # (e.g. a redirected/OneDrive Desktop, or a detached session where the shell folder
 # can't be written). PLAY-i76.bat in the game folder is always the real entry point.
 try {
-    if ($NoShortcut) {
+    if ($NoLauncher) { } elseif ($NoShortcut) {
         Write-Host "$batName created (-NoShortcut: no desktop shortcut)."
     } else {
     $ws = New-Object -ComObject WScript.Shell

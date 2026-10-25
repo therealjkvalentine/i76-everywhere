@@ -12,7 +12,11 @@
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
-    UNINSTALL-i76e.bat, README-PATCH-KIT.md
+    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, README-PATCH-KIT.md
+  The same zip goes into a GOG Nitro Pack folder (nitro.exe) since 2026-10-25 (clean-install B6: Nitro needed MSVC + a repo clone
+  through Build-From-GOG): PLAY-Nitro.bat runs i76e-prepare.ps1 -Game Nitro (the same proxy, which detects nitro.exe; preset
+  nitro-tick42; dgVoodoo 2.87.5 incl. D3D8 / D3D9; the Nitro shell keys from nitshell-keys-patch.json; GOG's Nitro keys). The Gold
+  PLAY*.bat hand over to PLAY-Nitro.bat in a Nitro folder.
   The user's own i76.exe / i76shell.dll are patched IN PLACE by the first PLAY.bat (tools\patch-kit\i76e-prepare.ps1 ->
   setup-windows.ps1, Apply-Shell-Keys.ps1, deploy-u32x.ps1), originals kept beside them. A name guard refuses to stage any
   game file (i76.exe, i76shell.dll, *.ZFS, *.MW2, *.DEF, strlkup_orig.dll, I76PATCH.DLL, movies, music ...).
@@ -57,7 +61,7 @@ $files = @(
     'u32x\deploy-u32x.ps1', 'u32x\u32x_full.dll', 'u32x\README.md',
     'tools\Make-Wide-Conf.ps1', 'tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf', 'tools\i76wheel.exe',
     'tools\lint-input-map.py', 'tools\fix-shell-textentry.ps1',
-    'tools\patch-kit\Apply-Shell-Keys.ps1', 'tools\patch-kit\shell-keys-patch.json',
+    'tools\patch-kit\Apply-Shell-Keys.ps1', 'tools\patch-kit\shell-keys-patch.json', 'tools\patch-kit\nitshell-keys-patch.json',
     'tools\driver\DEBUG.bat', 'tools\driver\TRAINER.bat',
     'tools\debug\i76debug.py', 'tools\debug\debug_core.py', 'tools\debug\debug_trainer.py', 'tools\debug\debug_logger.py', 'tools\debug\debug_haptics.py', 'tools\debug\README.md',
     'tools\debug\static\index.html', 'tools\debug\static\app.js', 'tools\debug\static\app.css', 'tools\debug\static\charts.js',
@@ -114,12 +118,15 @@ $dgv5 = @{
     '3Dfx\x86\Glide.dll' = 'ad980c1620c8bb96d66d76b387aa2a1f'; '3Dfx\x86\Glide2x.dll' = '3fbe9528e7ec331e647d39155670abd2'
     '3Dfx\x86\Glide3x.dll' = '4788b491a3645dd3b576d57668e10851'; 'MS\x86\DDraw.dll' = 'c70a0ee641c3c349176fca39e4d78777'
     'MS\x86\D3DImm.dll' = '71b3bf5a20fb0df63fa1b20a3030234e'; 'dgVoodooCpl.exe' = 'ce248253d7df5df240dffe48e81ed181'
+    # Nitro (2026-10-25): setup-windows deploys D3D8 / D3D9 too on nitro.exe (NITRO-WIN11-2026-10-25 s.4, the same md5s)
+    'MS\x86\D3D8.dll' = 'e215a1eef240ba696331f38841234580'; 'MS\x86\D3D9.dll' = 'e9a6ec6b789cb960a2aa601e07fc95e6'
 }
 # dgVoodoo 2.87.3 (the fallback), dgVoodoo2_87_3.zip read 2026-10-23
 $dgv3 = @{
     '3Dfx\x86\Glide.dll' = '259a4028d85d643608d94ee8d3b9c680'; '3Dfx\x86\Glide2x.dll' = '8af442bc7718a792c0573b34bfddca78'
     '3Dfx\x86\Glide3x.dll' = '829f80cd63a4fa35e351d43491661996'; 'MS\x86\DDraw.dll' = 'ab19386de98e7368faf43615c417a1d1'
     'MS\x86\D3DImm.dll' = 'c6bdfc6233d7f32b48fc5d552c96f73a'; 'dgVoodooCpl.exe' = '487da424c4180a234caa4502628ad257'
+    'MS\x86\D3D8.dll' = '4127f3d9b8102eb6a985a48a1be8cbb5'; 'MS\x86\D3D9.dll' = '9b8e49162730507dd4515f20ebe328dd'
 }
 Ship-DgVoodoo $DgVoodooDir $dgv5 '2.87.5' (Join-Path $i76e 'dgVoodoo') ''
 Ship-DgVoodoo $DgVoodooFallbackDir $dgv3 '2.87.3' (Join-Path $i76e 'dgVoodoo-2.87.3') @"
@@ -150,6 +157,8 @@ REM           --voices de|en     German voice lines for this launch (INSTALL-EXT
 REM           --music-extra off  this launch without your extra music (INSTALL-EXTRAS.bat sets the folder)
 REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
 setlocal
+REM the kit was unzipped into a Nitro Pack folder: the Nitro launcher does the rest
+if not exist "%~dp0i76.exe" if exist "%~dp0nitro.exe" ( call "%~dp0PLAY-Nitro.bat" %* & exit /b )
 set "ARGS="
 set "PLAYARGS="
 set "SETUPONLY="
@@ -159,7 +168,7 @@ if exist "%~dp0_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a 
 if "%~1"=="" goto :go
 if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & set "PLAYARGS=%PLAYARGS% -RenderScale 1" & shift & goto :args)
 if /i "%~1"=="--display" (set "ARGS=%ARGS% -Display %~2" & shift & shift & goto :args)
-if /i "%~1"=="--setup" (set "SETUPONLY=1" & shift & goto :args)
+if /i "%~1"=="--setup" (set "SETUPONLY=1" & set "ARGS=%ARGS% -SetupOnly" & shift & goto :args)
 if /i "%~1"=="--resetup" (set "ARGS=%ARGS% -Resetup" & shift & goto :args)
 if /i "%~1"=="--voices" (set "I76_VOICES=%~2" & shift & shift & goto :args)
 if /i "%~1"=="--music-extra" (set "I76_MUSIC_EXTRA=%~2" & shift & shift & goto :args)
@@ -169,7 +178,7 @@ goto :args
 :go
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Preset $preset %ARGS%
 if errorlevel 1 ( pause & exit /b 1 )
-if defined SETUPONLY ( pause & exit /b 0 )
+if defined SETUPONLY exit /b 0
 start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe i76.exe -Preset $preset -LosslessScaling none$extra%PLAYARGS%
 "@
 }
@@ -178,6 +187,37 @@ Set-Content -LiteralPath (Join-Path $Stage 'PLAY.bat') (Bat 'tick19-42' '' 'STAB
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW.bat') (Bat 'preview' '' 'EXPERIMENTAL GRAPHICS PREVIEW (smoothed + morphing terrain, 2300 m view fading out at the far edge, sparser bushes, 1000 m mirror with full textures) on the same stable base') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY-T05.bat') (Bat 'tick19-42' $t05 'STABLE, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW-T05.bat') (Bat 'preview' $t05 'EXPERIMENTAL GRAPHICS PREVIEW, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY-Nitro.bat') @"
+@echo off
+REM Interstate '76 NITRO PACK - i76-everywhere tester build $Stamp (repo $sha): for a GOG Nitro Pack folder (the one with nitro.exe).
+REM The same set as Gold's PLAY.bat where Nitro has it: tick 41.667 ms, up to 120 fps, widescreen (Hor+), 1200 m view, dgVoodoo 2.87.5,
+REM the shell keys (Enter / Y / N / Esc in the menus). GOG's own Nitro keys are kept. Preset nitro-tick42.
+REM Options:  --no-supersample   lighter on the GPU (3D at the monitor's size, not 2x)
+REM           --display WxH      size the picture for this monitor size instead of the one Windows reports
+REM           --setup            run the setup / display step only, do not start the game     --resetup  run the setup again
+REM           --music-extra off  this launch without your extra music (INSTALL-EXTRAS.bat sets the folder)
+REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
+setlocal
+set "ARGS="
+set "PLAYARGS="
+set "SETUPONLY="
+if exist "%~dp0_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%~dp0_i76e\extras.env") do set "%%a=%%b"
+:args
+if "%~1"=="" goto :go
+if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & set "PLAYARGS=%PLAYARGS% -RenderScale 1" & shift & goto :args)
+if /i "%~1"=="--display" (set "ARGS=%ARGS% -Display %~2" & shift & shift & goto :args)
+if /i "%~1"=="--setup" (set "SETUPONLY=1" & set "ARGS=%ARGS% -SetupOnly" & shift & goto :args)
+if /i "%~1"=="--resetup" (set "ARGS=%ARGS% -Resetup" & shift & goto :args)
+if /i "%~1"=="--music-extra" (set "I76_MUSIC_EXTRA=%~2" & shift & shift & goto :args)
+echo unknown option: %~1
+shift
+goto :args
+:go
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Game Nitro -Preset nitro-tick42 %ARGS%
+if errorlevel 1 ( pause & exit /b 1 )
+if defined SETUPONLY exit /b 0
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe nitro.exe -Preset nitro-tick42 -LosslessScaling none%PLAYARGS%
+"@ -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'UNINSTALL-i76e.bat') @"
 @echo off
 REM Puts your Interstate '76 folder back the way GOG installed it (the setup kept every original). Close the game first.
@@ -204,11 +244,11 @@ pause
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\README.md') -Destination (Join-Path $Stage 'README-PATCH-KIT.md') -Force
 
 # ---- the game-byte guard: nothing of GOG's may be in the stage --------------------------------------------------------
-$guard = '(?i)^(i76|nitro|splash|i76wheel_orig)\.exe$|^i76shell|\.(zfs|zix|mw2|def|smk|mp3|wav|pcx|fnt|ttf|cur|ovl|msn|vcf|map)$|^strlkup_orig|^i76patch|^(goggame|win32|audiere|smackw32|anetdll|zglide|zdx5draw|zredline|getinfo|detect3d|get3d|dsetup)'
+$guard = '(?i)^(i76|nitro|splash|i76wheel_orig)\.exe$|^i76shell|^nitshell\.dll|\.(zfs|zix|mw2|def|smk|mp3|wav|pcx|fnt|ttf|cur|ovl|msn|vcf|map)$|^strlkup_orig|^i76patch|^(goggame|win32|audiere|smackw32|anetdll|zglide|zdx5draw|zredline|getinfo|detect3d|get3d|dsetup)'
 $bad = @(Get-ChildItem -LiteralPath $Stage -Recurse -File | Where-Object { $_.Name -match $guard -and $_.Name -ne 'input.map' })
 if ($bad.Count) { Die "game files in the stage - NOT packed:`n  $(($bad | ForEach-Object { $_.FullName }) -join "`n  ")" }
 $allowedExe = @('i76wheel.exe', 'dgVoodooCpl.exe', 'AutoHotkeyU32.exe')
-$exes = @(Get-ChildItem -LiteralPath $Stage -Recurse -File | Where-Object { $_.Extension -match '^\.(exe|dll)$' -and $_.Name -notin $allowedExe -and $_.Name -notmatch '^(Glide|Glide2x|Glide3x|DDraw|D3DImm|Strlkup|u32x_full)\.dll$' })
+$exes = @(Get-ChildItem -LiteralPath $Stage -Recurse -File | Where-Object { $_.Extension -match '^\.(exe|dll)$' -and $_.Name -notin $allowedExe -and $_.Name -notmatch '^(Glide|Glide2x|Glide3x|DDraw|D3DImm|D3D8|D3D9|Strlkup|u32x_full)\.dll$' })
 if ($exes.Count) { Die "unexpected binaries in the stage: $(($exes | ForEach-Object { $_.Name }) -join ', ')" }
 
 # ---- VERSION.txt + MD5SUMS, then the zip -------------------------------------------------------------------------------
@@ -218,7 +258,7 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-patch-kit.ps1 from repo commit $sha",
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
-    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview)",
+    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview); PLAY-Nitro.bat = the Nitro Pack (nitro.exe), preset nitro-tick42",
     "INSTALL-EXTRAS.bat = optional extras (_i76e\i76e-extras.ps1 + extras.json: pinned downloads of community maps, opentrack, Python; German voices from the user's disc; private extra music)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }

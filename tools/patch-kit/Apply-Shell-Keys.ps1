@@ -16,14 +16,18 @@
   -Revert puts the backup back. -Status only reports.
 
       tools\patch-kit\Apply-Shell-Keys.ps1 -GameDir <game folder> [-Revert] [-Status]
+      tools\patch-kit\Apply-Shell-Keys.ps1 -GameDir <Nitro Pack folder> -Shell nitshell.dll     (2026-10-25: the Nitro shell, F7 + M2 / K1-K4
+                                         from nitshell-keys-patch.json, GOG f804f50d -> a32ffba6; tools\patch-nitshell-f7.py + -modals.py)
   Exit 0 = applied / already applied / reverted; 2 = a shell build the patch does not know (nothing touched).
 #>
-param([Parameter(Mandatory)][string]$GameDir, [string]$Patch = '', [switch]$Revert, [switch]$Status)
+param([Parameter(Mandatory)][string]$GameDir, [string]$Patch = '', [switch]$Revert, [switch]$Status,
+      [ValidateSet('i76shell.dll', 'nitshell.dll')][string]$Shell = 'i76shell.dll')
 $ErrorActionPreference = 'Stop'
-if (-not $Patch) { $Patch = Join-Path $PSScriptRoot 'shell-keys-patch.json' }
-$dll = Join-Path $GameDir 'i76shell.dll'
+$isNit = ($Shell -eq 'nitshell.dll')
+if (-not $Patch) { $Patch = Join-Path $PSScriptRoot $(if ($isNit) { 'nitshell-keys-patch.json' } else { 'shell-keys-patch.json' }) }
+$dll = Join-Path $GameDir $Shell
 $backup = "$dll.pre-i76e-keys"
-if (-not (Test-Path -LiteralPath $dll)) { throw "no i76shell.dll in $GameDir" }
+if (-not (Test-Path -LiteralPath $dll)) { throw "no $Shell in $GameDir" }
 if (-not (Test-Path -LiteralPath $Patch)) { throw "patch data not found: $Patch" }
 function Md5([byte[]]$b) { ([BitConverter]::ToString([Security.Cryptography.MD5]::Create().ComputeHash($b)) -replace '-', '').ToLower() }
 
@@ -32,27 +36,28 @@ $bases = @{}; foreach ($p in $j.bases.PSObject.Properties) { $bases[$p.Name] = $
 $afters = @{}; foreach ($k in $bases.Keys) { $afters[$bases[$k].after] = $k }
 $bytes = [IO.File]::ReadAllBytes($dll); $cur = Md5 $bytes
 # F7's Modal_Ok hook at file offset 0xab9f: e9 1c 4c 03 00 in every patched build, 83 f8 01 75 e5 in the stock ones
-$marker = ($bytes.Length -gt 0xaba4 -and $bytes[0xab9f] -eq 0xe9 -and $bytes[0xaba0] -eq 0x1c -and $bytes[0xaba1] -eq 0x4c -and $bytes[0xaba2] -eq 0x03)
+$marker = (-not $isNit) -and ($bytes.Length -gt 0xaba4 -and $bytes[0xab9f] -eq 0xe9 -and $bytes[0xaba0] -eq 0x1c -and $bytes[0xaba1] -eq 0x4c -and $bytes[0xaba2] -eq 0x03)
 $state = if ($bases.ContainsKey($cur)) { "stock: $($bases[$cur].name)" }
          elseif ($afters.ContainsKey($cur)) { "patched: $($bases[$afters[$cur]].name) + keys" }
          elseif ($marker) { 'patched (and changed since, e.g. the u32x import rename)' }
          else { 'a shell build this patch does not know' }
-if ($Status) { "i76shell.dll md5 $cur - $state; backup $(if (Test-Path -LiteralPath $backup) { 'present' } else { 'none' })"; exit 0 }
+if ($Status) { "$Shell md5 $cur - $state; backup $(if (Test-Path -LiteralPath $backup) { 'present' } else { 'none' })"; exit 0 }
 $gameFull = (Resolve-Path -LiteralPath $GameDir).Path.TrimEnd('\') + '\'
-if (@(Get-Process i76 -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($gameFull, [StringComparison]::OrdinalIgnoreCase) }).Count) { throw 'close the game first - i76shell.dll is in use' }
+if (@(Get-Process i76, nitro -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($gameFull, [StringComparison]::OrdinalIgnoreCase) }).Count) { throw "close the game first - $Shell is in use" }
 
 if ($Revert) {
     if (-not (Test-Path -LiteralPath $backup)) { "shell keys: no $(Split-Path -Leaf $backup) - nothing to revert"; exit 0 }
     Copy-Item -LiteralPath $backup -Destination $dll -Force
-    "shell keys: i76shell.dll restored from $(Split-Path -Leaf $backup) (md5 $(Md5 ([IO.File]::ReadAllBytes($dll))))"; exit 0
+    "shell keys: $Shell restored from $(Split-Path -Leaf $backup) (md5 $(Md5 ([IO.File]::ReadAllBytes($dll))))"; exit 0
 }
 if ($afters.ContainsKey($cur) -or $marker) { "shell keys: already applied ($state) - nothing to do"; exit 0 }
 if (-not $bases.ContainsKey($cur)) {
-    Write-Host "shell keys: i76shell.dll md5 $cur is $state (known: GOG 2.1.0.17 deb41008, the AiO shell 8960fa16) - not touched. The game works without it: the popups answer to the mouse." -ForegroundColor Yellow
+    $known = ($bases.Keys | ForEach-Object { $bases[$_].name }) -join ', '
+    Write-Host "shell keys: $Shell md5 $cur is $state (known: $known) - not touched. The game works without it: the popups answer to the mouse." -ForegroundColor Yellow
     exit 2
 }
 $b = $bases[$cur]
-if ($bytes.Length -ne [int]$b.size) { throw "i76shell.dll is $($bytes.Length) B, expected $($b.size)" }
+if ($bytes.Length -ne [int]$b.size) { throw "$Shell is $($bytes.Length) B, expected $($b.size)" }
 if (-not (Test-Path -LiteralPath $backup)) { Copy-Item -LiteralPath $dll -Destination $backup }
 $n = 0
 foreach ($run in $b.runs) {
