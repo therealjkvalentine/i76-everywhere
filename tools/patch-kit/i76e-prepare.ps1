@@ -154,7 +154,7 @@ if ($need) {
         if ($rc -ne 0 -and $rc -ne 2) { Fail "Apply-Shell-Keys.ps1 exited $rc" }
         $shellKeys = ($rc -eq 0)
         if (-not $isNitro) {
-            try { & (Join-Path $repo 'tools\fix-shell-textentry.ps1') -GameDir $gameDir 2>&1 | ForEach-Object { Log "  $_" } } catch { Log "  text-entry check: $($_.Exception.Message)" }
+            try { & (Join-Path $repo 'tools\fix-shell-textentry.ps1') -GameDir $gameDir *>&1 | ForEach-Object { Log "  $_" } } catch { Log "  text-entry check: $($_.Exception.Message)" }
         }
         # 2. the installer
         $argv = @('-GameDir', $gameDir, '-DgVoodooDir', (Join-Path $here 'dgVoodoo'), '-Preset', $Preset, '-NoShortcut', '-Display', "${W}x${H}")
@@ -236,8 +236,8 @@ if ($didSetup -or $SetupOnly) {
         Write-Host '    - GOG''s own Nitro keys, plus mouse buttons and gamepad stick / buttons 1, 3, 4'
     }
     Write-Host ''
-    Write-Host ("  Your monitor: {0}x{1} ({2}), read from {3}. The 3D picture is drawn at {4}x{5}{6}." -f $W, $H, $shape, $from, ($W * $scale), ($H * $scale), $(if ($scale -eq 2) { ' (2x, smoother edges)' } else { '' }))
-    Write-Host ("  Field of view: {0:0} degrees across your screen ({1:0} at the old 4:3 shape): you see more to the sides, nothing is stretched." -f $fovW, $fov)
+    Write-Host ("  Your monitor: {0}x{1} ({2}, from {3}); the 3D is drawn at {4}x{5}{6}." -f $W, $H, $shape, $from, ($W * $scale), ($H * $scale), $(if ($scale -eq 2) { ' (2x: smoother edges)' } else { '' }))
+    Write-Host ("  Field of view: {0:0} degrees across ({1:0} at the old 4:3 shape) - more to the sides, nothing stretched." -f $fovW, $fov)
     Write-Host ''
     $bat = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY.bat' }
     Write-Host "  To play: double-click $bat in this folder (it checks your monitor each time and starts the game)."
