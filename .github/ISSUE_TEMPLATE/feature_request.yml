@@ -5,7 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Ideas from play are the most useful kind: say what you were doing when you wanted it. A confirmed
+        **For ideas you want others to vote on, post in [Discussions > Ideas](https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/ideas)**
+        (questions go to [Discussions > Q&A](https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/q-a)).
+        Use this form for a concrete request we can track. Ideas from play are the most useful kind: say what you were doing when you wanted it. A confirmed
         "worked / didn't work on my hardware" for an untested platform is a great contribution too - please say what you ran.
   - type: dropdown
     id: kind

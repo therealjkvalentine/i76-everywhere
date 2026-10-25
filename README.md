@@ -51,7 +51,9 @@ To change settings (render scale, antialiasing, field of view, draw distance, fo
 ## Problems and feedback
 
 Everything goes through **[GitHub Issues](https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose)**: pick
-*Something went wrong*, *Network / LAN game problem* or *Idea or request*, and the form asks for what we need. Attach these
+*Something went wrong*, *Network / LAN game problem* or *Idea or request*, and the form asks for what we need. Ideas you want
+others to vote on go to [Discussions > Ideas](https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/ideas),
+questions to [Discussions > Q&A](https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/q-a). Attach these
 three files from the game folder (the one with `i76.exe`; every log's first line repeats this request):
 
 | file | what it says |

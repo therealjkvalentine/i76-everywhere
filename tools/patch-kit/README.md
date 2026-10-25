@@ -274,7 +274,9 @@ step (42 ms) behind a key press. Both are expected; we would still like to hear 
 ## Problems and feedback
 
 Report anything - a bug, a network game that went wrong, an idea - on **GitHub Issues**:
-https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose. The form asks for what we need. Attach these files from
+https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose. The form asks for what we need. (Ideas you want others to vote
+on: Discussions > Ideas, https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/ideas; questions: Discussions >
+Q&A.) Attach these files from
 the game folder (the folder with `i76.exe`; the first line of every log repeats this request):
 
 | file | what it says |

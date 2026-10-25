@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Ideas you want others to vote on
+    url: https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/ideas
+    about: Post a feature idea in Discussions > Ideas, where players upvote it. ROADMAP.md shows what is planned.
+  - name: Questions (how do I ...?)
+    url: https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/q-a
+    about: Ask in Discussions > Q&A - setup, settings, controllers, multiplayer.
   - name: Buy the game (required to play)
     url: https://www.gog.com/en/game/interstate76
     about: This project ships no game content. You need your own GOG copy (Interstate '76 Arsenal; Nitro Pack for Nitro).
