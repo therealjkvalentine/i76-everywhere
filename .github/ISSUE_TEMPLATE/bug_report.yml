@@ -1,63 +1,84 @@
-name: "Something didn't work"
-description: A setup step, script, or in-game behavior that went wrong.
-labels: ["bug"]
+name: "Something went wrong"
+description: The game, the Patch Kit / Mac Kit / Deck Kit, a launcher or a tool did not do what it should.
+labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the report! This is a game port, so **in-game observations are the best data.**
-        A screenshot of what you saw beats a description. Please don't attach game files or saves
-        that aren't your own throwaway test data.
+        Thanks for taking the time. **Three files answer most questions** - please attach them (drag them into the box at the end):
+
+        | file | where it is |
+        |---|---|
+        | `mciproxy.log` | the game folder (the one with `i76.exe` / `nitro.exe`). Mac: inside the app - right-click it, *Show Package Contents*, `Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76/`. Steam Deck: `~/Games/Interstate76/game/` |
+        | `play-i76.log` | the same game folder (Windows). Steam Deck: `deck-launch.log` in `~/Games/Interstate76/` |
+        | `i76-settings.txt` | the same game folder (Windows; `SETTINGS.bat` opens it) |
+
+        If the setup itself failed, also attach `_i76e\setup.log`. A crash is a line starting `CRASH:` in `mciproxy.log`.
+        The logs hold no personal data except your Windows / Mac user name in folder paths (they also name your monitor size and
+        controller model). Please don't attach game files or saves that aren't your own throwaway test data.
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Interstate '76 (Gold / Arsenal)
+        - Interstate '76 Nitro Pack
+        - Both
+        - Not about one game (a tool, the save editor, the docs)
+    validations:
+      required: true
   - type: dropdown
     id: platform
     attributes:
       label: Platform
       options:
-        - Apple Silicon Mac
-        - Intel Mac
+        - Windows 11
+        - Windows 10
+        - Mac (Apple Silicon)
+        - Mac (Intel)
         - Steam Deck
-        - Windows
-        - Android / Winlator
-        - Save editor (browser)
+        - Linux / other Wine
         - Other
     validations:
       required: true
   - type: input
-    id: hardware
+    id: build
     attributes:
-      label: Hardware / OS version
-      placeholder: "e.g. M4 MacBook Air, macOS 26.1 · or Steam Deck OLED, SteamOS 3.x"
+      label: Kit version and launcher
+      description: The kit version is in `_i76e\VERSION.txt` (Windows) or the zip's name. Which launcher did you start?
+      placeholder: "e.g. Patch Kit v0.8.0, PLAY.bat --no-supersample"
   - type: input
-    id: game-source
+    id: monitor
     attributes:
-      label: Game source
-      placeholder: "e.g. GOG Interstate 76 Arsenal, offline installer"
+      label: Monitor and graphics card
+      placeholder: "e.g. 2560x1440 at 144 Hz, RTX 3060 · or MacBook Air M2 built-in screen"
   - type: textarea
     id: what-happened
     attributes:
-      label: What happened vs. what you expected
-      placeholder: "I ran X. I expected Y. Instead I got Z."
+      label: What happened, and what did you expect?
+      placeholder: "I started PLAY.bat and chose TRIP. I expected the garage. Instead the screen stayed black."
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: Steps to make it happen again
       placeholder: |
         1. …
         2. …
-        3. …
+        3. … (happens every time / once in five tries / once)
   - type: textarea
-    id: logs
+    id: files
     attributes:
-      label: Relevant output / screenshot
-      description: Paste terminal output in a code block, or drag in a screenshot.
+      label: Logs, settings file, screenshots
+      description: Drag `mciproxy.log`, `play-i76.log` and `i76-settings.txt` in here (and a screenshot - Win+PrtScn saves one to Pictures\Screenshots).
+    validations:
+      required: true
   - type: checkboxes
-    id: checked-docs
+    id: checks
     attributes:
-      label: Before filing
+      label: Before sending
       options:
-        - label: I checked docs/VERIFIED-FIXES.md and the docs/README.md doc map for a known answer.
-          required: true
+        - label: I was at the PC itself, not on Remote Desktop (the game cannot start its 3D over Remote Desktop).
         - label: This report contains no copyrighted game content.
           required: true

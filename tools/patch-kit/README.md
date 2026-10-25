@@ -66,12 +66,13 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 | `PLAY-Nitro.bat` | Only for the **Nitro Pack** folder (see "Nitro Pack" below). In a Gold folder it says so and does nothing. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
 | `INSTALL-EXTRAS.bat` | **Optional extras** (below): community maps, head look, Python for the debug tool, German voices, your own extra music. |
+| **`SETTINGS.bat`** | Opens **`i76-settings.txt`** in Notepad: render scale, antialiasing, field of view, draw distance, force feedback, sound, co-op (see "Settings" below). |
 
 Options you can add after the launcher name (open a command window in the folder, or edit a shortcut):
 
 - `PLAY.bat --no-supersample` - lighter on the graphics card: the 3D is rendered at your monitor's size instead
   of twice that. Use it if the frame rate drops under ~60 or the card is weak / integrated. It is the same as
-  `I76_RENDER_SCALE = '1'` in `presets\local.psd1` (Graphics settings, below), which keeps it for every launch.
+  `render scale = 1` in `i76-settings.txt` (Settings, below), which keeps it for every launch.
 - `PLAY.bat --display 1920x1080` - size the picture for this monitor size instead of the one Windows reports
   (for example when the game opens on the wrong monitor). The 3D is then rendered at twice that size.
 - `PLAY.bat --setup` - run the setup / display step only, without starting the game.
@@ -119,7 +120,7 @@ checked against a pinned SHA-256 (`_i76e\extras.json`); everything it installs s
 Every start reads the size of your **main** monitor and, when it changed, rewrites the display settings for it:
 the 3D is rendered at twice your monitor's size (a real supersample, no shimmer) and shown at your monitor's own
 shape - 21:9, 16:9, 16:10 and 4:3 all come out right, nothing is stretched. The 640x480 menus, garage and movies
-are shown 4:3 with side bars. Widescreen shows you MORE of the world (horizontal field of view 90° on 4:3 -> about 122° on a 21:9 panel, 106° on 16:9), nothing is stretched; `I76_FOV` changes the base (Graphics settings). The game runs in a borderless window the size of the screen, so Alt-Tab works.
+are shown 4:3 with side bars. Widescreen shows you MORE of the world (horizontal field of view 90° on 4:3 -> about 122° on a 21:9 panel, 106° on 16:9), nothing is stretched; `field of view` in `i76-settings.txt` changes the base (Settings). The game runs in a borderless window the size of the screen, so Alt-Tab works.
 
 The developer has only ever played this at 3440x1440. On other sizes the numbers are computed; they were checked on his
 PC with the game set to 1920x1080 and 2560x1440 (the picture came out 16:9, nothing stretched, and the mouse
@@ -127,7 +128,24 @@ pointer landed on the menu buttons all the way from TRIP to the garage's DONE), 
 buttons, that is exactly what we want to hear about.**
 Tell us your monitor size and send a screenshot (Win+PrtScn saves one to Pictures\Screenshots).
 
-## Graphics settings (`presets\local.psd1`)
+## Settings (`i76-settings.txt`)
+
+**To change settings, open `i76-settings.txt`** in the game folder - double-click `SETTINGS.bat`, which opens it in Notepad. The first
+start writes it for your PC. Every setting is one line, `name = value`, with a note above it that says what it does, the allowed values
+and the value it has now; groups: Graphics (render scale, antialiasing, field of view, draw distance, terrain / object / shadow detail,
+bushes, mirror, refresh rate, windowed), Controls (head look, force feedback, pavement feel, mouse wheel), Sound (effects / voice /
+music volume), Multiplayer (co-op scaling and damage, computer-car skill, the 1997 network menu) and Advanced. For example:
+
+    # allowed: 1, 1.5, 2, default.   now: 2 = the 3D drawn at 3840x2160 (the launcher's default)
+    render scale = 1
+
+`default` keeps the launcher's choice. Change a value, save (Ctrl+S), close Notepad, start the game. `play-i76.log` lists every value
+the launcher took from the file; a line it cannot read is listed there with its line number and skipped, and the game starts anyway.
+Delete the file to get a fresh one. Order, lowest first: the launcher's preset, `i76-settings.txt`, `presets\local.psd1` (below, for
+power users), the options after the launcher's name (`--no-supersample`). The stock launchers (PLAY-stock / PLAY-VANILLA) use only the
+controls settings.
+
+### For power users: `presets\local.psd1`
 
 Every graphics setting is a key in a preset, render size and antialiasing included (since 2026-10-25). To tune this PC, copy one of the
 tier files in `presets\` to `presets\local.psd1` and edit it: its keys replace the launcher's preset, a key set to `''` goes back to the
@@ -231,7 +249,7 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
 
 ## What to look at, and what to tell us
 
-Send your answers, screenshots and `mciproxy.log` to whoever gave you this kit.
+Send your answers, screenshots and the files below as a GitHub issue (see "Problems and feedback").
 
 1. **Terrain popping** (the main thing we want checked). Start `PLAY-T05.bat`, press `F6` for the hood view and drive
    the road up over the ridge and down to the barn (about two minutes; `I` starts the engine if it is off). Watch
@@ -252,6 +270,22 @@ crash). Screenshots help a lot.
 Two things are different on the GOG Galaxy build of the game (`_i76e\setup.log` names the build you have): the
 music comes from GOG's own player rather than our fix, and a gamepad / wheel input can lag up to one simulation
 step (42 ms) behind a key press. Both are expected; we would still like to hear whether you notice the second.
+
+## Problems and feedback
+
+Report anything - a bug, a network game that went wrong, an idea - on **GitHub Issues**:
+https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose. The form asks for what we need. Attach these files from
+the game folder (the folder with `i76.exe`; the first line of every log repeats this request):
+
+| file | what it says |
+|---|---|
+| `mciproxy.log` | what our engine fixes did, the display and pointer mapping, any `CRASH:` line |
+| `play-i76.log` | what the launcher switched on: preset, your settings, render size, head look, force feedback |
+| `i76-settings.txt` | your settings |
+| `_i76e\setup.log` | only if the first-run setup failed |
+
+The logs contain no personal data except your Windows user name in folder paths (they also name your monitor size and controller
+model). For a network game, attach the files from every machine (rename them `host-...`, `joiner-...`).
 
 ## If something goes wrong
 
@@ -275,7 +309,7 @@ It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`,
 `input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: right
 after it, every one of the GOG install's files is byte-identical to a fresh install). One file will differ if you have played: the game
 itself rewrites `Lee.fot` as you play (Gold), so a hash check after playing shows that one difference - that is the game's, not ours.
-Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`,
+Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `i76-settings.txt`,
 `README-PATCH-KIT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
 `i76shell.dll.pre-i76e-keys` / `nitshell.dll.pre-i76e-keys`, `input.map.stock-*` / `input.map.pre-windows-setup`) are safe to delete. Bookmarks
 stay: if the setup copied in our set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG

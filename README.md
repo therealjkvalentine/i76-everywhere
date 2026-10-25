@@ -44,8 +44,24 @@ feedback with a tuning page** in your browser, **head look** (opentrack), and a 
 3. Double-click **`PLAY.bat`** (first run: ten seconds of setup that lists every file it changes). `PLAY-PREVIEW.bat` is
    the 2.3 km experimental look. `UNINSTALL-i76e.bat` undoes everything.
 
-Problems: open an [issue](https://github.com/therealjkvalentine/i76-everywhere/issues) with `mciproxy.log` from the game
-folder. The full guide is `README-PATCH-KIT.md` in the zip ([tools/patch-kit/README.md](tools/patch-kit/README.md)).
+To change settings (render scale, antialiasing, field of view, draw distance, force feedback, sound, co-op ...), double-click
+**`SETTINGS.bat`**: it opens `i76-settings.txt` in Notepad, one setting per line with its allowed values. The full guide is
+`README-PATCH-KIT.md` in the zip ([tools/patch-kit/README.md](tools/patch-kit/README.md)).
+
+## Problems and feedback
+
+Everything goes through **[GitHub Issues](https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose)**: pick
+*Something went wrong*, *Network / LAN game problem* or *Idea or request*, and the form asks for what we need. Attach these
+three files from the game folder (the one with `i76.exe`; every log's first line repeats this request):
+
+| file | what it says |
+|---|---|
+| `mciproxy.log` | what our engine fixes did, the display and pointer mapping, any `CRASH:` line |
+| `play-i76.log` | what the launcher switched on (preset, settings, render size, head look, force feedback) |
+| `i76-settings.txt` | your settings |
+
+Plus `_i76e\setup.log` if the first-run setup failed. The logs contain no personal data except your Windows user name in folder
+paths (they also name your monitor size and controller model). For a network game, attach the files from every machine.
 
 ---
 
@@ -53,7 +69,7 @@ folder. The full guide is `README-PATCH-KIT.md` in the zip ([tools/patch-kit/REA
 
 Three ways, pick any:
 
-1. **Play it and tell me.** Try the kit on your machine and monitor, report what breaks (`mciproxy.log` from the game folder says most of it), and if you make videos or write about old games, I'm happy to send a ready-to-run build or talk through how it was done.
+1. **Play it and tell me.** Try the kit on your machine and monitor, report what breaks in an [issue](#problems-and-feedback) (`mciproxy.log` from the game folder says most of it), and if you make videos or write about old games, I'm happy to send a ready-to-run build or talk through how it was done.
 2. **Build it with me.** The next big steps need more hands: HD art and a renderer that can show it, more platforms and peripherals (wheels, pads, motion rigs), new missions and arenas, and plain code review. Issues and pull requests are open; the records in `docs/records/` show how every change was measured.
 3. **Buy my family a dinner.** This took hundreds of hours, a lot of tokens, and every computer in the house running tests overnight, Macs and Steam Deck included, while my family waited to use them. If it gave you back a game you love: [buymeacoffee.com/therealjkvalentine](https://buymeacoffee.com/therealjkvalentine).
 

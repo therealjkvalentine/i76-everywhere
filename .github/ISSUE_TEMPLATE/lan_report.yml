@@ -1,0 +1,86 @@
+name: "Network / LAN game problem"
+description: Hosting, joining or playing a multiplayer game (LAN, co-op, computer cars) went wrong.
+labels: ["multiplayer", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A network game has at least two machines, so **please attach the logs from every machine** - the host's and each joiner's
+        `mciproxy.log` and `play-i76.log` (in the game folder, the one with `i76.exe` / `nitro.exe`; on a Mac inside the app, see
+        the "Something went wrong" form; on the Steam Deck `~/Games/Interstate76/game/mciproxy.log` and `deck-launch.log`) and each
+        machine's `i76-settings.txt`. Rename them so we can tell them apart, e.g. `host-mciproxy.log`, `joiner1-mciproxy.log`.
+        The logs hold no personal data except your user name in folder paths.
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Interstate '76 (Gold / Arsenal)
+        - Interstate '76 Nitro Pack
+    validations:
+      required: true
+  - type: textarea
+    id: machines
+    attributes:
+      label: The machines
+      description: One line each - who hosted, who joined, the platform and the kit version / launcher.
+      placeholder: |
+        host:    Windows 11 desktop, Patch Kit v0.8.0, PLAY.bat
+        joiner:  MacBook Air M2, Mac Kit v0.8.0
+        joiner:  Steam Deck, Deck Kit v0.8.0
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How are they connected?
+      options:
+        - Same home network (Wi-Fi or cable)
+        - Over the internet (relay / VPN such as Tailscale)
+        - Other / not sure
+  - type: dropdown
+    id: game-type
+    attributes:
+      label: Game type
+      options:
+        - Melee (deathmatch arena)
+        - Melee with computer cars
+        - Co-op mission / campaign
+        - Capture / team game
+        - Race
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: arena
+    attributes:
+      label: Arena or mission
+      placeholder: "e.g. Oil Well Well, co-op scene 3"
+  - type: dropdown
+    id: stage
+    attributes:
+      label: When did it go wrong?
+      options:
+        - The joiner does not see the host's game
+        - Joining fails or hangs
+        - Starting the game (loading)
+        - During play (desync, cars in the wrong place, damage)
+        - A crash or freeze during play
+        - At the end of the match / restarting
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What went wrong?
+      placeholder: "We started a melee with computer cars; after about 2 minutes the joiner's screen froze, the host carried on."
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Logs from every machine
+      description: Drag the renamed `mciproxy.log` / `play-i76.log` / `i76-settings.txt` files in here.
+    validations:
+      required: true

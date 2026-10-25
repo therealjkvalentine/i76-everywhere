@@ -1,11 +1,11 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Buy the game (required to play)
     url: https://www.gog.com/en/game/interstate76
-    about: This project ships no game content. You need a legitimate GOG copy.
-  - name: Read the doc map first
-    url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/README.md
-    about: What works, what's a settled dead end — check before filing.
+    about: This project ships no game content. You need your own GOG copy (Interstate '76 Arsenal; Nitro Pack for Nitro).
+  - name: Patch Kit help (install, launchers, settings, what to attach)
+    url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/tools/patch-kit/README.md
+    about: The kit's README - "If something goes wrong" has the common fixes; "Problems and feedback" says what to attach.
   - name: Every verified fix, one table
     url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/VERIFIED-FIXES.md
     about: Your answer may already be here.

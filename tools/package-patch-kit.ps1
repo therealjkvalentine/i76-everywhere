@@ -12,7 +12,7 @@
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
-    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, README-PATCH-KIT.md
+    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, README-PATCH-KIT.md
   The same zip goes into a GOG Nitro Pack folder (nitro.exe) since 2026-10-25 (clean-install B6: Nitro needed MSVC + a repo clone
   through Build-From-GOG): PLAY-Nitro.bat runs i76e-prepare.ps1 -Game Nitro (the same proxy, which detects nitro.exe; preset
   nitro-tick42; dgVoodoo 2.87.5 incl. D3D8 / D3D9; the Nitro shell keys from nitshell-keys-patch.json; GOG's Nitro keys). The Gold
@@ -240,6 +240,23 @@ if /i "%~1"=="--list" (
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-extras.ps1" %*
 pause
+"@ -Encoding ascii
+# SETTINGS.bat (2026-10-25, settings-file lane, docs\records\SETTINGS-FILE-2026-10-25.md): opens i76-settings.txt in Notepad. PLAY-i76.ps1
+# writes the file on the first start (and -WriteSettings writes it on demand once the setup has put PLAY-i76.ps1 + presets\ in the folder).
+Set-Content -LiteralPath (Join-Path $Stage 'SETTINGS.bat') @"
+@echo off
+REM Interstate '76 - i76-everywhere Patch Kit ${Version}: opens i76-settings.txt (graphics, controls, sound, multiplayer) in Notepad.
+REM Change a value after the = sign, save, close Notepad, start the game with PLAY.bat. README-PATCH-KIT.md "Settings" explains it.
+setlocal
+set "PRESET=tick19-42"
+if not exist "%~dp0i76.exe" if exist "%~dp0nitro.exe" set "PRESET=nitro-tick42"
+if not exist "%~dp0i76-settings.txt" if exist "%~dp0PLAY-i76.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Preset %PRESET% -WriteSettings >nul
+if not exist "%~dp0i76-settings.txt" (
+  echo i76-settings.txt is written by the first start. Start PLAY.bat ^(PLAY-Nitro.bat for the Nitro Pack^) once, then run SETTINGS.bat again.
+  pause
+  exit /b 1
+)
+start "" notepad.exe "%~dp0i76-settings.txt"
 "@ -Encoding ascii
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\README.md') -Destination (Join-Path $Stage 'README-PATCH-KIT.md') -Force
 

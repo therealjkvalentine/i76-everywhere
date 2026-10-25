@@ -1,40 +1,48 @@
-name: "Idea, request, or new-platform recipe"
-description: A feature, a fix to port to another platform, or a "it works on my X" data point.
-labels: ["enhancement"]
+name: "Idea or request"
+description: A feature, a setting you miss, a fix to bring to another platform, or a "it works on my X" data point.
+labels: ["enhancement", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        For untested claims (the phone-port playbook, the BETA Mac installer), a confirmed
-        "worked / didn't work on my hardware" is a great contribution — please say what you ran.
+        Ideas from play are the most useful kind: say what you were doing when you wanted it. A confirmed
+        "worked / didn't work on my hardware" for an untested platform is a great contribution too - please say what you ran.
   - type: dropdown
     id: kind
     attributes:
       label: What is this?
       options:
         - Feature / improvement idea
+        - A setting I would like in i76-settings.txt
         - Port an existing fix to another platform
-        - Test result for an untested/BETA claim
+        - Test result for an untested / BETA claim
         - Format / reverse-engineering finding
         - Docs improvement
     validations:
       required: true
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Interstate '76 (Gold / Arsenal)
+        - Interstate '76 Nitro Pack
+        - Both / not game-specific
   - type: textarea
     id: detail
     attributes:
       label: Details
-      placeholder: "What you'd like, or what you tested and observed."
+      placeholder: "What you'd like and why, or what you tested and observed."
     validations:
       required: true
   - type: input
     id: platform
     attributes:
       label: Platform / hardware (if relevant)
-      placeholder: "e.g. Snapdragon 8 Gen 3, Winlator 11.1 Glibc"
+      placeholder: "e.g. Windows 11, 1920x1080, Xbox pad · Steam Deck OLED · Snapdragon 8 Gen 3, Winlator 11.1"
   - type: checkboxes
     id: rules
     attributes:
-      label: Before filing
+      label: Before sending
       options:
-        - label: I read the docs/README.md doc map so I'm not re-opening a settled dead end.
-          required: true
+        - label: I looked at docs/README.md (the doc map) so I'm not re-opening a settled dead end.
