@@ -251,20 +251,33 @@ static void arena_name_attach(BYTE *base) {                   /* from mp_menu_at
  * path sets throttle and steer to 0 (the car coasts, wheels straight; the hold timers reset) and no gamekey fires. The
  * menu's own keys come through the window procedure (WM_KEYDOWN -> 0x496e10) and are not touched; the Mac's DxWnd path
  * reaches the same frame loop, so the same clear applies there. Under the tick, I76_SIM_TICK_INPUT's early tick ignores
- * input while the menu is up (simtick.c st_input_changed). I76_MENU_KEYS_LOG=1 (lab): a line every 120th cleared frame. */
+ * input while the menu is up (simtick.c st_input_changed). I76_MENU_KEYS_LOG=1 (lab): a line every 120th cleared frame.
+ * CORRECTED 2026-10-25 (records/MP-AI-DAMAGE-RATE-2026-10-25.md s.4): the menu's keys do NOT come only through the window
+ * procedure - the menu's key step 0x496e10 (from the menu-mode frame routine 0x49d000, later in the same frame) reads its key
+ * from the block's FIRST dword 0x5367c8 (Enter 0xd, Tab 9, Space 0x20, Esc 0x1b, arrows 0xc6..0xc9), which the clear zeroed:
+ * in a network game the Esc menu answered no key (the mouse worked). Now: save blk[0], clear, call input_ProcessFrame (the
+ * car still sees nothing), then put the key back if nothing wrote the word meanwhile, so the menu consumes it; the next frame's
+ * clear hides it from the car again. I76_MENU_KEYS_LOG=1 also logs each key kept. */
 static int g_mk_log;
-static DWORD g_mk_next = 0x0044dec0, g_mk_frames, g_mk_eaten, g_mk_mode = 0x004fe534, g_mk_blk = 0x005367c8;   /* Nitro: NA at apply */
+static DWORD g_mk_next = 0x0044dec0, g_mk_frames, g_mk_eaten, g_mk_kept, g_mk_mode = 0x004fe534, g_mk_blk = 0x005367c8;   /* Nitro: NA at apply */
 static void __cdecl menu_keys_wrap(void) {
     if (g_mk && *(volatile DWORD *)(DWORD_PTR)g_mk_mode == 0x10) {
         DWORD *blk = (DWORD *)(DWORD_PTR)g_mk_blk; int i, any = 0;
         for (i = 0; i < 15; i++) if (blk[i]) { any = 1; break; }
         g_mk_frames++;
         if (any) {
+            DWORD key = blk[0];
             g_mk_eaten++;
             if (g_mk_log && (g_mk_eaten % 120) == 1)
                 mlog("  menu-keys: Esc menu up, the control block held input (throttle axis %ld, steer axis %ld, keys %08lx %08lx) - cleared (%lu frames so far)",
                      (long)(int)blk[1], (long)(int)blk[3], (unsigned long)blk[2], (unsigned long)blk[4], (unsigned long)g_mk_eaten);
             memset(blk, 0, 60);
+            ((void (__cdecl *)(void))g_mk_next)();          /* the car's input_ProcessFrame sees an empty block */
+            if (key && !blk[0]) {                            /* the menu's key step (0x49d000 -> 0x496e10, later in this frame) reads blk[0] */
+                blk[0] = key; g_mk_kept++;
+                if (g_mk_log) mlog("  menu-keys: kept the menu's key 0x%lx for the Esc menu (%lu so far)", (unsigned long)key, (unsigned long)g_mk_kept);
+            }
+            return;
         }
     }
     ((void (__cdecl *)(void))g_mk_next)();
