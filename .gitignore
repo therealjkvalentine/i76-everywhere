@@ -140,3 +140,6 @@ presets/local.psd1
 
 # private LAN hosts for tools/lan-test
 tools/lan-test/hosts.local.sh
+
+# the relay host log (tools/relay/relay.ini "log file"), written by RUN-RELAY.bat
+tools/relay/relay.log

@@ -23,7 +23,9 @@ is the tested source. Downloaded game material lives only in a local, gitignored
 ## Third-party tools (configured/referenced, never bundled)
 
 Each keeps its own license; this repo only provides configuration and install
-scripts that fetch them from their official sources at install time.
+scripts that fetch them from their official sources at install time. The Windows Patch Kit zip
+(`tools/package-patch-kit.ps1`, a release asset, not this repository) bundles three of them unmodified, each as its
+licence allows: dgVoodoo, AutoHotkey and IPXWrapper (rows below).
 
 | Tool | Role here | Source / license |
 |---|---|---|
@@ -33,7 +35,7 @@ scripts that fetch them from their official sources at install time.
 | **DXVK** (doitsujin) | D3D→Vulkan (Deck/Android/Wine) | zlib/libpng — [github.com/doitsujin/dxvk](https://github.com/doitsujin/dxvk) |
 | **Box64/Box86** (ptitSeb) | x86→ARM64 (Android/Winlator) | MIT — [github.com/ptitSeb/box64](https://github.com/ptitSeb/box64) |
 | **Wine / Proton / Sikarugir / Winlator** | Windows compatibility layer per platform | LGPL and respective licenses. The Mac Kit downloads Sikarugir's wrapper template 1.0.11 and Wine engine 10.0_6 on the Mac from Sikarugir-App's GitHub releases, SHA-256-pinned, and deletes the template's D3DMetal (Apple licence) and other unused renderers; nothing of Sikarugir is in the zip |
-| **IPXWrapper** (solemnwarning) | IPX over UDP for LAN games (PC, Macs, Deck) | GPL v2 — [github.com/solemnwarning/ipxwrapper](https://github.com/solemnwarning/ipxwrapper). The Mac Kit downloads 0.7.2 on the Mac, SHA-256-pinned |
+| **IPXWrapper** (solemnwarning) | IPX over UDP for LAN games (PC, Macs, Deck); in DOSBox-server mode, internet games through a relay (`PLAY.bat --relay`, [tools/relay/](tools/relay/README.md)) | GPL v2 — [github.com/solemnwarning/ipxwrapper](https://github.com/solemnwarning/ipxwrapper). The Mac Kit downloads 0.7.2 on the Mac, SHA-256-pinned. **The Windows Patch Kit (from 2026-10-25) bundles an unmodified build of upstream master commit [dbe9a81](https://github.com/solemnwarning/ipxwrapper/commit/dbe9a81f9da457d2bdbd5d3ed1f8b5f147426205)** (`ipxwrapper.dll`, `wsock32.dll`, `mswsock.dll` in `_ipx\relay\`; it contains e7e9883, the loopback fix the relay route needs, which no release has yet) under the GPL v2: the licence text, upstream's readme and the **complete source of that commit** (`ipxwrapper-source-dbe9a81.zip`, a `git archive`) ship beside the DLLs, with the sha256s and the build line (i686-w64-mingw32 gcc 16.2.0 + NASM 2.16.03, `make`). `PLAY-i76.ps1` accepts only those sha256s. Not in this repository |
 | **UCyborg "AiO" patch** | 20 FPS physics limiter (already inside the GOG 2019 exe) | See the AiO patch readme |
 | **innoextract** | Extracts the GOG installer (Deck script) | zlib — [constexpr.org/innoextract](https://constexpr.org/innoextract/) |
 | **AutoHotkey 1.1** (staged, input remapper WIP) | In-container input remapping | GPL — [autohotkey.com](https://www.autohotkey.com/) |

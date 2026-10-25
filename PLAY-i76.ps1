@@ -139,6 +139,18 @@ param(
     # the preset or the shell says, so MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row
     # instead of going straight to IPX (proxy mpmenu.c). PLAY*.bat pass --legacy-multiplayer through to it.
     [switch]$LegacyMultiplayer,
+    # Internet play through a relay (2026-10-25, issue #113, tools\relay\JOIN-RELAY.md): <address>:<port> of an Interstate '76
+    # relay (tools\relay\pyrelay.py, DOSBox IPX protocol; the port defaults to 19900). For THIS launch the game folder gets the
+    # IPXWrapper build from <game>\_ipx\relay\ (upstream master dbe9a81, sha256-pinned below) and a two-line ipxwrapper.ini
+    # pointing at the relay; the folder's own IPX files (LAN IPXWrapper, ipxwrapper.ini) wait in _ipx\lan-saved\ and are put
+    # back when the game exits (or at the next start, if this launcher was stopped first). HOST / JOIN > IPX as on a LAN.
+    # 'off' = no relay (wins over a "relay =" line in i76-settings.txt). PLAY.bat / PLAY-Nitro.bat --relay <address>:<port>.
+    [string]$Relay = '',
+    # Put the folder's own IPX files back after a relay launch that did not finish, then exit (UNINSTALL-i76e.bat runs it).
+    [switch]$RelayRestore,
+    # Check -Relay (or the settings file's relay line) and the pinned DLLs in _ipx\relay\, print the result, exit 0 / 7. Starts and
+    # changes nothing. PLAY.bat --relay runs it in its visible window first (the game launch itself runs hidden).
+    [switch]$CheckRelay,
     # Computer-car skill in the AI melee arenas (2026-10-20, owner: "is the difficulty of the ai cars correct ... seem to be
     # spanking all these guys"): I76_AIMELEE_SKILL for this launch, 1..5 on the stock scale where 1 is the BEST driver and
     # shot (aim 1.0, fire 1.0, steering / throttle 1.0) and 5 the weakest (0.2 / 0.6 / 0.4); 3 is the stock melee's start and
@@ -203,6 +215,95 @@ function Write-LaunchLog([string]$text, [string]$color = 'Cyan') {
         $line = "{0} +{1:0.00}s {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $launchClock.Elapsed.TotalSeconds, $text
         Set-Content -Path $launchLog -Value (@($issueBanner) + $old + $line) -Encoding UTF8
     } catch { }
+}
+
+# ---- internet relay files (-Relay <address>:<port>, PLAY.bat --relay; 2026-10-25, issue #113, tools\relay\JOIN-RELAY.md) ----------
+# The relay route needs IPXWrapper from upstream master (dbe9a81: the loopback fix e7e9883 makes WIPX's start-up self-echo arrive in
+# DOSBox mode; 0.7.2 never reaches the host form, docs/records/INTERNET-RELAY-SPIKE-2026-10-25.md). The kit ships it, unmodified, in
+# <game>\_ipx\relay\ (GPL-2.0, THIRD-PARTY.md). Only the sha256s below are accepted. The instance variants R / S / T / U are the same
+# build with the 2-byte mutex / registry letter patch for two copies on ONE PC (lab twins, MULTIPLAYER.md "two copies").
+$relayPins = @{
+    'ipxwrapper.dll' = @{
+        '1f88a7975d044f8bab40fc5ff02b0a249fdd7e55b72bd92f6995834e454edd63' = 'IPXWrapper master dbe9a81'
+        '717ce93e97eb154e04222a55fee2a7d29f19ccf09860812e519dac8e0ede83f3' = 'IPXWrapper master dbe9a81, instance R'
+        '29a4276fd36ba69e40ee03848626f22c4c5b5856395af93c0b9ece7bde80c9ed' = 'IPXWrapper master dbe9a81, instance S'
+        'fe94d963760b4429048ee977e6c8c20b14850e95459205cd41bddfc6cd06819d' = 'IPXWrapper master dbe9a81, instance T'
+        '9a548a1d25f50858f2af6039526733f9d124d59743fad3662b1e09eaea5ddd0b' = 'IPXWrapper master dbe9a81, instance U' }
+    'wsock32.dll' = @{ '508f9c23155887f961649a8db2f6f3202f2d1de1cbcf1ed1552befaa16691b53' = 'IPXWrapper master dbe9a81' }
+    'mswsock.dll' = @{ 'ac4606209c7d9961161efea67d6bd7ba47fa697079c4d73d1b23623e6f49706c' = 'IPXWrapper master dbe9a81' }
+}
+$ipxFiles = @('ipxwrapper.dll', 'wsock32.dll', 'mswsock.dll', 'ipxwrapper.ini')
+$ipxRoot = Join-Path $GameDir '_ipx'
+$relayDir = Join-Path $ipxRoot 'relay'
+$lanSaved = Join-Path $ipxRoot 'lan-saved'
+$relayMarker = Join-Path $ipxRoot 'relay-active.txt'
+function ConvertTo-RelayTarget([string]$v) {
+    # 'off' | '<host>:<port>' (port 19900 when left out) | $null (not readable)
+    $t = $v.Trim()
+    if ($t -match '^(?i)(off|no|none|lan|0)$') { return 'off' }
+    if ($t -notmatch '^([A-Za-z0-9]([A-Za-z0-9.-]{0,252}[A-Za-z0-9])?)(:(\d{1,5}))?$') { return $null }
+    $h = $Matches[1]; $p = if ($Matches[4]) { [int]$Matches[4] } else { 19900 }
+    if ($p -lt 1 -or $p -gt 65535) { return $null }
+    return "${h}:$p"
+}
+function Get-Sha256([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant() }
+function Test-GameRunningHere {
+    @(Get-Process i76, nitro -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($GameDir.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0
+}
+function Restore-LanIpx([string]$why) {
+    # undo a relay launch: the relay DLLs + ini out, the folder's own IPX files (if it had any) back. $true = nothing (left) to do.
+    if (-not (Test-Path -LiteralPath $relayMarker)) { return $true }
+    if (Test-GameRunningHere) { Write-LaunchLog "relay: the game is still running from this folder - its IPX files are put back after it exits" 'Yellow'; return $false }
+    $back = @()
+    try {
+        foreach ($n in $ipxFiles) {
+            $here = Join-Path $GameDir $n; $saved = Join-Path $lanSaved $n
+            if (Test-Path -LiteralPath $here) { Remove-Item -LiteralPath $here -Force -ErrorAction Stop }
+            if (Test-Path -LiteralPath $saved) { Move-Item -LiteralPath $saved -Destination $here -Force -ErrorAction Stop; $back += $n }
+        }
+        Remove-Item -LiteralPath $relayMarker -Force -ErrorAction Stop
+        if (Test-Path -LiteralPath $lanSaved) { Remove-Item -LiteralPath $lanSaved -Recurse -Force -ErrorAction SilentlyContinue }
+        Write-LaunchLog ("relay: home-network (LAN) IPX files back ({0}): {1}" -f $why, $(if ($back) { $back -join ', ' } else { 'the folder had none - relay files removed' })) 'DarkGray'
+        return $true
+    } catch {
+        Write-LaunchLog "relay: could not put the LAN IPX files back ($why): $($_.Exception.Message) - they are in _ipx\lan-saved\" 'Red'
+        return $false
+    }
+}
+function Use-RelayIpx([string]$target) {
+    # this launch through the relay: verify the pinned DLLs, park the folder's own IPX files, copy the relay set + write the ini
+    $h, $p = $target -split ':', 2
+    $have = @{}
+    foreach ($n in $relayPins.Keys) {
+        $src = Join-Path $relayDir $n
+        if (-not (Test-Path -LiteralPath $src)) { return "missing _ipx\relay\$n (the Patch Kit carries it; tools\relay\JOIN-RELAY.md)" }
+        $s = Get-Sha256 $src
+        if (-not $relayPins[$n].ContainsKey($s)) { return "_ipx\relay\$n is not the pinned IPXWrapper build (sha256 $s)" }
+        $have[$n] = @($src, $s, $relayPins[$n][$s])
+    }
+    if (Test-GameRunningHere) { return 'the game is already running from this folder' }
+    New-Item -ItemType Directory -Force $lanSaved | Out-Null
+    if (-not (Test-Path -LiteralPath $relayMarker)) {   # first relay launch since the last LAN one: park what the folder has
+        foreach ($n in $ipxFiles) { $here = Join-Path $GameDir $n; if (Test-Path -LiteralPath $here) { Move-Item -LiteralPath $here -Destination (Join-Path $lanSaved $n) -Force } }
+        Set-Content -LiteralPath $relayMarker -Encoding ascii -Value @(
+            "relay launch $(Get-Date -Format s): the folder's own IPX files are in _ipx\lan-saved\ until the game exits (PLAY-i76.ps1 puts them back;",
+            "PLAY-i76.ps1 -RelayRestore does it by hand). Parked: $((@(Get-ChildItem -LiteralPath $lanSaved -File | ForEach-Object Name) -join ', '))")
+    }
+    foreach ($n in $have.Keys) {
+        $dst = Join-Path $GameDir $n
+        Copy-Item -LiteralPath $have[$n][0] -Destination $dst -Force
+        if ((Get-Sha256 $dst) -ne $have[$n][1]) { return "the copy of $n into the game folder did not verify" }
+    }
+    $ini = Join-Path $GameDir 'ipxwrapper.ini'
+    [IO.File]::WriteAllText($ini, "dosbox server address = $h`r`ndosbox server port = $p`r`n", [Text.Encoding]::ASCII)
+    $rb = [IO.File]::ReadAllText($ini)
+    if ($rb -notmatch [regex]::Escape("dosbox server address = $h") -or $rb -notmatch "dosbox server port = $p\b") { return 'ipxwrapper.ini did not read back' }
+    $script:relayLine = "relay: $target - $($have['ipxwrapper.dll'][2]) (ipxwrapper.dll sha256 $($have['ipxwrapper.dll'][1].Substring(0, 8)), wsock32 $($have['wsock32.dll'][1].Substring(0, 8)), mswsock $($have['mswsock.dll'][1].Substring(0, 8))) + ipxwrapper.ini for this launch; the folder's LAN IPX files wait in _ipx\lan-saved\"
+    return ''
+}
+if ($RelayRestore) {
+    if (Restore-LanIpx '-RelayRestore') { Write-Host 'relay: nothing (left) to put back.' -ForegroundColor Cyan; exit 0 }
+    exit 8
 }
 
 # ---- frame-rate preset ------------------------------------------------------
@@ -351,6 +452,11 @@ $settingsSchema = @(
      Help = @('Computer cars in the melee arenas: 1 = the best drivers and shots, 5 = the weakest. Only the host''s value counts.') }
   @{ Group = 'Multiplayer'; Name = 'legacy multiplayer menu'; Target = 'param:LegacyMultiplayer'; Kind = 'onoff'; Stock = 'off'
      Help = @('on = the 1997 MODEM / IPX / INTERNET / NULLMODEM choice in HOST / JOIN (and no computer cars), for playing with a stock game.') }
+  @{ Group = 'Multiplayer'; Name = 'relay'; Target = 'param:Relay'; Kind = 'relay'; Stock = 'off'
+     Help = @('Internet play: the address:port of an Interstate ''76 relay (the host runs RUN-RELAY.bat and tells you it), e.g.',
+              '203.0.113.7:19900. Every start then plays HOST / JOIN > IPX through that relay instead of the home network.',
+              'off = the home network (LAN). PLAY.bat --relay off ignores this line for one start. Every player in a relay',
+              'session can see every other player''s internet address. tools\relay\JOIN-RELAY.md in the project explains it.') }
 
   @{ Group = 'Advanced'; Name = 'skip mission movies'; Target = 'env:I76_SKIP_CUTSCENES'; Kind = 'onoff'; Stock = 'off'
      Help = @('on = no briefing / closing movie around each mission (movies in the middle of a mission stay).') }
@@ -393,6 +499,11 @@ function Test-SettingValue($e, [string]$v) {
             if ($lv -in 'off', 'no', 'auto') { return @($true, $(if ($lv -eq 'no') { 'off' } else { $lv }), '') }
             if ($lv -match '^\s*\d{3,5}\s*x\s*\d{3,5}\s*$') { return @($true, ($lv -replace '\s', ''), '') }
             return @($false, $null, 'not off, auto or a size like 1920x1080')
+        }
+        'relay' {
+            $r = ConvertTo-RelayTarget $v
+            if ($r) { return @($true, $r, '') }
+            return @($false, $null, 'not off or an address:port such as 203.0.113.7:19900')
         }
     }
     return @($false, $null, 'this line is a note, not a setting')
@@ -490,6 +601,7 @@ foreach ($pn in @($settingsParams.Keys)) {
         'WheelDown' { $WheelDown = $pv }
         'AiSkill' { $AiSkill = [int]$pv }
         'LegacyMultiplayer' { if ($pv -eq 'on') { $LegacyMultiplayer = [switch]$true } }
+        'Relay' { $Relay = $pv }
         'Windowed' { if ($pv -ne 'off') { $Windowed = $pv } }
         'TickMs' { $TickMs = $pv }
         'SimRate' {   # 20 = 49.9 ms, NOT 50: an exact 50 ms tick splits the car step into 2 x 25 ms and halves the 7.62mm (docs/records/MG-STUTTER-2026-10-25.md s.3.2)
@@ -504,6 +616,36 @@ foreach ($pn in @($settingsParams.Keys)) {
         }
     }
     $settingsLog += "settings: $label"
+}
+
+# ---- internet relay (-Relay <address>:<port>, PLAY.bat --relay, i76-settings.txt "relay ="; the files: "internet relay files" above) ----
+# The target is read here (the settings file's line is in $Relay by now; the command line wins); the files are swapped just before the
+# launch ("internet relay: the files for this launch" below). -CheckRelay stops here, before anything is written.
+function Stop-RelayLaunch([string]$why) {
+    $msg = "Internet relay: $why. The game was not started."
+    Write-LaunchLog "relay: NOT started - $why" 'Red'
+    $redirected = $false; try { $redirected = [Console]::IsOutputRedirected } catch { }
+    if (-not $CheckRelay -and -not $DryRun -and -not $redirected) {   # PLAY.bat runs this hidden: a box, or nobody sees why (not for harnesses)
+        try { Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show("$msg`n`nplay-i76.log in the game folder has the details. PLAY.bat --relay off (or relay = off in i76-settings.txt) plays on the home network.", "Interstate '76") } catch { }
+    }
+    exit 7
+}
+$relayOn = $false; $relayLine = ''
+if ($Relay) {
+    $rt = ConvertTo-RelayTarget $Relay
+    if (-not $rt) { Stop-RelayLaunch "'$Relay' is not off or an address:port such as 203.0.113.7:19900" }
+    if ($rt -ne 'off') { $relayOn = $true; $Relay = $rt }
+}
+if ($CheckRelay) {
+    if (-not $relayOn) { Write-Host 'relay: off (home network)' -ForegroundColor Cyan; exit 0 }
+    foreach ($n in $relayPins.Keys) {
+        $src = Join-Path $relayDir $n
+        if (-not (Test-Path -LiteralPath $src)) { Stop-RelayLaunch "missing _ipx\relay\$n (the Patch Kit carries it; tools\relay\JOIN-RELAY.md)" }
+        $s = Get-Sha256 $src
+        if (-not $relayPins[$n].ContainsKey($s)) { Stop-RelayLaunch "_ipx\relay\$n is not the pinned IPXWrapper build (sha256 $s)" }
+    }
+    Write-Host ("relay: {0} - the IPXWrapper files in _ipx\relay\ are the pinned build; HOST / JOIN > IPX will go through the relay" -f $Relay) -ForegroundColor Cyan
+    exit 0
 }
 
 # ---- per-machine override: <GameDir>\presets\local.psd1 (2026-10-24, owner: machines differ - Macs ~60 fps under Wine, a 5090,
@@ -554,6 +696,7 @@ function Get-SettingNow($e) {
                 'WheelDown' { return @($WheelDown, '') }
                 'AiSkill' { return @($(if ($AiSkill -ge 1) { "$AiSkill" } else { '3' }), '') }
                 'LegacyMultiplayer' { return @($(if ($LegacyMultiplayer) { 'on' } else { 'off' }), '') }
+                'Relay' { return @($(if ($Relay -and $Relay -ne 'off') { $Relay } else { 'off' }), '') }
                 'Windowed' { return @($(if ($Windowed) { $Windowed } else { 'off' }), '') }
                 'TickMs' { if ($gameEnv.Contains('I76_SIM_TICK_MS')) { return @("$($gameEnv['I76_SIM_TICK_MS'])", "preset $presetName") }; return @('-', 'this launcher has no simulation tick') }
                 'SimRate' { if ($gameEnv.Contains('I76_SIM_TICK_MS')) { return @($(if ("$($gameEnv['I76_SIM_TICK_MS'])" -in '49.9', '49.90') { '20' } else { '24' }), "preset $presetName") }; return @('-', 'this launcher has no simulation tick') }
@@ -607,6 +750,7 @@ function Write-I76Settings {
             'number' { "{0} to {1}{2}" -f $e.Min, $e.Max, $(if ($e.Unit) { " $($e.Unit)" } else { '' }) }
             'key' { 'a key name, e.g. Tab, Enter, 5' }
             'windowed' { 'off, auto, or a size like 1920x1080' }
+            'relay' { 'off, or a relay''s address:port such as 203.0.113.7:19900' }
         }
         $now = Get-SettingNow $e
         $nowText = "now: $($now[0])"
@@ -833,6 +977,20 @@ if ($LegacyMultiplayer) {
     $gameEnv['I76_MP_MENU'] = '0'
     $gameEnv['I76_AIMELEE_ARENAS'] = '0'   # and the 15 stock arenas stay stock (no AI pool): a stock joiner can play
     Write-Host "legacy multiplayer: I76_MP_MENU=0 - MULTI MELEE > HOST / JOIN show the stock MODEM / IPX / INTERNET / NULLMODEM row" -ForegroundColor Cyan
+}
+
+# ---- internet relay: the files for this launch (target and -CheckRelay: "internet relay" after the settings file). Without a relay
+# nothing changes, except that a relay launch which did not finish (launcher stopped, PC switched off) is undone first.
+if ($relayOn) {
+    if ($DryRun) { Write-Host "relay: $Relay (DRY RUN: the relay IPX files are not copied)" -ForegroundColor Cyan }
+    else {
+        $relayErr = Use-RelayIpx $Relay
+        if ($relayErr) { [void](Restore-LanIpx 'the relay setup failed'); Stop-RelayLaunch $relayErr }
+        Write-LaunchLog $relayLine 'Cyan'
+        Write-LaunchLog 'relay: every player in this session can see every other player''s internet address (the DOSBox protocol carries it)' 'DarkGray'
+    }
+} elseif (-not $DryRun -and -not $WriteSettings -and -not $RenderOnly -and -not $CheckTickMs) {
+    [void](Restore-LanIpx 'this start has no relay')
 }
 
 # ---- windowed (-Windowed auto | WxH; PLAY.bat --windowed) -----------------------
@@ -1402,6 +1560,7 @@ foreach ($k in $gameEnv.Keys) { $psi.EnvironmentVariables[$k] = [string]$gameEnv
 $proc = [System.Diagnostics.Process]::Start($psi)
 if (-not $proc) {
     Write-LaunchLog ("could not start {0}" -f $psi.FileName) 'Red'
+    if ($relayOn) { [void](Restore-LanIpx 'the game did not start') }
 } else {
     Write-LaunchLog ("game started: {0} pid {1}, preset {2}{3}" -f $Exe, $proc.Id, $presetLabel, $(if ($gameEnv.Contains('I76_MISSION')) { ", mission $($gameEnv['I76_MISSION'])" })) 'DarkGray'
 }
@@ -1553,6 +1712,7 @@ if ($proc) {
 if ($proc) {
     $proc.WaitForExit()
     Write-LaunchLog ("game exited (code {0})" -f $proc.ExitCode) 'DarkGray'
+    if ($relayOn) { [void](Restore-LanIpx 'the game exited') }
     # logs first written during the session get the feedback line too
     Set-LogBanner (Join-Path $GameDir 'mciproxy.log')
 }

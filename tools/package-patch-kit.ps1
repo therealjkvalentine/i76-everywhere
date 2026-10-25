@@ -11,10 +11,14 @@
                      "Redistribution rights": "You can freely ship your game or game mod with unmodified individual dgVoodoo
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
+    _ipx\relay\     IPXWrapper upstream master dbe9a81 (GPL-2.0, UNMODIFIED: ipxwrapper.dll, wsock32.dll, mswsock.dll, sha256-checked
+                     against the pins PLAY-i76.ps1 uses), its licence, readme and the exact source as a zip: PLAY.bat --relay
+                     <address>:<port> (internet play through tools\relay\pyrelay.py, issue #113, docs\records\RELAY-DESKTOP-2026-10-25.md)
+                     copies them beside the exe for that launch only
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
     PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat, README-PATCH-KIT.md
   CONTROLS.bat (_i76e\i76e-controls.ps1) and UPDATE.bat (_i76e\i76e-update.ps1) since 0.8.1 (kit-controls lane 2026-10-25,
-  docsecords\KIT-CONTROLS-UPDATER-2026-10-25.md): the player's own bindings are kept by the setup, CONTROLS.bat chooses, UPDATE.bat
+  docs\records\KIT-CONTROLS-UPDATER-2026-10-25.md): the player's own bindings are kept by the setup, CONTROLS.bat chooses, UPDATE.bat
   pulls the newest release (SHA-256 from the release asset's digest; <zip>.sha256 is written beside the zip for --source tests).
   The same zip goes into a GOG Nitro Pack folder (nitro.exe) since 2026-10-25 (clean-install B6: Nitro needed MSVC + a repo clone
   through Build-From-GOG): PLAY-Nitro.bat runs i76e-prepare.ps1 -Game Nitro (the same proxy, which detects nitro.exe; preset
@@ -34,6 +38,10 @@ param(
     [Parameter(Mandatory)][string]$DgVoodooDir,          # dgVoodoo 2.87.5, the unpacked release (MS, 3Dfx, dgVoodooCpl.exe)
     [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
+    # IPXWrapper master dbe9a81 for the relay route: a folder with ipxwrapper.dll, wsock32.dll, mswsock.dll (the lab build; its README
+    # has the build line) and -IpxRelaySrc = the upstream clone at dbe9a81 (license.txt, readme.txt, git archive for the source zip)
+    [string]$IpxRelayDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\ipxwrapper-master-20261025\out'),
+    [string]$IpxRelaySrc = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\ipxwrapper-master-20261025\src'),
     [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\patch-kit'),
     [string]$Version = '0.8.1',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
@@ -72,7 +80,10 @@ $files = @(
     'tools\telemetry\i76tel.py', 'tools\telemetry\i76tel.h', 'tools\telemetry\i76tel_v2.h',
     'docs\Interstate76-Controls-Quick-Reference.pdf', 'docs\CONTROLS.md',
     'presets\tick19-42.psd1', 'presets\preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
-    'saves\savegame.dir'
+    'saves\savegame.dir',
+    # the internet relay (issue #113): whoever hosts runs _i76e\repo\tools\relay\RUN-RELAY.bat (players need only PLAY.bat --relay)
+    'tools\relay\pyrelay.py', 'tools\relay\relay.ini', 'tools\relay\relay-tool.ps1', 'tools\relay\RUN-RELAY.bat', 'tools\relay\RELAY-FIREWALL.bat',
+    'tools\relay\README.md', 'tools\relay\JOIN-RELAY.md'
 )
 $files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
 foreach ($rel in $files) {
@@ -167,6 +178,39 @@ foreach ($n in 'AutoHotkeyU32.exe', 'license.txt') {
 }
 $ahkVer = (Get-Item (Join-Path $ahkOut 'AutoHotkeyU32.exe')).VersionInfo.FileVersion
 
+# ---- IPXWrapper master (GPL-2.0) for PLAY.bat --relay: unmodified, the same sha256 pins as PLAY-i76.ps1, + licence + source ------
+$ipxPins = @{ 'ipxwrapper.dll' = '1f88a7975d044f8bab40fc5ff02b0a249fdd7e55b72bd92f6995834e454edd63'
+              'wsock32.dll'    = '508f9c23155887f961649a8db2f6f3202f2d1de1cbcf1ed1552befaa16691b53'
+              'mswsock.dll'    = 'ac4606209c7d9961161efea67d6bd7ba47fa697079c4d73d1b23623e6f49706c' }
+$ipxCommit = 'dbe9a81f9da457d2bdbd5d3ed1f8b5f147426205'
+$ipxOut = Join-Path $Stage '_ipx\relay'; New-Item -ItemType Directory -Force $ipxOut | Out-Null
+foreach ($n in $ipxPins.Keys) {
+    $from = Join-Path $IpxRelayDir $n
+    if (-not (Test-Path -LiteralPath $from)) { Die "IPXWrapper file missing: $from" }
+    $h = (Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash.ToLower()
+    if ($h -ne $ipxPins[$n]) { Die "$n sha256 $h is not the pinned IPXWrapper master build ($($ipxPins[$n]))" }
+    Copy-Item -LiteralPath $from -Destination $ipxOut -Force
+}
+$ipxHead = (git -C $IpxRelaySrc rev-parse HEAD 2>$null)
+if ("$ipxHead".Trim() -ne $ipxCommit) { Die "IPXWrapper source at $IpxRelaySrc is not at $ipxCommit (got '$ipxHead')" }
+Copy-Item -LiteralPath (Join-Path $IpxRelaySrc 'license.txt') -Destination (Join-Path $ipxOut 'LICENSE-IPXWrapper-GPL-2.0.txt') -Force
+Copy-Item -LiteralPath (Join-Path $IpxRelaySrc 'readme.txt') -Destination (Join-Path $ipxOut 'readme-IPXWrapper.txt') -Force
+& git -C $IpxRelaySrc archive --format=zip --prefix="ipxwrapper-$($ipxCommit.Substring(0, 7))/" -o (Join-Path $ipxOut "ipxwrapper-source-$($ipxCommit.Substring(0, 7)).zip") $ipxCommit
+if ($LASTEXITCODE -ne 0) { Die 'git archive of the IPXWrapper source failed' }
+@"
+IPXWrapper by Daniel Collins (solemnwarning) - https://github.com/solemnwarning/ipxwrapper - GNU GPL version 2 (LICENSE-IPXWrapper-GPL-2.0.txt).
+The three DLLs here are an UNMODIFIED build of upstream commit $ipxCommit ("respond to ping", 8 commits after the 0.7.2 tag;
+it has e7e9883 "Fix delivery of loopback packets", which internet play through a DOSBox-protocol relay needs). The exact source they
+were built from is ipxwrapper-source-$($ipxCommit.Substring(0, 7)).zip beside this file (git archive of that commit). Build: i686-w64-mingw32 gcc
+16.2.0 (w64devkit) + NASM 2.16.03, make ipxwrapper.dll wsock32.dll mswsock.dll. sha256:
+  ipxwrapper.dll $($ipxPins['ipxwrapper.dll'])
+  wsock32.dll    $($ipxPins['wsock32.dll'])
+  mswsock.dll    $($ipxPins['mswsock.dll'])
+Used ONLY by PLAY.bat / PLAY-Nitro.bat --relay <address>:<port> (or "relay =" in i76-settings.txt): PLAY-i76.ps1 checks these hashes,
+copies the three files beside the game exe with a two-line ipxwrapper.ini for that launch, and puts the folder's own IPX files back when
+the game exits. Without --relay this folder is not used. i76-everywhere: tools\relay\JOIN-RELAY.md, THIRD-PARTY.md.
+"@ | Set-Content -LiteralPath (Join-Path $ipxOut 'README-relay-IPXWrapper.txt') -Encoding ascii
+
 # ---- launchers, uninstaller, README -------------------------------------------------------------------------------------
 function Bat([string]$preset, [string]$extra, [string]$what) {
     return @"
@@ -177,15 +221,18 @@ REM           --display WxH      size the picture for this monitor size instead 
 REM           --setup            run the setup / display step only, do not start the game     --resetup  run the setup again
 REM           --voices de|en     German voice lines for this launch (INSTALL-EXTRAS.bat builds them from your German disc) / English
 REM           --music-extra off  this launch without your extra music (INSTALL-EXTRAS.bat sets the folder)
+REM           --relay ADDRESS:PORT  internet play through a relay (the host's RUN-RELAY.bat prints it); HOST / JOIN > IPX as on a LAN.
+REM                              --relay off ignores a "relay =" line in i76-settings.txt for this launch (repo tools\relay\JOIN-RELAY.md)
 REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
 setlocal
+set "HERE=%~dp0"
 REM the kit was unzipped into a Nitro Pack folder: the Nitro launcher does the rest
-if not exist "%~dp0i76.exe" if exist "%~dp0nitro.exe" ( call "%~dp0PLAY-Nitro.bat" %* & exit /b )
+if not exist "%HERE%i76.exe" if exist "%HERE%nitro.exe" ( call "%HERE%PLAY-Nitro.bat" %* & exit /b )
 set "ARGS="
 set "PLAYARGS="
 set "SETUPONLY="
 REM the defaults INSTALL-EXTRAS.bat chose (German voices, extra music): KEY=VALUE lines, overridden by the options below
-if exist "%~dp0_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%~dp0_i76e\extras.env") do set "%%a=%%b"
+if exist "%HERE%_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%HERE%_i76e\extras.env") do set "%%a=%%b"
 :args
 if "%~1"=="" goto :go
 if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & set "PLAYARGS=%PLAYARGS% -RenderScale 1" & shift & goto :args)
@@ -194,14 +241,17 @@ if /i "%~1"=="--setup" (set "SETUPONLY=1" & set "ARGS=%ARGS% -SetupOnly" & shift
 if /i "%~1"=="--resetup" (set "ARGS=%ARGS% -Resetup" & shift & goto :args)
 if /i "%~1"=="--voices" (set "I76_VOICES=%~2" & shift & shift & goto :args)
 if /i "%~1"=="--music-extra" (set "I76_MUSIC_EXTRA=%~2" & shift & shift & goto :args)
+if /i "%~1"=="--relay" (set "RELAY=%~2" & set "PLAYARGS=%PLAYARGS% -Relay %~2" & shift & shift & goto :args)
 echo unknown option: %~1
 shift
 goto :args
 :go
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Preset $preset %ARGS%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%_i76e\i76e-prepare.ps1" -Preset $preset %ARGS%
 if errorlevel 1 ( pause & exit /b 1 )
 if defined SETUPONLY exit /b 0
-start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe i76.exe -Preset $preset -LosslessScaling none$extra%PLAYARGS%
+if defined RELAY powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%PLAY-i76.ps1" -GameDir "%HERE%." -Preset $preset -Relay %RELAY% -CheckRelay
+if errorlevel 1 ( pause & exit /b 1 )
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%HERE%PLAY-i76.ps1" -GameDir "%HERE%." -Exe i76.exe -Preset $preset -LosslessScaling none$extra%PLAYARGS%
 "@
 }
 $t05 = ' -Mission t05.msn -SkipMovies'
@@ -218,12 +268,15 @@ REM Options:  --no-supersample   lighter on the GPU (3D at the monitor's size, n
 REM           --display WxH      size the picture for this monitor size instead of the one Windows reports
 REM           --setup            run the setup / display step only, do not start the game     --resetup  run the setup again
 REM           --music-extra off  this launch without your extra music (INSTALL-EXTRAS.bat sets the folder)
+REM           --relay ADDRESS:PORT  internet play through a relay (the host's RUN-RELAY.bat prints it); HOST / JOIN > IPX as on a LAN.
+REM                              --relay off ignores a "relay =" line in i76-settings.txt for this launch (repo tools\relay\JOIN-RELAY.md)
 REM Run at the PC itself, never over Remote Desktop. Plug a wheel / pad in BEFORE starting. README-PATCH-KIT.md explains the rest.
 setlocal
+set "HERE=%~dp0"
 set "ARGS="
 set "PLAYARGS="
 set "SETUPONLY="
-if exist "%~dp0_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%~dp0_i76e\extras.env") do set "%%a=%%b"
+if exist "%HERE%_i76e\extras.env" for /f "usebackq eol=# tokens=1* delims==" %%a in ("%HERE%_i76e\extras.env") do set "%%a=%%b"
 :args
 if "%~1"=="" goto :go
 if /i "%~1"=="--no-supersample" (set "ARGS=%ARGS% -NoSupersample" & set "PLAYARGS=%PLAYARGS% -RenderScale 1" & shift & goto :args)
@@ -231,14 +284,17 @@ if /i "%~1"=="--display" (set "ARGS=%ARGS% -Display %~2" & shift & shift & goto 
 if /i "%~1"=="--setup" (set "SETUPONLY=1" & set "ARGS=%ARGS% -SetupOnly" & shift & goto :args)
 if /i "%~1"=="--resetup" (set "ARGS=%ARGS% -Resetup" & shift & goto :args)
 if /i "%~1"=="--music-extra" (set "I76_MUSIC_EXTRA=%~2" & shift & shift & goto :args)
+if /i "%~1"=="--relay" (set "RELAY=%~2" & set "PLAYARGS=%PLAYARGS% -Relay %~2" & shift & shift & goto :args)
 echo unknown option: %~1
 shift
 goto :args
 :go
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-prepare.ps1" -Game Nitro -Preset nitro-tick42 %ARGS%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%_i76e\i76e-prepare.ps1" -Game Nitro -Preset nitro-tick42 %ARGS%
 if errorlevel 1 ( pause & exit /b 1 )
 if defined SETUPONLY exit /b 0
-start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0PLAY-i76.ps1" -GameDir "%~dp0." -Exe nitro.exe -Preset nitro-tick42 -LosslessScaling none%PLAYARGS%
+if defined RELAY powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%PLAY-i76.ps1" -GameDir "%HERE%." -Exe nitro.exe -Preset nitro-tick42 -Relay %RELAY% -CheckRelay
+if errorlevel 1 ( pause & exit /b 1 )
+start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%HERE%PLAY-i76.ps1" -GameDir "%HERE%." -Exe nitro.exe -Preset nitro-tick42 -LosslessScaling none%PLAYARGS%
 "@ -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'UNINSTALL-i76e.bat') @"
 @echo off
@@ -307,7 +363,8 @@ $guard = '(?i)^(i76|nitro|splash|i76wheel_orig)\.exe$|^i76shell|^nitshell\.dll|\
 $bad = @(Get-ChildItem -LiteralPath $Stage -Recurse -File | Where-Object { $_.Name -match $guard -and $_.Name -ne 'input.map' })
 if ($bad.Count) { Die "game files in the stage - NOT packed:`n  $(($bad | ForEach-Object { $_.FullName }) -join "`n  ")" }
 $allowedExe = @('i76wheel.exe', 'dgVoodooCpl.exe', 'AutoHotkeyU32.exe')
-$exes = @(Get-ChildItem -LiteralPath $Stage -Recurse -File | Where-Object { $_.Extension -match '^\.(exe|dll)$' -and $_.Name -notin $allowedExe -and $_.Name -notmatch '^(Glide|Glide2x|Glide3x|DDraw|D3DImm|D3D8|D3D9|Strlkup|u32x_full)\.dll$' })
+$exes = @(Get-ChildItem -LiteralPath $Stage -Recurse -File | Where-Object { $_.Extension -match '^\.(exe|dll)$' -and $_.Name -notin $allowedExe -and $_.Name -notmatch '^(Glide|Glide2x|Glide3x|DDraw|D3DImm|D3D8|D3D9|Strlkup|u32x_full)\.dll$' -and
+    -not ($_.Name -in 'ipxwrapper.dll', 'wsock32.dll', 'mswsock.dll' -and $_.DirectoryName -eq $ipxOut) })   # IPXWrapper only in _ipx\relay
 if ($exes.Count) { Die "unexpected binaries in the stage: $(($exes | ForEach-Object { $_.Name }) -join ', ')" }
 
 # ---- VERSION.txt + MD5SUMS, then the zip -------------------------------------------------------------------------------
@@ -319,7 +376,8 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
     "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview); PLAY-Nitro.bat = the Nitro Pack (nitro.exe), preset nitro-tick42",
     "CONTROLS.bat = keep / switch / restore the player's own key bindings (_i76e\i76e-controls.ps1); UPDATE.bat = the newest kit from GitHub (_i76e\i76e-update.ps1)",
-    "INSTALL-EXTRAS.bat = optional extras (_i76e\i76e-extras.ps1 + extras.json: pinned downloads of community maps, opentrack, Python; German voices from the user's disc; private extra music)"
+    "INSTALL-EXTRAS.bat = optional extras (_i76e\i76e-extras.ps1 + extras.json: pinned downloads of community maps, opentrack, Python; German voices from the user's disc; private extra music)",
+    "_ipx\relay = IPXWrapper master $($ipxCommit.Substring(0, 7)) (GPL-2.0, unmodified, source zip included) for PLAY.bat --relay <address>:<port> (internet play; tools\relay\JOIN-RELAY.md)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }
 $sums | Set-Content -LiteralPath (Join-Path $i76e 'MD5SUMS') -Encoding ascii

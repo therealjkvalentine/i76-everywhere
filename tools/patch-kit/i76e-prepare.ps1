@@ -132,6 +132,8 @@ if ($Uninstall) {
     Say "Removing the i76-everywhere Patch Kit ($version) from $gameDir ..." 'Cyan'
     if (Running-Here) { Fail 'close the game first' }
     if (Test-Path -LiteralPath (Join-Path $here 'extras-installed.txt')) { [void](Child (Join-Path $here 'i76e-extras.ps1') @('-GameDir', $gameDir, '-Uninstall')) }   # INSTALL-EXTRAS.bat's maps / opentrack / Python / voices
+    # PLAY.bat --relay (2026-10-25): a relay launch that did not finish leaves the relay IPX files beside the exe; put the folder's own back
+    if ((Test-Path -LiteralPath (Join-Path $gameDir '_ipx\relay-active.txt')) -and (Test-Path -LiteralPath (Join-Path $gameDir 'PLAY-i76.ps1'))) { [void](Child (Join-Path $gameDir 'PLAY-i76.ps1') @('-GameDir', $gameDir, '-RelayRestore')) }
     if (Test-Path -LiteralPath (Join-Path $gameDir 'i76.exe.u32xorig')) { [void](Child (Join-Path $repo 'u32x\deploy-u32x.ps1') @('-GameDir', $gameDir, '-U32xDll', (Join-Path $repo 'u32x\u32x_full.dll'), '-Restore')) }   # -U32xDll explicit: PS 5.1 -File leaves $PSScriptRoot empty in its param default
     foreach ($sh in 'i76shell.dll', 'nitshell.dll') {
         if (Test-Path -LiteralPath (Join-Path $gameDir "$sh.pre-i76e-keys")) { [void](Child (Join-Path $repo 'tools\patch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $gameDir, '-Shell', $sh, '-Revert')) }
@@ -200,7 +202,7 @@ if ($Uninstall) {
     Remove-Item -LiteralPath $stampFile, $dispFile -Force -ErrorAction SilentlyContinue
     Say "Done: the game files are back the way GOG installed them; your own control and option files are as you had them." 'Green'
     Say "Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat,"
-    Say "README-PATCH-KIT.md and the _i76e folder. The backups beside the game files (*.u32xorig, *.orig, *.pre-i76e-keys, input.map.stock-*,"
+    Say "README-PATCH-KIT.md, the _i76e folder and the _ipx folder (the internet-relay IPXWrapper). The backups beside the game files (*.u32xorig, *.orig, *.pre-i76e-keys, input.map.stock-*,"
     Say "input.map.pre-windows-setup) are safe to delete too. GOG Galaxy's 'verify / repair' also restores everything."
     Say "_i76e\backup\ holds your control / option files from before the kit (and local.psd1): look there before deleting _i76e."
     exit 0

@@ -110,6 +110,18 @@ private networks only; the undo command is in its first lines), **or click *Allo
 time you host.** Every player needs the same kit version (and the same community maps, if you use them). Problems: the
 *Network / LAN game problem* form (see "Problems and feedback"), with the logs from every machine.
 
+## Internet games (through a relay)
+
+One player runs the **relay** (the project's `tools\relay\` folder: `RELAY-FIREWALL.bat` once, a port forward of UDP 19900 in the
+router, then `RUN-RELAY.bat`, which prints the address to hand out). Everyone else, the host of the game included, starts with
+
+    PLAY.bat --relay <relay address>:19900        (PLAY-Nitro.bat --relay ... for the Nitro Pack)
+
+or puts `relay = <relay address>:19900` under `[Multiplayer]` in `i76-settings.txt` (then every start uses it; `PLAY.bat --relay off`
+skips it once). Then MULTI MELEE > HOST / JOIN as on a LAN. For that launch the game folder gets the IPXWrapper build in `_ipx\relay\`
+and a two-line `ipxwrapper.ini`; your own IPX files come back when the game exits. Players need no port forwarding. **Every player in
+a relay session can see every other player's internet address.** The whole guide: `tools\relay\JOIN-RELAY.md` in the project.
+
 ## Optional extras (`INSTALL-EXTRAS.bat`)
 
 Nothing here is needed to play. Double-click `INSTALL-EXTRAS.bat`: it explains each option and asks before it
@@ -382,7 +394,7 @@ replaced it (a map you changed meanwhile is kept as `input.map.i76e-last`; a map
 script you edited are kept in `_i76e\backup\`. One file will differ if you have played: the game
 itself rewrites `Lee.fot` as you play (Gold), so a hash check after playing shows that one difference - that is the game's, not ours.
 Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `FIREWALL.bat`, `CONTROLS.bat`, `UPDATE.bat`, `i76-settings.txt`,
-`README-PATCH-KIT.md` and the `_i76e` folder yourself (look in `_i76e\backup\` first: your own files from before the kit are there). The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
+`README-PATCH-KIT.md`, the `_ipx` folder and the `_i76e` folder yourself (look in `_i76e\backup\` first: your own files from before the kit are there). The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
 `i76shell.dll.pre-i76e-keys` / `nitshell.dll.pre-i76e-keys`, `input.map.stock-*` / `input.map.pre-windows-setup`) are safe to delete. Bookmarks
 stay: if the setup copied in our set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG
 Galaxy's *verify / repair* does the same job from GOG's side if you prefer.
@@ -391,8 +403,8 @@ Galaxy's *verify / repair* does the same job from GOG's side if you prefer.
 
 `_i76e\VERSION.txt` names the build (the repo commit) and `_i76e\MD5SUMS` every file. In the zip: our proxy DLL
 (`Strlkup.dll`, the engine fixes), our mouse DLL (`u32x.dll`), our launchers, presets, key map and scripts; dgVoodoo
-2.87.5 (Dege's Glide-to-Direct3D layer, unmodified, shipped as its readme allows; needed on Windows 11 build 26100.9711 and later. 2.87.3 is kept in `_i76e\dgVoodoo-2.87.3` as a fallback: to swap back, delete `_i76e\dgVoodoo`, rename the fallback folder to `dgVoodoo`, run `UNINSTALL-i76e.bat`, then `PLAY.bat --resetup`) and AutoHotkey 1.1 (GPL, for the
-controller layer). Nothing from the game. The setup renames one import in your `i76.exe` and `i76shell.dll` (so
+2.87.5 (Dege's Glide-to-Direct3D layer, unmodified, shipped as its readme allows; needed on Windows 11 build 26100.9711 and later. 2.87.3 is kept in `_i76e\dgVoodoo-2.87.3` as a fallback: to swap back, delete `_i76e\dgVoodoo`, rename the fallback folder to `dgVoodoo`, run `UNINSTALL-i76e.bat`, then `PLAY.bat --resetup`), AutoHotkey 1.1 (GPL, for the
+controller layer) and, in `_ipx\relay\`, IPXWrapper (GPL-2.0, upstream commit dbe9a81, unmodified, its source zip beside it; used only by `--relay`). Nothing from the game. The setup renames one import in your `i76.exe` and `i76shell.dll` (so
 the mouse DLL can sit in between), applies our keyboard patches to `i76shell.dll`, swaps GOG's Glide DLL for
 dgVoodoo's, renames GOG's 20 fps limiter DLL (`I76PATCH.DLL`, where present) to `.disabled`, replaces the key map,
 sets the game's *Graphic Detail* options to the levels the developer plays with when they are still GOG's defaults (GOG's
