@@ -2955,11 +2955,26 @@ static __declspec(naked) void coop_net_flame_stub(void) {   /* replaces `call 0x
  * return 0x446130, records/LAN-FIXES-2026-10-24.md s.6). The function's first instruction `mov eax, [0x52bbe4]` becomes a
  * call that returns that pointer only while the device flag is set, so the function's own `test eax, eax; je` skips the
  * effect (and returns success) on a machine without a force-feedback device. With a device nothing changes. */
+/* The same 5 bytes also carry the stock-FFB focus fix (ffbfocus.c, I76_FFB_REACQUIRE, default on): its tick runs first, then
+ * the device test (only when I76_FFB_GUARD is on), then the instruction the call replaced. */
+#include "ffbfocus.c"    /* I76_FFB_REACQUIRE / I76_FFB_TRACE: stock force feedback across Alt-Tab and restarts (2026-10-24) */
+static int g_ffb_guard_on;
 static __declspec(naked) void ffb_guard_stub(void) {
     __asm {
+        cmp g_ffr_state, 3
+        je noffr
+        pushad
+        pushfd
+        call ffr_tick
+        popfd
+        popad
+    noffr:
+        cmp g_ffb_guard_on, 0
+        je plain
         mov eax, dword ptr ds:[0x0052bbd0]
         test eax, eax
         jz none
+    plain:
         mov eax, dword ptr ds:[0x0052bbe4]
     none:
         ret
@@ -2968,10 +2983,15 @@ static __declspec(naked) void ffb_guard_stub(void) {
 static void apply_ffb_guard(void) {
     BYTE old[5] = { 0xA1, 0xE4, 0xBB, 0x52, 0x00 }, w[5] = { 0xE8 }; LONG r = (LONG)((DWORD_PTR)ffb_guard_stub - (0x00446110 + 5));
     char v[8]; int lan = env_str("I76_COOP_AI", v, sizeof(v)) && v[0] == '1';   /* default on in the LAN preset only (I76_COOP_AI=1) */
-    if (env_flag("I76_FFB_GUARD", 8, lan) != 1) { mlog("  ffb-guard: off (I76_FFB_GUARD=0, or not a LAN launch)"); return; }
+    g_ffb_guard_on = env_flag("I76_FFB_GUARD", 8, lan) == 1;
+    ffr_config();
+    if (!g_ffb_guard_on) mlog("  ffb-guard: off (I76_FFB_GUARD=0, or not a LAN launch)");
+    if (!g_ffb_guard_on && g_ffr_state == 3) return;
     memcpy(w + 1, &r, 4);
-    mlog("  ffb-guard: ffb_PlayEffect 0x446110 %s (I7FF_SIM_Effect only while I7FF_InitSystem has a device)",
-         patch_bytes(0x00446110, old, w, 5, "ffb-guard") ? "guarded" : "NOT guarded (bytes differ)");
+    mlog("  ffb-guard: ffb_PlayEffect 0x446110 %s (%s%s)",
+         patch_bytes(0x00446110, old, w, 5, "ffb-guard") ? "hooked" : "NOT hooked (bytes differ)",
+         g_ffb_guard_on ? "I7FF_SIM_Effect only while I7FF_InitSystem has a device" : "no device test",
+         g_ffr_state != 3 ? "; ffb-focus tick first" : "");
 }
 /* CO-OP SCRIPT GUARD (I76_COOP_SCRIPT_GUARD, default 1 with I76_COOP_CHAIN; records/LAN-FIXES-2026-10-24.md s.6).
  * The owner's host-death crashes (family pack, 2026-10-24): host i76.exe+0x684BD read 0x30 (esi 0), joiner +0xB902 read
@@ -3571,11 +3591,18 @@ static void __cdecl coop_ai_score_set(int id, int score, int kills, int deaths) 
  * exists (stuck in a load the host had already left, soak 2026-10-07: crash at 0x467444 reading 0x70, from 0x4457f6,
  * twice). Both calls (0x401cfe, 0x401fde) skip the mirror while there is no local car. */
 static volatile LONG g_coop_mirror_skips;
-static void __cdecl coop_mirror(void) {
+/* 2026-10-24: both mirror calls and the ai_FrameTick call are CHAINED (st_call_site): I76_SKY_MIRROR=0 (the owner's ALL
+ * preset) wraps the two mirror calls and the tick gates ai_FrameTick, and the stock-bytes check left them unpatched
+ * ("UNEXPECTED bytes", 25/27 + the frame tick; Mac graphics lane, RC gate logs). Each stub calls what the site called. */
+static DWORD g_coop_mirror_next[2] = { 0x00445750, 0x00445750 }, g_coop_ft_next = 0x0040a320;
+static int st_call_site(DWORD site, DWORD stock, void *wrap, DWORD *chain, const char *what);   /* simtick.c */
+static void coop_mirror_n(int i) {
     BYTE **root = ((BYTE **(__cdecl *)(void))0x00457530)();
     if (!root || !*root || !*(BYTE **)(*root + 0x70)) { g_coop_mirror_skips++; return; }
-    ((void (__cdecl *)(void))0x00445750)();
+    ((void (__cdecl *)(void))(DWORD_PTR)g_coop_mirror_next[i])();
 }
+static void __cdecl coop_mirror(void) { coop_mirror_n(0); }
+static void __cdecl coop_mirror1(void) { coop_mirror_n(1); }
 static int __cdecl coop_ai_class_damage(BYTE *o, int a, int rec) {   /* replaces `call object_ClassDamage 0x462040` x5 */
     if (coop_ai_role() == 2 && coop_ai_is_mirrored(o)) { g_coop_ai_blocked++; return 0; }
     return ((int (__cdecl *)(BYTE *, int, int))0x00462040)(o, a, rec);
@@ -4225,7 +4252,7 @@ static void coop_obj_catchup(void) {                         /* host: a newcomer
 }
 static int __cdecl coop_ai_frametick(int a) {              /* replaces `call ai_FrameTick 0x40a320` at 0x403ddf */
     if (coop_ai_role() == 2 && coop_ai_in_mission()) return 0;
-    return ((int (__cdecl *)(int))0x0040a320)(a);
+    return ((int (__cdecl *)(int))(DWORD_PTR)g_coop_ft_next)(a);
 }
 static void apply_coop_ai(HMODULE exe) {
     BYTE old[5] = { 0xE8 }, w[5] = { 0xE8 }; LONG r0, r1;
@@ -4243,11 +4270,10 @@ static void apply_coop_ai(HMODULE exe) {
         }
         if (g_hp_watch) InitializeCriticalSection(&g_hp_cs);
     }
-    r0 = (LONG)(0x0040a320 - (0x00403ddf + 5)); r1 = (LONG)((DWORD_PTR)coop_ai_frametick - (0x00403ddf + 5));
-    memcpy(old + 1, &r0, 4); memcpy(w + 1, &r1, 4);
+    (void)old; (void)w; (void)r0; (void)r1;
     mlog("  coop-ai: dpReceive %s, ai_FrameTick call %s (host sends mission cars as 'AT', joiner mirrors them)",
          real_dpReceive ? "hooked" : "NOT hooked",
-         patch_bytes(0x00403ddf, old, w, 5, "coop-ai: ai_FrameTick") ? "repointed" : "NOT repointed");
+         st_call_site(0x00403ddf, 0x0040a320, (void *)coop_ai_frametick, &g_coop_ft_next, "coop-ai: ai_FrameTick") ? "repointed (chained)" : "NOT repointed");
     {   /* AI trigger pulls (host records them) and the damage entry (joiner blocks it for mirrored cars) */
         static const struct { DWORD site, target; void *stub; } c[27] = {
             { 0x00414f86, 0x004a3560, (void *)coop_ai_trigger },
@@ -4260,7 +4286,7 @@ static void apply_coop_ai(HMODULE exe) {
             { 0x00412fad, 0x00412830, (void *)coop_ai_attack }, { 0x00413049, 0x00412830, (void *)coop_ai_attack },
             { 0x00414046, 0x00412830, (void *)coop_ai_attack },
             { 0x00465267, 0x00454ea0, (void *)coop_ai_score_set },
-            { 0x00401cfe, 0x00445750, (void *)coop_mirror }, { 0x00401fde, 0x00445750, (void *)coop_mirror },
+            { 0x00401cfe, 0x00445750, (void *)coop_mirror }, { 0x00401fde, 0x00445750, (void *)coop_mirror1 },
             { 0x0040a0f8, 0x00423620, (void *)coop_cb_play }, { 0x0040bfcc, 0x00423620, (void *)coop_cb_play },
             { 0x0040bfee, 0x00423620, (void *)coop_cb_play }, { 0x0040c011, 0x00423620, (void *)coop_cb_play },
             { 0x0040c029, 0x00423620, (void *)coop_cb_play }, { 0x0041348f, 0x00423620, (void *)coop_cb_play },
@@ -4278,6 +4304,10 @@ static void apply_coop_ai(HMODULE exe) {
             LONG a0 = (LONG)(c[i].target - (c[i].site + 5)), a1 = (LONG)((DWORD_PTR)c[i].stub - (c[i].site + 5));
             memcpy(o5 + 1, &a0, 4); memcpy(w5 + 1, &a1, 4);
             if (c[i].site == 0x004a81d3 && st_dmg_chain_take(c[i].stub)) { n++; continue; }   /* tick-factors holds the site: chain behind it */
+            if (c[i].site == 0x00401cfe || c[i].site == 0x00401fde) {   /* sky-mirror may hold them: chain (above) */
+                if (st_call_site(c[i].site, c[i].target, c[i].stub, &g_coop_mirror_next[c[i].site == 0x00401fde], "coop-ai: mirror call")) n++;
+                continue;
+            }
             if (patch_bytes(c[i].site, o5, w5, 5, "coop-ai: trigger/damage")) n++;
         }
         mlog("  coop-ai: %d/%d trigger + damage + SetBehaviour + score + mirror + radio + objective sites repointed", n, nsites);
