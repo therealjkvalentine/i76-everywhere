@@ -94,4 +94,4 @@ say so. Clips need re-recording.
   Main not touched.
 - Patch Kit 0.8.1 draft rebuilt from 92965f8 (proxy unchanged, c54210f8): `Interstate76-Patch-Kit-i76-everywhere-v0.8.1-92965f8.zip`.
   Not published.
-- Laptop bench copies `C:\i76-bench\walign\gold`, `\nitro` (this lane's; retire with this record).
+- The laptop bench's own copies for this lane (`walign\gold`, `walign\nitro` in the bench folder; retire with this record).
