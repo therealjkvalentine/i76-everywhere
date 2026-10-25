@@ -2,11 +2,12 @@
 
 This repository ships **no copyrighted game files** and **no third-party binaries**
 (see [`.gitignore`](.gitignore)). It is scripts, source, configuration, and
-documentation, plus three prebuilt binaries **of this project's own code**, each
+documentation, plus a few prebuilt binaries **of this project's own code**, each
 committed beside its source and build script: `music-fix/Strlkup.dll` (forwards by
 name to GOG's renamed `strlkup_orig.dll`), `u32x/u32x.dll` (forwards by name to
-`user32`; md5 and provenance in [`u32x/README.md`](u32x/README.md)) and
-`tools/i76wheel.exe`. None contains game bytes. Everything original here is
+`user32`; md5 and provenance in [`u32x/README.md`](u32x/README.md)),
+`tools/i76wheel.exe` and the Mac launch stubs `tools/mac-kit/stubs/Sikarugir-*` (Swift, built by
+`tools/mac-kit/build-stubs.sh` from `i76-launch-stub.swift` / `i76-nitro-app-stub.swift`). None contains game bytes. Everything original here is
 [MIT-licensed](LICENSE). This file records what the project *builds on* but does
 not own or redistribute.
 
@@ -27,11 +28,12 @@ scripts that fetch them from their official sources at install time.
 | Tool | Role here | Source / license |
 |---|---|---|
 | **dgVoodoo2** (Dege) | Glide→D3D11 wrapper (Deck/Windows pretty path) | Freeware, dgVoodoo license — [dege.freeweb.hu](http://dege.freeweb.hu/). **Not redistributed by this repo**: `setup-windows.ps1` copies it from a folder you downloaded (`-DgVoodooDir`), and `deck/deck-install.sh` fetches 2.78.2 at install time from a public archive.org mirror (`archive.org/download/dgvoodoo2_78_2_202205`). Redistribution checked 2026-10-23 (SCOTT-BUILD record): Dege's ReadmeGeneral §1 says "You can freely ship your game or game mod with unmodified individual dgVoodoo components (files) included", so the Patch Kit (v0.7.x) bundles the unmodified x86 components (2.87.5, with 2.87.3 as a fallback folder), md5-checked against the official GitHub release, with that readme quoted in `_i76e\dgVoodoo\README-dgVoodoo.txt` |
-| **DxWnd** (gho) | Windowing/scaling + virtual-CD music (Mac software path) | GPL — [sourceforge.net/projects/dxwnd](https://sourceforge.net/projects/dxwnd/) |
-| **OpenGLide** | Glide→OpenGL wrapper (GOG-bundled) | LGPL |
+| **DxWnd** (gho) | Windowing/scaling + virtual-CD music (Mac software path) | GPL — [sourceforge.net/projects/dxwnd](https://sourceforge.net/projects/dxwnd/). The Mac Kit (`tools/mac-kit`) downloads 2.06.14 on the Mac from SourceForge, SHA-256-pinned (`pins.txt`); not in its zip |
+| **OpenGLide** | Glide→OpenGL wrapper (GOG-bundled) | LGPL. **OpenGLide-HD** = OpenGLide + this project's patches (`tools/openglide-hd/*.patch`): its Mac build (`glide2x.dll` 429e6e94) ships in the Mac Kit zip under the LGPL, sources = upstream OpenGLide + those patches |
 | **DXVK** (doitsujin) | D3D→Vulkan (Deck/Android/Wine) | zlib/libpng — [github.com/doitsujin/dxvk](https://github.com/doitsujin/dxvk) |
 | **Box64/Box86** (ptitSeb) | x86→ARM64 (Android/Winlator) | MIT — [github.com/ptitSeb/box64](https://github.com/ptitSeb/box64) |
-| **Wine / Proton / Sikarugir / Winlator** | Windows compatibility layer per platform | LGPL and respective licenses |
+| **Wine / Proton / Sikarugir / Winlator** | Windows compatibility layer per platform | LGPL and respective licenses. The Mac Kit downloads Sikarugir's wrapper template 1.0.11 and Wine engine 10.0_6 on the Mac from Sikarugir-App's GitHub releases, SHA-256-pinned, and deletes the template's D3DMetal (Apple licence) and other unused renderers; nothing of Sikarugir is in the zip |
+| **IPXWrapper** (solemnwarning) | IPX over UDP for LAN games (PC, Macs, Deck) | GPL v2 — [github.com/solemnwarning/ipxwrapper](https://github.com/solemnwarning/ipxwrapper). The Mac Kit downloads 0.7.2 on the Mac, SHA-256-pinned |
 | **UCyborg "AiO" patch** | 20 FPS physics limiter (already inside the GOG 2019 exe) | See the AiO patch readme |
 | **innoextract** | Extracts the GOG installer (Deck script) | zlib — [constexpr.org/innoextract](https://constexpr.org/innoextract/) |
 | **AutoHotkey 1.1** (staged, input remapper WIP) | In-container input remapping | GPL — [autohotkey.com](https://www.autohotkey.com/) |

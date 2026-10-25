@@ -1,5 +1,10 @@
 # Interstate '76 (GOG Gold) - Apple Silicon
 
+**Building the Mac apps yourself (2026-10-25):** the I'76 Mac Kit ([tools/mac-kit/README.md](../tools/mac-kit/README.md),
+zip from tools/package-mac-kit.ps1) builds `Interstate 76 Gold.app` and `Interstate 76 Nitro.app` from your own GOG Windows
+installer or folder, with no sudo; record [records/MAC-KIT-2026-10-25.md](records/MAC-KIT-2026-10-25.md). The rest of this page is
+the history of the hand-built app.
+
 Status: **Playable on the free stack** (Sikarugir Wine 10, wow64) — fullscreen-4:3 window,
 in-mission music, clean quit, built-in 20 FPS physics limiter, all verified in play. Not a Steam
 title - GOG release, so no SteamCMD: you supply the game files yourself (see
