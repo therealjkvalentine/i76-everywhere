@@ -294,13 +294,21 @@ if ($Windowed) {
         if ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*= false') {
             $winConfBak = "$confPath.pre-windowed"
             Copy-Item $confPath $winConfBak -Force
-            [IO.File]::WriteAllText($confPath, $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1), [Text.Encoding]::ASCII)
+            # AppControlledScreenMode = false: with the conf's own 'true' the game's exclusive full-screen request wins and dgVoodoo
+            # keeps the window at the screen size, vetoing any resize (measured 2026-10-25: SetWindowPos returned TRUE and the rect
+            # stayed 3440x1440); with 'false' it is a real window ([DirectX] Resolution sized, centred) that the keeper can size.
+            $ct2 = $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1) -replace '(?m)^(AppControlledScreenMode\s*=\s*)true', '${1}false'
+            [IO.File]::WriteAllText($confPath, $ct2, [Text.Encoding]::ASCII)
             Write-LaunchLog ("windowed {0}x{1} at the top left; dgVoodoo.conf [Glide] Resolution {2}x{3} for this launch (the previous conf is back when the game exits)" -f $ww, $wh, $gw, $gh) 'Cyan'
         } else {
             Write-LaunchLog ("windowed {0}x{1}: dgVoodoo.conf is not a windowed conf with a [Glide] Resolution line - the render size stays as it is" -f $ww, $wh) 'Yellow'
         }
     }
     $gameEnv['I76_ASPECT'] = "${ww}x${wh}"
+    # the exe minimises itself when it loses activation (WndProc WM_ACTIVATEAPP 0, 0x404acc): a click on the panel beside it
+    # would hide the game. The proxy's I76_NO_MINIMIZE turns that ShowWindow(SW_MINIMIZE) into SW_SHOWNA (strlkproxy.c); the game
+    # still pauses while it is not the active window, as it always has.
+    if (-not $gameEnv.Contains('I76_NO_MINIMIZE')) { $gameEnv['I76_NO_MINIMIZE'] = '1' }
     if ($gameEnv.Contains('I76_U32X_MENU_ASPECT')) { $gameEnv['I76_U32X_MENU_ASPECT'] = "${ww}:${wh}" }
 }
 
