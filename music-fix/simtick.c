@@ -672,6 +672,7 @@ static void st_trc_log(void) {
  * requested it on that frame too. A loop the next tick does not request is stopped by that tick frame's update, as in
  * stock (at most one tick late). */
 static BYTE *g_snd_keep[256]; static int g_snd_keep_n, g_st_snd = 1;
+static int g_mge; static int mge_owned(BYTE *voice);         /* I76_MG_EVEN (below): the MG loops it holds are not listed here */
 static DWORD g_snd_held;
 static void st_snd_keep(int tickframe) {
     BYTE *mgr = *(BYTE **)(DWORD_PTR)NA(0x00524564), *e;
@@ -680,13 +681,229 @@ static void st_snd_keep(int tickframe) {
     if (tickframe) {
         g_snd_keep_n = 0;
         for (e = *(BYTE **)(mgr + 0x1c); e && guard++ < 512; e = *(BYTE **)e)
-            if (*(int *)(e + 0x3c) == 2 && *(BYTE *)(e + 0x74) && g_snd_keep_n < 256) g_snd_keep[g_snd_keep_n++] = e;
+            if (*(int *)(e + 0x3c) == 2 && *(BYTE *)(e + 0x74) && g_snd_keep_n < 256 && !(g_mge && mge_owned(e))) g_snd_keep[g_snd_keep_n++] = e;
         return;
     }
     for (e = *(BYTE **)(mgr + 0x1c); e && guard++ < 512; e = *(BYTE **)e) {
         if (*(int *)(e + 0x3c) != 2 || *(BYTE *)(e + 0x74)) continue;
         for (i = 0; i < g_snd_keep_n; i++) if (g_snd_keep[i] == e) { *(BYTE *)(e + 0x74) = 1; g_snd_held++; break; }
     }
+}
+
+/* ---- I76_MG_EVEN / I76_FIRE_TIMER_FIX (2026-10-25 mg-stutter lane; docs/records/MG-STUTTER-2026-10-25.md s.3.1, issue #98) ------
+ * Tester: "the base frame rate was 24 fps. This causes some stuttering with machine guns." weapon_UpdateInstanceFiring 0x4a6470
+ * (once per tick from weapon_Update, call 0x4a43cc) fires a shot only on a sim frame: a 10 /s MG (100 ms = 2.4 ticks of 41.667 ms)
+ * fires on a 2, 3, 2, 3 tick pattern = 83 / 125 ms, and the shot's muzzle flash and fire sound (weapon_FireShot 0x4a6e90: flash
+ * 0x49f2f0 at 0x4a6e9e, the sustained loop 0x423230 at 0x4a6ee0 / the one-shot 0x4231f0 at 0x4a6ef2) come out on that grid. The
+ * timer knows where each shot should have fallen: the interval (+0x28, plus the burst cooldown +0x24) left at the tick's start.
+ *   1. weapon_Update's call 0x4a43cc is wrapped: before it, every instance's cooldown + interval is snapshotted (table 0x5aab08,
+ *      stride 0x4c, count [0x5da750]). The weapon_FireShot calls 0x4a6b16 / 0x4a6d43 (chained behind the telemetry's wrapper)
+ *      set the call's offset = that time (0 < offset < T; a second shot of the same instance in one tick adds 1 / fire_rate per
+ *      shot), else 0: a shot at the tick's start, including the first of a pull and the 10 ms drop case.
+ *   2. With an offset, the flash and the sound calls inside weapon_FireShot push {due, kind, object, name} on a ring instead of
+ *      running; the camera wrapper (every display frame, before the sound update) runs each entry on the display frame nearest
+ *      its due time, as wall time = this tick's start as drawn (the frame's QPC minus the accumulator left after the tick; on an
+ *      early tick the early segment's own scale) + offset. Nothing left from the last tick survives into the next sim block: the
+ *      ring is played out at the next tick's clock (before the sim runs) and dropped on shell / pause frames and a new mission.
+ *      Rounds, ammo, damage, AI, the net fire packets and the HUD stay on the tick: only the flash and the sound move.
+ *   3. A sustained MG request (weapdef ordnance +0x80 == 1, sound_mode +0xa0 != 0) is held for I76_MG_SOUND_HOLD_MS (default 50 =
+ *      the 1997 20 fps frame; 0 = the tick's own chunk as before): the voice (manager [0x524564] +0x1c list, mode 2, object +0x5c,
+ *      name +4) gets keep-alive +0x74 = 1 on every display frame until the frame nearest due + hold, so a 10 /s gun chops 50 / 50
+ *      at 10 starts a second and a 20 /s gun is continuous, at any display rate. Those voices are left out of st_snd_keep's tick
+ *      listing. I76_MG_SOUND_NEW_MS (default 0) adds that much to the hold of a request that STARTS the loop (no voice yet): 50 =
+ *      the 1997 20 fps pattern as measured live (stock 20 fps with the GOG limiter: the sound update of the frame that starts a voice
+ *      does not consume its keep-alive, so a 10 /s gun's loop ran 150 ms on / 50 ms off, one start per two shots, n 2).
+ *   4. I76_FIRE_TIMER_FIX (default = I76_MG_EVEN): the timer's leftover rule `if (dt_left < 0.01) dt_left = 0` (fcomp [0x4beb38]
+ *      at 0x4a6627, the only compare against 0.01 in 0x4a6470; the other paths to 0x4a6b40 are trigger-up / empty-gun exits)
+ *      compares against 0.0 [0x4beab8] instead: a shot whose leftover is under 10 ms fires in this tick, the virtual grid is exact
+ *      and the rate is the .gdf's (10.00 /s; 9.6 at ~42 ms steps with the rule). This one changes the sim (+4 % rounds per second):
+ *      every LAN peer should run the same setting.
+ * Gold only (Nitro: no site map for these seven sites yet). I76_MG_EVEN=0 = as before. A `mg-even:` line at attach, a counter line
+ * every I76_SIM_TICK_LOG s. */
+static int g_mge, g_mge_tfix, g_mge_cnt, g_mge_snap_ok, g_mge_hold_ms = 50, g_mge_new_ms;
+static float g_mge_snap[160]; static int g_mge_k[160];
+static float g_mge_off; static BYTE *g_mge_wdef;
+static double g_mge_t0, g_mge_scale = 1.0;                   /* this tick's start as drawn (wall s since g_qp0), wall s per sim s */
+static DWORD g_mge_upd_next = 0x004a6470, g_mge_fire_next[2], g_mge_flash_next = 0x0049f2f0, g_mge_sus_next = 0x00423230, g_mge_one_next = 0x004231f0;
+typedef struct { double due; int kind, mg; BYTE *obj; const char *name; } mge_ev_t;
+#define MGE_RING 128
+static mge_ev_t g_mge_ring[MGE_RING]; static int g_mge_n;
+typedef struct { BYTE *obj; const char *name; double until, last; int on; } mge_hold_t;
+#define MGE_HOLDS 32
+static mge_hold_t g_mge_hold[MGE_HOLDS];
+static DWORD g_mge_shots, g_mge_offn, g_mge_def, g_mge_played, g_mge_flushed, g_mge_dropped, g_mge_full, g_mge_keeps, g_mge_holds, g_mge_faults, g_mge_lastlog;
+static double mge_wall(void) { LARGE_INTEGER q; QueryPerformanceCounter(&q); return (double)(q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart; }
+/* the display frame's own time: its top (simtick_clock's QPC read), the same instant for every frame type (a tick frame's camera
+ * wrapper runs after the sim block, a variable time later). Chosen for consistency: an interleaved A/B against the wrapper's own
+ * clock (n 3 each, null-renderer rig) showed no difference larger than the rig's frame-pacing noise. */
+static double mge_frame_t(void) { return (double)(g_st_q.QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart; }
+static BYTE *mge_voice(BYTE *obj, const char *name) {        /* the looping voice of this name on this object, as 0x421b40 finds it */
+    BYTE *mgr = *(BYTE **)0x00524564, *e;
+    int guard = 0;
+    if (!mgr || !obj || !name) return 0;
+    for (e = *(BYTE **)(mgr + 0x1c); e && guard++ < 512; e = *(BYTE **)e)
+        if (*(BYTE **)(e + 0x5c) == obj && *(int *)(e + 0x3c) == 2 && lstrcmpiA((const char *)(e + 4), name) == 0) return e;
+    return 0;
+}
+static int mge_owned(BYTE *voice) {                          /* st_snd_keep: a voice the MG hold keeps (or kept in the last second) */
+    int i;
+    double now;
+    if (!g_mge_hold_ms) return 0;
+    now = mge_wall();
+    for (i = 0; i < MGE_HOLDS; i++)
+        if (g_mge_hold[i].obj && g_mge_hold[i].obj == *(BYTE **)(voice + 0x5c) && now - g_mge_hold[i].last < 1.0 &&
+            lstrcmpiA((const char *)(voice + 4), g_mge_hold[i].name) == 0) return 1;
+    return 0;
+}
+static void mge_hold_add(BYTE *obj, const char *name, double from, int fresh) {
+    int i, j = -1;
+    double now = mge_wall(), until = from + (g_mge_hold_ms + (fresh ? g_mge_new_ms : 0)) * 0.001;
+    for (i = 0; i < MGE_HOLDS; i++) if (g_mge_hold[i].obj == obj && g_mge_hold[i].name == name) { j = i; break; }
+    if (j < 0) for (i = 0; i < MGE_HOLDS; i++) if (!g_mge_hold[i].obj || now - g_mge_hold[i].last > 1.0) { j = i; break; }
+    if (j < 0) { j = 0; for (i = 1; i < MGE_HOLDS; i++) if (g_mge_hold[i].last < g_mge_hold[j].last) j = i; }
+    g_mge_hold[j].obj = obj; g_mge_hold[j].name = name; g_mge_hold[j].until = until; g_mge_hold[j].last = now; g_mge_hold[j].on = 1;
+    g_mge_holds++;
+}
+static void mge_run(const mge_ev_t *v, double at) {          /* the deferred call, with the arguments weapon_FireShot passed */
+#ifdef _MSC_VER
+    __try {
+#endif
+        if (v->kind == 0) ((void (__cdecl *)(BYTE *))(DWORD_PTR)g_mge_flash_next)(v->obj);
+        else {
+            int fresh = v->kind == 1 && v->mg && g_mge_new_ms && !mge_voice(v->obj, v->name);
+            ((int (__cdecl *)(const char *, BYTE *, void *))(DWORD_PTR)(v->kind == 1 ? g_mge_sus_next : g_mge_one_next))(v->name, v->obj, 0);
+            if (v->kind == 1 && v->mg && g_mge_hold_ms) mge_hold_add(v->obj, v->name, at, fresh);
+        }
+#ifdef _MSC_VER
+    } __except (EXCEPTION_EXECUTE_HANDLER) { g_mge_faults++; }
+#endif
+}
+static int mge_push(int kind, BYTE *obj, const char *name) {  /* 1 = deferred (the caller returns), 0 = run it now */
+    mge_ev_t *v;
+    if (!g_mge || g_mge_off <= 0.0f) return 0;                /* off, or a site missing (the frame hook would never play it) */
+    if (g_mge_n >= MGE_RING) { g_mge_full++; return 0; }
+    v = &g_mge_ring[g_mge_n++];
+    v->due = g_mge_t0 + (double)g_mge_off * g_mge_scale; v->kind = kind; v->obj = obj; v->name = name;
+    v->mg = g_mge_wdef && *(int *)(g_mge_wdef + 0x80) == 1 && *(int *)(g_mge_wdef + 0xa0) != 0;
+    g_mge_def++;
+    return 1;
+}
+static void __cdecl mge_flash(BYTE *obj) { if (!mge_push(0, obj, 0)) ((void (__cdecl *)(BYTE *))(DWORD_PTR)g_mge_flash_next)(obj); }
+static int __cdecl mge_sus(const char *name, BYTE *obj, void *p3) {
+    int r, mg, fresh;
+    if (mge_push(1, obj, name)) return 0;
+    mg = g_mge_wdef && *(int *)(g_mge_wdef + 0x80) == 1;
+    fresh = mg && g_mge_new_ms && !mge_voice(obj, name);
+    r = ((int (__cdecl *)(const char *, BYTE *, void *))(DWORD_PTR)g_mge_sus_next)(name, obj, p3);
+    if (mg && g_mge_hold_ms && g_mge_snap_ok) mge_hold_add(obj, name, mge_frame_t(), fresh);   /* at the tick's start: it starts on this frame */
+    return r;
+}
+static int __cdecl mge_one(const char *name, BYTE *obj, void *p3) {
+    if (mge_push(2, obj, name)) return 0;
+    return ((int (__cdecl *)(const char *, BYTE *, void *))(DWORD_PTR)g_mge_one_next)(name, obj, p3);
+}
+static void __cdecl mge_update_wrap(void) {                  /* call 0x4a43cc: weapon_UpdateInstanceFiring, once per tick */
+    BYTE *b = (BYTE *)0x005aab08;
+    int i, n = *(int *)0x005da750;
+    if (n < 0) n = 0; if (n > 160) n = 160;
+    g_mge_cnt = n;
+    g_mge_snap_ok = g_simtick && g_st_now && g_st_clk[0] > 0.0f;
+    for (i = 0; i < n; i++) {
+        float c = *(float *)(b + i * 0x4c + 0x24), v = *(float *)(b + i * 0x4c + 0x28);
+        g_mge_snap[i] = (c > 0.0f ? c : 0.0f) + (v > 0.0f ? v : 0.0f); g_mge_k[i] = 0;
+    }
+    ((void (__cdecl *)(void))(DWORD_PTR)g_mge_upd_next)();
+    g_mge_snap_ok = 0;
+}
+static void mge_fire(int site, BYTE *inst, BYTE *wdef, int count, float dtl) {
+    float off = 0.0f;
+    if (g_mge_snap_ok && inst && wdef) {
+        int i = (int)((inst - (BYTE *)0x005aab08) / 0x4c);
+        if (i >= 0 && i < g_mge_cnt) {
+            float rem = g_mge_snap[i], rate = *(float *)(wdef + 0x70);
+            if (g_mge_k[i] > 0 && rate > 0.0f) rem += (float)g_mge_k[i] / rate;   /* a later shot of this instance in the same tick */
+            g_mge_k[i] += count > 0 ? count : 1;
+            if (rem > 0.0f && rem < g_st_T) { off = rem; g_mge_offn++; }
+        }
+    }
+    g_mge_shots++;
+    g_mge_off = off; g_mge_wdef = wdef;
+    ((void (__cdecl *)(BYTE *, BYTE *, int, float))(DWORD_PTR)g_mge_fire_next[site])(inst, wdef, count, dtl);
+    g_mge_off = 0.0f; g_mge_wdef = 0;
+}
+static void __cdecl mge_fire0(BYTE *inst, BYTE *wdef, int count, float dtl) { mge_fire(0, inst, wdef, count, dtl); }
+static void __cdecl mge_fire1(BYTE *inst, BYTE *wdef, int count, float dtl) { mge_fire(1, inst, wdef, count, dtl); }
+static void mge_drop(void) { if (g_mge_n) g_mge_dropped += g_mge_n; g_mge_n = 0; memset(g_mge_hold, 0, sizeof g_mge_hold); }
+/* simtick_clock, on a tick frame before the sim block: play what the last tick left (its objects are as alive as when it fired),
+ * then this tick's start as drawn */
+static void mge_tick_begin(const LARGE_INTEGER *q, int early) {
+    int i;
+    double now = (double)(q->QuadPart - g_qp0.QuadPart) / (double)g_qpf.QuadPart;
+    for (i = 0; i < g_mge_n; i++) { mge_run(&g_mge_ring[i], now); g_mge_flushed++; }
+    g_mge_n = 0;
+    if (early && g_st_acc0 < (double)g_st_T) { g_mge_t0 = now; g_mge_scale = ((double)g_st_T - g_st_acc0) / (double)g_st_T; }   /* the early segment: alpha 0 now */
+    else { g_mge_t0 = now - g_st_acc; g_mge_scale = 1.0; }
+}
+/* the camera wrapper, every display frame before the sound update: the due entries, then the MG loops' keep-alive */
+static double g_mge_P;                                       /* the display period, smoothed (one frame's dt jitters +-0.5 ms) */
+static void mge_frame(void) {
+    double now = mge_frame_t(), half;
+    int i, k = 0;
+    g_mge_P = g_mge_P > 0.0 ? 0.9 * g_mge_P + 0.1 * (double)g_st_disp_dt : (double)g_st_disp_dt;
+    half = 0.5 * g_mge_P;
+    for (i = 0; i < g_mge_n; i++) {
+        if (g_mge_ring[i].due - now <= half + 0.001) { mge_run(&g_mge_ring[i], g_mge_ring[i].due > now ? g_mge_ring[i].due : now); g_mge_played++; }
+        else g_mge_ring[k++] = g_mge_ring[i];
+    }
+    g_mge_n = k;
+    for (i = 0; i < MGE_HOLDS; i++) {
+        mge_hold_t *h = &g_mge_hold[i];
+        BYTE *e;
+        if (!h->obj || !h->on) continue;
+        if (h->until - now <= half - 0.001) { h->on = 0; continue; }    /* the frame nearest due + hold: this frame's update stops it */
+#ifdef _MSC_VER
+        __try {
+#endif
+            if ((e = mge_voice(h->obj, h->name)) != 0 && !*(BYTE *)(e + 0x74)) { *(BYTE *)(e + 0x74) = 1; g_mge_keeps++; }
+#ifdef _MSC_VER
+        } __except (EXCEPTION_EXECUTE_HANDLER) { g_mge_faults++; h->obj = 0; }
+#endif
+    }
+    if (g_st_logper && GetTickCount() - g_mge_lastlog >= g_st_logper) {
+        g_mge_lastlog = GetTickCount();
+        mlog("  mg-even: shots %lu (with an offset %lu); flash / sound calls deferred %lu, played on their frame %lu, at the next tick %lu, "
+             "dropped %lu, ring full %lu; MG loop holds %lu, keep-alives %lu; faults %lu",
+             (unsigned long)g_mge_shots, (unsigned long)g_mge_offn, (unsigned long)g_mge_def, (unsigned long)g_mge_played, (unsigned long)g_mge_flushed,
+             (unsigned long)g_mge_dropped, (unsigned long)g_mge_full, (unsigned long)g_mge_holds, (unsigned long)g_mge_keeps, (unsigned long)g_mge_faults);
+    }
+}
+static void apply_mg_even(void) {                            /* from apply_simtick, after the gates (and after apply_telemetry's FireShot wrapper) */
+    static const BYTE tf_old[4] = { 0x38, 0xEB, 0x4B, 0x00 }, tf_new[4] = { 0xB8, 0xEA, 0x4B, 0x00 };   /* fcomp [0x4beb38] -> [0x4beab8] at 0x4a6627 */
+    int n = 0, t = 0;
+    g_mge = env_flag("I76_MG_EVEN", 8, 1) == 1;
+    g_mge_tfix = env_flag("I76_FIRE_TIMER_FIX", 8, g_mge) == 1;
+    g_mge_hold_ms = env_int("I76_MG_SOUND_HOLD_MS", 8, 50); if (g_mge_hold_ms < 0) g_mge_hold_ms = 0; if (g_mge_hold_ms > 500) g_mge_hold_ms = 500;
+    g_mge_new_ms = env_int("I76_MG_SOUND_NEW_MS", 8, 0); if (g_mge_new_ms < 0) g_mge_new_ms = 0; if (g_mge_new_ms > 500) g_mge_new_ms = 500;
+    if (g_exe == EXE_NITRO) { if (g_mge || g_mge_tfix) mlog("  mg-even: not on Nitro (no site map for its sites) - off"); g_mge = g_mge_tfix = 0; return; }
+    if (g_mge) {
+        n += st_call_site(0x004a43cc, 0x004a6470, (void *)mge_update_wrap, &g_mge_upd_next, "weapon_UpdateInstanceFiring call (mg-even)");
+        n += st_call_site(0x004a6b16, 0x004a6e90, (void *)mge_fire0, &g_mge_fire_next[0], "weapon_FireShot call, in the loop (mg-even)");
+        n += st_call_site(0x004a6d43, 0x004a6e90, (void *)mge_fire1, &g_mge_fire_next[1], "weapon_FireShot call, MG batch (mg-even)");
+        n += st_call_site(0x004a6e9e, 0x0049f2f0, (void *)mge_flash, &g_mge_flash_next, "muzzle flash call in weapon_FireShot (mg-even)");
+        n += st_call_site(0x004a6ee0, 0x00423230, (void *)mge_sus, &g_mge_sus_next, "sustained fire sound call in weapon_FireShot (mg-even)");
+        n += st_call_site(0x004a6ef2, 0x004231f0, (void *)mge_one, &g_mge_one_next, "one-shot fire sound call in weapon_FireShot (mg-even)");
+        if (n != 6) mlog("  mg-even: only %d/6 sites patched - shots keep the tick's grid where a site is missing", n);
+    }
+    if (g_mge_tfix) {
+        if (*(const float *)0x004beab8 == 0.0f && *(const float *)0x004beb38 == 0.01f)
+            t = patch_bytes(0x004a6629, tf_old, tf_new, 4, "fire timer leftover compare 0.01 -> 0 (fire-timer-fix)") && memcmp((void *)0x004a6629, tf_new, 4) == 0;
+        else mlog("  mg-even: fire timer constants not stock - timer fix not applied");
+    }
+    mlog("  mg-even: %s - %d/6 sites (weapon update snapshot, FireShot x2, flash, sustained + one-shot sound); MG loop hold %d ms (I76_MG_SOUND_HOLD_MS), +%d ms on a fresh start (I76_MG_SOUND_NEW_MS); "
+         "fire timer 10 ms leftover rule %s (I76_FIRE_TIMER_FIX)",
+         g_mge ? "ON (I76_MG_EVEN=1: flash and sound at the timer's shot time)" : "off (I76_MG_EVEN=0)", n, g_mge_hold_ms, g_mge_new_ms,
+         t ? "REMOVED (1/1 site: the .gdf rate, every LAN peer should match)" : g_mge_tfix ? "kept (patch FAILED)" : "kept (stock)");
+    if (g_mge && n != 6) g_mge = 0;                           /* the frame hooks stay quiet; patched sites pass through with offset 0 */
 }
 
 /* I76_SOUND_CENSUS=1 (lab instrument, any frame loop): every voice start (sound_StartVoice 0x4220c0 from the per-frame
@@ -1015,7 +1232,7 @@ static void simtick_clock(void) {
         ((void (__cdecl *)(void))(DWORD_PTR)NA(0x0049c920))();
         g_st_now = 1; g_st_acc = g_st_T; g_st_since = 0.0; g_wm_n = 0; g_st_seg_early = 0; g_we_n = 0; g_trc_n = 0; g_trcp_n = 0;
         g_st_clk[0] = 0.0f; g_st_cam_from_on = 0;
-        g_tick20 = 1; g_st_fage_due = 1;
+        g_tick20 = 1; g_st_fage_due = 1; if (g_mge) mge_drop();
         if (g_st_cosmetic) st_cosmetic_rates(0);             /* the death orbit also runs on mission-over frames */
         wst_publish();
         return;
@@ -1028,7 +1245,7 @@ static void simtick_clock(void) {
             mlog("  sim-tick: new mission - forgot %d moving objects, %d early poses, %d + %d spawns of the last one (%lu stale entries skipped before)",
                  g_wm_n, g_we_n, g_wsp_n[0], g_wsp_n[1], (unsigned long)g_st_stale_skipped);
         g_wm_n = 0; g_we_n = 0; g_we_on = 0; g_wsp_n[0] = g_wsp_n[1] = 0; g_trc_n = 0; g_trcp_n = 0;
-        g_st_seg_early = 0; g_st_cam_from_on = 0; g_st_stale_skipped = 0;
+        g_st_seg_early = 0; g_st_cam_from_on = 0; g_st_stale_skipped = 0; if (g_mge) mge_drop();
         if (g_st_acc < (double)g_st_T) g_st_acc = (double)g_st_T;
     }
     g_wst_local.wall_s += d > 0.25 ? 0.25 : d;
@@ -1051,6 +1268,7 @@ static void simtick_clock(void) {
             g_wst_local.multi_due++; g_wst_local.dropped_s += k * (double)g_st_T; g_st_acc -= k * (double)g_st_T;
         }
         g_st_now = 1;
+        if (g_mge) mge_tick_begin(&q, early);                /* I76_MG_EVEN: the last tick's deferred flashes / sounds, this tick's drawn start */
         wst_tick_start();
         ((void (__cdecl *)(void))(DWORD_PTR)NA(0x0049c920))();             /* simclock_Update: frame count, last tick, first-frames latch */
         st_clock_set(g_st_T, g_st_T);
@@ -1145,6 +1363,7 @@ static void __cdecl st_cam_wrap(void) {
     if (g_st_now && g_st_clk[0] > 0.0f) wst_tick_end();     /* the sim block is done: poses after the tick */
     if (g_st_now && g_st_clk[0] > 0.0f && g_st_trc) st_trc_tick_end();   /* tracer records updated in this tick */
     if (g_st_snd && g_st_clk[0] > 0.0f) st_snd_keep(g_st_now);   /* sustained sounds: list (tick frame) / keep alive (between ticks) */
+    if (g_mge && g_st_clk[0] > 0.0f) mge_frame();           /* I76_MG_EVEN: flashes / sounds due on this frame, MG loop holds */
     if (g_st_now && g_st_clk[0] > 0.0f && g_bbox_sweep) sign_sweep_tick();   /* signs: this tick's motion, before its first drawn frame */
     if (g_st_now && g_lat_step_fn) g_lat_step_fn();
     g_st_in_disp = 1;
@@ -1820,6 +2039,7 @@ static void apply_simtick(void) {
          g_st_ref_hz, g_st_early_cam ? "ON (I76_SIM_TICK_EARLY_CAM=1)" : "off", g_st_pend_once ? "ON (I76_SIM_TICK_PEND_ONCE=1)" : "off",
          g_st_sign_snd ? "ON (I76_SIM_TICK_SIGN_SOUND=1)" : "off");
     st_factors_install(1);                                   /* hazard / scrape / wreck / radar per second at the 1997 rate */
+    apply_mg_even();                                         /* I76_MG_EVEN / I76_FIRE_TIMER_FIX (MG-STUTTER-2026-10-25 s.3.1) */
 }
 /* called by apply_joy_routing once the joyGetPosEx hook is in (or not): the joystick watch needs it */
 static void simtick_joy_ready(MMRESULT (WINAPI *pos)(UINT, LPJOYINFOEX), MMRESULT (WINAPI *caps)(UINT_PTR, LPJOYCAPSA, UINT)) {

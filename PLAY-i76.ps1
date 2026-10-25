@@ -357,6 +357,11 @@ $settingsSchema = @(
   @{ Group = 'Advanced'; Name = 'simulation tick'; Target = 'param:TickMs'; Kind = 'number'; Min = 16.7; Max = 66.7; Unit = 'ms'; Stock = '41.667'
      Help = @('How often the game world is simulated, in milliseconds (41.667 = 24 times a second, the 1997 car step). Only for',
               'launchers with a simulation tick. In a network game every player should use the same value.') }
+  @{ Group = 'Advanced'; Name = 'sim rate'; Target = 'param:SimRate'; Kind = 'choice'; Allowed = @('24', 'classic'); Stock = '24'
+     Map = @{ '20' = 'classic'; '1997' = 'classic'; 'classic20' = 'classic'; 'classic 20' = 'classic'; '24/s' = '24' }
+     Help = @('classic = the 1997 20 frames-a-second simulation (a 49.9 ms tick): machine guns on an even 20 fps beat, jumps a little',
+              'longer, the car feel of a slow 1997 PC. 24 = the default (the 1997 car step, 41.667 ms). FOR SINGLE PLAYER: the network',
+              'game does not check it, so in a LAN game every player must use the same sim rate. A simulation tick line wins over this.') }
 )
 function ConvertTo-SettingKey([string]$s) { ($s.ToLowerInvariant() -replace '[^a-z0-9]', '') }
 $settingsByKey = @{}
@@ -470,10 +475,12 @@ foreach ($pn in @($settingsParams.Keys)) {
         'HeadLook' { $PSBoundParameters.ContainsKey('HeadTrack') -or $PSBoundParameters.ContainsKey('NoHeadTrack') }
         'WheelFfb' { $PSBoundParameters.ContainsKey('Ffb') -or $PSBoundParameters.ContainsKey('NoFfb') }
         'GameFfb'  { $PSBoundParameters.ContainsKey('FfbOff') }
+        'SimRate'  { $PSBoundParameters.ContainsKey('TickMs') }
         default    { $PSBoundParameters.ContainsKey($pn) }
     }
     if ($cli) { $settingsLog += "settings: $label - the command line says otherwise, it wins"; continue }
-    if ($pn -eq 'TickMs' -and -not $gameEnv.Contains('I76_SIM_TICK_MS')) { $settingsLog += "settings: $label - NOT applied: this launcher's preset has no simulation tick"; continue }
+    if ($pn -in 'TickMs', 'SimRate' -and -not $gameEnv.Contains('I76_SIM_TICK_MS')) { $settingsLog += "settings: $label - NOT applied: this launcher's preset has no simulation tick"; continue }
+    if ($pn -eq 'SimRate' -and $settingsParams.ContainsKey('TickMs')) { $settingsLog += "settings: $label - NOT applied: the simulation tick line ($($settingsParams['TickMs'][1])) wins"; continue }
     switch ($pn) {
         'HeadLook' { if ($pv -eq 'start') { $HeadTrack = [switch]$true } elseif ($pv -eq 'off') { $NoHeadTrack = [switch]$true } }
         'WheelFfb' { if ($pv -eq 'on') { $Ffb = [switch]$true } elseif ($pv -eq 'off') { $NoFfb = [switch]$true } }
@@ -485,6 +492,13 @@ foreach ($pn in @($settingsParams.Keys)) {
         'LegacyMultiplayer' { if ($pv -eq 'on') { $LegacyMultiplayer = [switch]$true } }
         'Windowed' { if ($pv -ne 'off') { $Windowed = $pv } }
         'TickMs' { $TickMs = $pv }
+        'SimRate' {   # classic = 49.9 ms, NOT 50: an exact 50 ms tick splits the car step into 2 x 25 ms and halves the 7.62mm (docs/records/MG-STUTTER-2026-10-25.md s.3.2)
+            if ($pv -eq 'classic') {
+                $TickMs = '49.9'
+                $settingsLog += "settings: sim rate classic = the 1997 20 fps simulation (I76_SIM_TICK_MS 49.9). SINGLE PLAYER: in a LAN game every player must use the same sim rate (not checked when joining)"
+                Write-Host 'sim rate classic (1997 20 fps simulation, 49.9 ms tick): for single player - in a LAN game every player must set the same sim rate.' -ForegroundColor Yellow
+            }
+        }
     }
     $settingsLog += "settings: $label"
 }
@@ -539,6 +553,7 @@ function Get-SettingNow($e) {
                 'LegacyMultiplayer' { return @($(if ($LegacyMultiplayer) { 'on' } else { 'off' }), '') }
                 'Windowed' { return @($(if ($Windowed) { $Windowed } else { 'off' }), '') }
                 'TickMs' { if ($gameEnv.Contains('I76_SIM_TICK_MS')) { return @("$($gameEnv['I76_SIM_TICK_MS'])", "preset $presetName") }; return @('-', 'this launcher has no simulation tick') }
+                'SimRate' { if ($gameEnv.Contains('I76_SIM_TICK_MS')) { return @($(if ("$($gameEnv['I76_SIM_TICK_MS'])" -in '49.9', '49.90') { 'classic' } else { '24' }), "preset $presetName") }; return @('-', 'this launcher has no simulation tick') }
             }
         }
         'ffb' {
