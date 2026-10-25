@@ -1247,3 +1247,29 @@ stock weapon effect type; Mac graphics: distances/LOD are the Mac cost - per-Mac
 records/MAC-GRAPHICS-TUNE-2026-10-24.md (the M4 Max tester Mac unmeasured, Minecraft open); font-cache lock: 10 empty stubs +
 exp-nitro-owner need a reboot then tools\consolidate-retry-locked.ps1; the Esc-menu shimmer question; the "more terrain
 movement" note (two variants to make).
+
+## 2026-10-25 midday - what the owner can test now
+
+Desktop (main Gold = "Interstate 76 Gold" shortcut; proxy unchanged today - FOV / cutscene-skip / FFB-off / co-op speed keys arrive with the next family rollout):
+1. **FFB tuning shortcut** ("Interstate 76 Gold - FFB tuning"): pavement at 50 %, the calibration fix, the web panel at http://127.0.0.1:17691/ . Question still open: does OUR interposer feel better than the game's own FFB? (`play-i76.log` says which ran.)
+2. **Alt-Tab during a mission, then back**: FFB should stay on (ffbfocus fix); note any crash.
+3. **Mission change / restart level**: should no longer crash (simtick fix).
+4. **Terrain at 2300 m**: morph 0.25 + smooth shade; say if there is still "more movement than you'd like".
+5. **Head look**: costs about 5-6 fps (opentrack's camera path), not 17. Glance keys override; Ctrl+Alt+H cycles analog / digital / off.
+
+Mac (your MacBook):
+6. **Mac Kit as a user**: download `Interstate76-Mac-Kit-...-v0.8.0-*.zip` from the draft release, run `BUILD-I76-APPS.command` (right-click > Open), feed it the GOG offline installer; watch the dialogs and the microphone / Local Network prompts. Nobody at a Mac has seen this flow.
+7. **Nitro on the Macs** now runs uncapped (your MacBook ~72-83 fps, M2 ~55-72, M4 Max ~112): does it feel right at 24 steps/s?
+
+Multiplayer (first live test of all seven LAN fixes together):
+8. **Gold co-op**, PC host + the boys' Macs joining: continuous AI respawn, joiner placed behind the host, co-op enemy scaling, Esc cancel without pausing others, host restart, host death, co-op names. Watch for the HOST STALL (host logic freezes 5-77 s with a joiner present - under diagnosis): note when it happens and what the joiner was doing.
+9. **Nitro "[AI Drop-In]" arena** PC + a Mac: AI fill, the rename popup.
+10. **16 players**: not yet (the clamp patch is designed, 2-3 lane-days); `I76_AIMELEE_FILL=15` on the host gives 8 humans + 7 AI today.
+
+Deck:
+11. **Pair an Xbox controller** to the Deck; the Deck lane needs it for the rumble instrumentation, then you judge the feel (checklist comes with its record).
+
+Laptop:
+12. Run `ssh james@192.168.1.77 C:\i76-bench\keep-awake.cmd` once (never sleep / blank / lock on mains).
+
+Decisions still open: relay host for internet play (this desktop + router forward + firewall allow, or a VPS) before the hotspot test; Debacle's consent for the Nitro RepoTown / Intercept conversions before v0.8.0 goes public; Defender exclusion for the game + lab folders (steadies fps rows; admin); history rewrite goes ahead once scrub pass 2 lands.
