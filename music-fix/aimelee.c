@@ -28,7 +28,8 @@
  *    formula. The killer's machine (the host itself, or a joiner) adds 1 kill and the score to its OWN slot through
  *    0x454ea0, which also runs the MAX SCORE test; its 'ST' carries the new numbers to everyone (stock). Every machine
  *    prints "<AI name> was destroyed by <player>" (0x453df0, the local message line). AI names: the shell's AUTO
- *    MELEE list (53 names, i76shell 0x1004b438), the k-th AI car of the arena gets name (5 + 13 k) % 53.
+ *    MELEE list (53 names, i76shell 0x1004b438), the k-th AI car of the arena gets name (5 + 13 k) % 53; since 2026-10-25 a
+ *    sci-fi name + " (AI)" instead (I76_AI_NAMES, default 1; ai_label below).
  * 3. WAVES (I76_AIMELEE_WAVE=1, default; needs I76_COOP_CHAIN=1): when every AI car has been dead for
  *    I76_AIMELEE_WAVE_S seconds (default 8), the host reloads the same arena in the same session through the co-op
  *    chain ('AM' kind 0, state 7: the measured co-op reload path), so the AI come back. Each machine keeps its own
@@ -147,8 +148,37 @@ static int aim_label_of(int k) {                             /* 0-based AI car n
     return -1;
 }
 static BYTE *aim_ai_obj(int k) { int li = aim_label_of(k); return li < 0 ? NULL : *(BYTE **)(*(BYTE **)(0x0054a178 + 4) + li * 16 + 8); }
-static const char *aim_name(int k, char *buf) {             /* the shell's AUTO MELEE names, else "AI n" */
-    HMODULE sh = GetModuleHandleA("i76shell.dll");
+/* AI NAMES (I76_AI_NAMES, default 1 whenever the AI cars have names: aimelee rows / kill lines, nitro_ai.c; owner 2026-10-25 "AI cars
+ * should have (AI) after and AI names like HAL9000, MOTHER, etc. from sci-fi"; record docs/records/AI-NAMES-2026-10-25.md).
+ * The k-th AI car of the mission is "<sci-fi name> (AI)". k is the car's AI number (aim_ordinal: label-table order, counted once
+ * per load, identical on every machine because every machine loads the same file + pool), and the name is
+ * AI_NAMES[(k + seed) % N] with seed = a hash of the mission file name (also identical everywhere), so nothing travels on the
+ * wire: the host and every joiner (PC or Mac, same proxy) derive the same label for the same car, and the cast changes from
+ * arena to arena. Width: the player-table name is 24 bytes (0x454620 / 0x454680 copy 0x18), the scoreboard prints it with
+ * "%-15s" under a 15-character "Player Name" header, so every label is at most 15 characters: names up to 10 + " (AI)".
+ * Dropped as too long: DEEP THOUGHT, NEUROMANCER. A human who drops in parks an AI car (mpfill.c) and that car's row is given
+ * back (aim_rows_tick), so its label leaves the list; the human's row carries his own ANet name (stock).
+ * I76_AI_NAMES=0: the stock names (Gold: the shell's AUTO MELEE list; Nitro: nitro_ai.c's list), no suffix. */
+static const char *const AI_NAMES[] = {
+    "HAL 9000", "MOTHER", "SKYNET", "JOSHUA", "GLaDOS", "KITT", "VIKI", "SONNY", "MARVIN", "GORT", "ROBBY", "BISHOP", "ASH",
+    "TARS", "CASE", "HOLLY", "SHODAN", "EDI", "CORTANA", "COLOSSUS", "PROTEUS", "ED-209", "DAVID", "AVA", "SAMANTHA",
+    "WINTERMUTE", "DURANDAL", "MULTIVAC", "ROY" };
+#define AI_NAMES_N ((int)(sizeof(AI_NAMES) / sizeof(AI_NAMES[0])))
+static int g_ai_names = -1;
+static int ai_names_on(void) { if (g_ai_names < 0) g_ai_names = env_flag("I76_AI_NAMES", 8, 1) != 0; return g_ai_names; }
+static unsigned ai_names_seed(const char *mission) {         /* FNV-1a of the lower-case file name, at most 15 chars */
+    unsigned h = 2166136261u; int i;
+    for (i = 0; mission && mission[i] && i < 15; i++) { BYTE c = (BYTE)mission[i]; h ^= c >= 'A' && c <= 'Z' ? c + 32 : c; h *= 16777619u; }
+    return h;
+}
+static const char *ai_label(int k, unsigned seed, char *buf) { /* buf >= 24 bytes; k = the 0-based AI car number */
+    sprintf(buf, "%s (AI)", AI_NAMES[(unsigned)((k < 0 ? 0 : k) + seed % AI_NAMES_N) % AI_NAMES_N]);
+    return buf;
+}
+static const char *aim_name(int k, char *buf) {             /* sci-fi label (I76_AI_NAMES), else the shell's AUTO MELEE names, else "AI n" */
+    HMODULE sh;
+    if (ai_names_on() && k >= 0) return ai_label(k, ai_names_seed((const char *)0x005049f0), buf);
+    sh = GetModuleHandleA("i76shell.dll");
     sprintf(buf, "AI %d", k + 1);
     if (sh && k >= 0) {
         BYTE *b = (BYTE *)sh; IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(b + ((IMAGE_DOS_HEADER *)b)->e_lfanew);

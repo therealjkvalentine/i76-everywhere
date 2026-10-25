@@ -133,6 +133,7 @@ static int __cdecl nai_odef(int *a, BYTE *b, int *c) {   /* replaces `call 0x4b3
 /* ---- names, skill, rows ---- */
 static const char *nai_name(int k, char *buf) {     /* the Gold AUTO MELEE list is in i76shell; Nitro: a fixed list */
     static const char *const nm[] = { "Torque Daisy", "Gasket Head", "Tar Mack", "Griffin Farquar", "Lug Nut", "Smokey Jo", "Dusty Rhodes" };
+    if (ai_names_on() && k >= 0) return ai_label(k, ai_names_seed(g_nai_inj_m), buf);   /* aimelee.c: "<sci-fi name> (AI)" */
     strcpy(buf, k >= 0 && k < 7 ? nm[k] : "AI"); return buf;
 }
 static int nai_skill(void) {                         /* difficulty.c's mapping on Nitro's DEF byte */
