@@ -30,6 +30,14 @@
     i76e-prepare.ps1 [-Game auto|Gold|Nitro] [-Preset tick19-42] [-NoSupersample] [-Display 1920x1080] [-Resetup] [-SetupOnly] [-NoPause] [-DryRun]
     i76e-prepare.ps1 -Uninstall        put the originals back and remove what the setup added (the _i76e folder,
                                        PLAY*.bat and README-PATCH-KIT.md are left for the user to delete)
+
+  The player's own files (2026-10-25, kit-controls lane, docs\records\KIT-CONTROLS-UPDATER-2026-10-25.md; an outside tester lost
+  his bindings to the setup): before the first setup the player's control / option files are copied into _i76e\backup\pre-kit\
+  (input.map, I76PLYR.DEF / nitplyr.def, gamekey.def / .map, input.def). setup-windows.ps1 replaces input.map only when it is
+  GOG's, absent, or what the kit wrote and nobody changed since (else: kept, the kit's beside it as input.map.i76e-default,
+  CONTROLS.bat switches). I76PLYR.DEF gets the detail levels only when it is GOG's file byte for byte. The uninstall puts the
+  pre-kit copies back where the kit replaced a file, keeps a file the player changed since as <name>.i76e-last, and moves
+  presets\local.psd1 into _i76e\backup\.
 #>
 param([ValidateSet('auto', 'Gold', 'Nitro')][string]$Game = 'auto', [string]$Preset = '', [switch]$NoSupersample, [string]$Display = '',
       [switch]$Resetup, [switch]$Uninstall, [switch]$SetupOnly, [switch]$NoPause, [switch]$DryRun)
@@ -57,6 +65,41 @@ function Child([string]$script, [string[]]$argv) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script @argv 2>&1 | ForEach-Object { Log "  $_" }
     $rc = $LASTEXITCODE; Log "< exit $rc"
     return $rc
+}
+
+function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
+$backupDir = Join-Path $here 'backup'; $preKit = Join-Path $backupDir 'pre-kit'
+$playerFiles = @('input.map', 'I76PLYR.DEF', 'nitplyr.def', 'gamekey.def', 'gamekey.map', 'input.def')
+$gogPlyrMd5 = '1bff014676ba4fb370d2524383a0a145'   # GOG 2.1.0.17 I76PLYR.DEF
+# the md5 setup-windows.ps1 recorded for a control file it wrote (i76e-installed.md5; older folders: input.map.as-installed)
+function Kit-Md5([string]$rel) {
+    $mf = Join-Path $gameDir 'i76e-installed.md5'
+    if (Test-Path -LiteralPath $mf) {
+        foreach ($ln in (Get-Content -LiteralPath $mf)) { if ($ln -match '^([0-9a-f]{32})\s+\*?(.+)$' -and $Matches[2].Trim() -eq $rel) { return $Matches[1] } }
+        return ''
+    }
+    if ($rel -eq 'input.map' -and (Test-Path -LiteralPath (Join-Path $gameDir 'input.map.as-installed'))) { return (Md5 (Join-Path $gameDir 'input.map.as-installed')) }
+    return ''
+}
+# the player's files as they were before the kit's first setup, once. A folder an older kit set up already: its own
+# backups of the pre-kit files stand in (input.map.stock-* / .pre-windows-setup, I76PLYR.DEF.pre-i76e).
+function Save-PreKit {
+    if (Test-Path -LiteralPath $preKit) { return }
+    New-Item -ItemType Directory -Force $preKit | Out-Null
+    $notes = @("The player's control / option files as they were before the i76-everywhere Patch Kit's first setup ($version, $(Get-Date -Format 'yyyy-MM-dd HH:mm')).",
+               'UNINSTALL-i76e.bat and CONTROLS.bat ("restore mine") put them back. Nothing else reads this folder.')
+    foreach ($n in $playerFiles) {
+        $src = Join-Path $gameDir $n
+        if ($n -eq 'input.map') {
+            $old = Get-ChildItem -LiteralPath $gameDir -Filter 'input.map.stock-*' -File -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -First 1
+            if (-not $old) { $old = Get-Item -LiteralPath (Join-Path $gameDir 'input.map.pre-windows-setup') -ErrorAction SilentlyContinue }
+            if ($old) { $src = $old.FullName; $notes += "input.map: from $($old.Name) (an earlier kit's backup of the map before it)" }
+        }
+        if ($n -eq 'I76PLYR.DEF' -and (Test-Path -LiteralPath (Join-Path $gameDir 'I76PLYR.DEF.pre-i76e'))) { $src = Join-Path $gameDir 'I76PLYR.DEF.pre-i76e'; $notes += 'I76PLYR.DEF: from I76PLYR.DEF.pre-i76e' }
+        if (Test-Path -LiteralPath $src) { Copy-Item -LiteralPath $src -Destination (Join-Path $preKit $n) -Force; $notes += ("{0}  {1}" -f (Md5 $src), $n) }
+    }
+    Set-Content -LiteralPath (Join-Path $preKit 'README.txt') -Value $notes -Encoding ascii
+    Log "  player files backed up into _i76e\backup\pre-kit\"
 }
 
 # ---- which game ------------------------------------------------------------------------------------------------------
@@ -97,16 +140,55 @@ if ($Uninstall) {
         $from = Join-Path $gameDir $pair[0]
         if (Test-Path -LiteralPath $from) { Move-Item -LiteralPath $from -Destination (Join-Path $gameDir $pair[1]) -Force; Log "  $($pair[1]) restored" }
     }
-    $defo = Join-Path $gameDir 'I76PLYR.DEF.pre-i76e'
-    if (Test-Path -LiteralPath $defo) { Move-Item -LiteralPath $defo -Destination (Join-Path $gameDir 'I76PLYR.DEF') -Force; Log "  I76PLYR.DEF restored (graphic detail options as before the setup)" }
-    # GOG's own control map: input.map.stock-* (Gold, this project's map was installed) or input.map.pre-windows-setup (Nitro: GOG's
-    # keys + the minimal patch)
-    $stock = Get-ChildItem -LiteralPath $gameDir -Filter 'input.map.stock-*' -File | Sort-Object Name | Select-Object -First 1
-    if (-not $stock) { $stock = Get-Item -LiteralPath (Join-Path $gameDir 'input.map.pre-windows-setup') -ErrorAction SilentlyContinue }
-    if ($stock) { Copy-Item -LiteralPath $stock.FullName -Destination (Join-Path $gameDir 'input.map') -Force; Log "  input.map restored from $($stock.Name)" }
+    # I76PLYR.DEF (the game's options): the setup raised three graphic-detail bytes. The whole file goes back only when it is still
+    # exactly what the setup left; otherwise (the player or the game changed options since) only those bytes go back, if they still
+    # hold the setup's values, and every other option stays as the player has it (until 2026-10-25 the whole file went back).
+    $def = Join-Path $gameDir 'I76PLYR.DEF'; $defo = "$def.pre-i76e"
+    if ((Test-Path -LiteralPath $defo) -and (Test-Path -LiteralPath $def)) {
+        $pre = [IO.File]::ReadAllBytes($defo); $cur = [IO.File]::ReadAllBytes($def)
+        $ours = [byte[]]$pre.Clone(); if ($ours.Length -eq 96) { $ours[0x4A] = 2; $ours[0x4D] = 2; $ours[0x4E] = 1 }
+        if ([Convert]::ToBase64String($cur) -eq [Convert]::ToBase64String($ours)) { [IO.File]::WriteAllBytes($def, $pre); Log "  I76PLYR.DEF restored (unchanged since the setup)" }
+        elseif ($cur.Length -eq 96 -and $pre.Length -eq 96 -and $cur[0x4A] -eq 2 -and $cur[0x4D] -eq 2 -and $cur[0x4E] -eq 1) {
+            $cur[0x4A] = $pre[0x4A]; $cur[0x4D] = $pre[0x4D]; $cur[0x4E] = $pre[0x4E]; [IO.File]::WriteAllBytes($def, $cur)
+            Log "  I76PLYR.DEF: graphic detail put back; your other options kept"
+        } else { Log "  I76PLYR.DEF: your options kept (changed since the setup)" }
+        Remove-Item -LiteralPath $defo -Force
+    } elseif (Test-Path -LiteralPath $defo) { Move-Item -LiteralPath $defo -Destination $def -Force }
+    # input.map: the map from before the kit (_i76e\backup\pre-kit; an older kit's input.map.stock-* / .pre-windows-setup) goes back
+    # where the kit had replaced or patched it. A map the player changed since the kit wrote it is kept as input.map.i76e-last;
+    # a map the kit never replaced (the player's own, kept by the setup) stays as it is.
+    $map = Join-Path $gameDir 'input.map'
+    $orig = Get-Item -LiteralPath (Join-Path $preKit 'input.map') -ErrorAction SilentlyContinue
+    if (-not $orig) { $orig = Get-ChildItem -LiteralPath $gameDir -Filter 'input.map.stock-*' -File | Sort-Object Name | Select-Object -First 1 }
+    if (-not $orig) { $orig = Get-Item -LiteralPath (Join-Path $gameDir 'input.map.pre-windows-setup') -ErrorAction SilentlyContinue }
+    $kitMap = Kit-Md5 'input.map'
+    $mode = Get-Content -LiteralPath (Join-Path $gameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
+    if ($orig -and (Test-Path -LiteralPath $map)) {
+        $curM = Md5 $map
+        if ($curM -eq (Md5 $orig.FullName)) { Log "  input.map: already the one from before the kit" }
+        # the kit replaced / patched input.map at some point: its own backups of the map before it exist, or it still claims the file
+        elseif (-not $kitMap -and ($mode -eq 'own' -or -not (@(Get-ChildItem -LiteralPath $gameDir -Filter 'input.map.stock-*' -File).Count -or (Test-Path -LiteralPath (Join-Path $gameDir 'input.map.pre-windows-setup'))))) {
+            Log "  input.map: your own map (the kit never replaced it) - kept"
+        }
+        else {
+            if ($curM -ne $kitMap) { Copy-Item -LiteralPath $map -Destination "$map.i76e-last" -Force; Say "  input.map: you changed it while the kit was installed - that version is kept as input.map.i76e-last." 'Yellow' }
+            Copy-Item -LiteralPath $orig.FullName -Destination $map -Force; Log "  input.map restored from $($orig.Name)"
+        }
+    }
+    # the player's presets\local.psd1 and edited layer scripts outlive the folders removed below
+    $lp = Join-Path $gameDir 'presets\local.psd1'
+    if (Test-Path -LiteralPath $lp) { New-Item -ItemType Directory -Force $backupDir | Out-Null; Copy-Item -LiteralPath $lp -Destination (Join-Path $backupDir 'local.psd1') -Force; Say "  your presets\local.psd1 is kept as _i76e\backup\local.psd1." }
+    foreach ($ahk in @(Get-ChildItem -LiteralPath (Join-Path $gameDir '_ahk') -Filter '*.ahk' -File -ErrorAction SilentlyContinue)) {
+        $kitSrc = Join-Path $repo $ahk.Name; $am = Md5 $ahk.FullName
+        if ((Test-Path -LiteralPath $kitSrc) -and $am -ne (Md5 $kitSrc) -and $am -ne (Kit-Md5 "_ahk\$($ahk.Name)")) {
+            New-Item -ItemType Directory -Force (Join-Path $backupDir '_ahk') | Out-Null
+            Copy-Item -LiteralPath $ahk.FullName -Destination (Join-Path $backupDir "_ahk\$($ahk.Name)") -Force; Say "  your edited _ahk\$($ahk.Name) is kept in _i76e\backup\_ahk\."
+        }
+    }
     foreach ($n in 'Glide.dll', 'Glide2x.dll', 'Glide3x.dll', 'DDraw.dll', 'D3DImm.dll', 'D3D8.dll', 'D3D9.dll', 'dgVoodooCpl.exe', 'dgVoodoo.conf', 'dgVoodoo.16x10.conf', 'dgVoodoo.wide.conf',
                    'u32x.dll', 'i76wheel.exe', 'PLAY-i76.ps1', 'PLAY-i76.bat', 'PLAY-16x10.bat', 'PLAY-balanced.bat', 'PLAY-stock.bat', 'DEBUG.bat', 'TRAINER.bat',
-                   'strlkup-proxy-build.txt', 'i76e-controls.txt', 'input.map.as-installed', 'mciproxy.log', 'u32x.log', 'play-i76.log') {
+                   'strlkup-proxy-build.txt', 'i76e-controls.txt', 'input.map.as-installed', 'mciproxy.log', 'u32x.log', 'play-i76.log',
+                   'i76e-installed.md5', 'input.map.i76e-default', 'i76e-layers.txt') {
         Remove-Item -LiteralPath (Join-Path $gameDir $n) -Force -ErrorAction SilentlyContinue
     }
     $ogb = Join-Path $gameDir '_openglide-backup'
@@ -116,10 +198,11 @@ if ($Uninstall) {
     }
     foreach ($d in 'presets', '_ahk', '_tools') { Remove-Item -LiteralPath (Join-Path $gameDir $d) -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $stampFile, $dispFile -Force -ErrorAction SilentlyContinue
-    Say "Done: the game files are back the way GOG installed them." 'Green'
-    Say "Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat,"
+    Say "Done: the game files are back the way GOG installed them; your own control and option files are as you had them." 'Green'
+    Say "Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat,"
     Say "README-PATCH-KIT.md and the _i76e folder. The backups beside the game files (*.u32xorig, *.orig, *.pre-i76e-keys, input.map.stock-*,"
     Say "input.map.pre-windows-setup) are safe to delete too. GOG Galaxy's 'verify / repair' also restores everything."
+    Say "_i76e\backup\ holds your control / option files from before the kit (and local.psd1): look there before deleting _i76e."
     exit 0
 }
 
@@ -150,6 +233,7 @@ if ($need) {
     if ($DryRun) { Say '  (dry run: nothing written)' 'Yellow' }
     else {
         if (Running-Here) { Fail 'close the running game first' }
+        Save-PreKit
         # 1. the shell patches, before u32x renames the shell's import (the patch is keyed by the stock md5)
         $shell = if ($isNitro) { 'nitshell.dll' } else { 'i76shell.dll' }
         $rc = Child (Join-Path $repo 'tools\patch-kit\Apply-Shell-Keys.ps1') @('-GameDir', $gameDir, '-Shell', $shell)
@@ -160,7 +244,9 @@ if ($need) {
         }
         # 2. the installer
         $argv = @('-GameDir', $gameDir, '-DgVoodooDir', (Join-Path $here 'dgVoodoo'), '-Preset', $Preset, '-NoShortcut', '-Display', "${W}x${H}")
-        if ($isNitro) { $argv += @('-Exe', 'nitro.exe', '-Controls', 'stock', '-NoLauncher') }   # GOG's Nitro keys (+ the minimal patch); PLAY-Nitro.bat is the kit's
+        $wasMode = Get-Content -LiteralPath (Join-Path $gameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
+        $nitroControls = if ($wasMode -eq 'own') { 'own' } else { 'stock' }   # CONTROLS.bat "restore mine" on Nitro = own
+        if ($isNitro) { $argv += @('-Exe', 'nitro.exe', '-Controls', $nitroControls, '-NoLauncher') }   # GOG's Nitro keys (+ the minimal patch); PLAY-Nitro.bat is the kit's
         else { $argv += @('-AhkDir', (Join-Path $here 'AutoHotkey')) }
         if ($narrow) { $argv += '-AllowNarrow' }
         $rc = Child (Join-Path $repo 'setup-windows.ps1') $argv
@@ -173,14 +259,15 @@ if ($need) {
         #    clouds in it at 2/2/1. Original kept as I76PLYR.DEF.pre-i76e; the game's Options > Graphic Detail menu changes them later.
         $def = Join-Path $gameDir 'I76PLYR.DEF'
         if (-not $isNitro -and (Test-Path -LiteralPath $def)) {
+            # 2026-10-25: only GOG's file byte for byte (an outside tester: the player's own options are not the kit's to change)
             $ob = [IO.File]::ReadAllBytes($def)
-            if ($ob.Length -eq 96 -and $ob[0x4A] -eq 1 -and $ob[0x4D] -eq 1 -and $ob[0x4E] -eq 0) {
+            if ((Md5 $def) -eq $gogPlyrMd5 -and $ob.Length -eq 96 -and $ob[0x4A] -eq 1 -and $ob[0x4D] -eq 1 -and $ob[0x4E] -eq 0) {
                 if (-not (Test-Path -LiteralPath "$def.pre-i76e")) { Copy-Item -LiteralPath $def -Destination "$def.pre-i76e" }
                 $ob[0x4A] = 2; $ob[0x4D] = 2; $ob[0x4E] = 1; [IO.File]::WriteAllBytes($def, $ob)
                 $rb = [IO.File]::ReadAllBytes($def)
                 if ($rb[0x4A] -eq 2 -and $rb[0x4D] -eq 2 -and $rb[0x4E] -eq 1) { Log "  graphic detail: GOG's defaults -> the developer's levels (rear mirror full: road + terrain in it); original I76PLYR.DEF.pre-i76e"; $detail = 'graphic detail raised (the rear mirror shows road and terrain)' }
                 else { Log "  graphic detail: the write did not read back - left as it was"; Copy-Item -LiteralPath "$def.pre-i76e" -Destination $def -Force }
-            } else { Log "  graphic detail: your own settings kept (I76PLYR.DEF is not GOG's default)" }
+            } else { Log "  graphic detail: your own settings kept (I76PLYR.DEF is not GOG's file; Options > Graphic Detail in the game sets the mirror detail)" }
         }
         Set-Content -LiteralPath $stampFile -Value "$version $kind" -Encoding ascii
         Remove-Item -LiteralPath $dispFile -Force -ErrorAction SilentlyContinue
@@ -230,8 +317,11 @@ if ($didSetup -or $SetupOnly) {
     Write-Host '    - widescreen picture and dgVoodoo graphics (sharper, longer view distance)'
     if (-not $isNitro) {
         Write-Host '    - the menu mouse fix and keyboard answers in the menus (Enter / Y / N / Esc)'
-        Write-Host '    - this project''s controls: W A S D drive, arrow keys look (README-PATCH-KIT.md has the full list)'
-        Write-Host '    - gamepad / wheel button layer (plug the controller in before starting)'
+        $cm = Get-Content -LiteralPath (Join-Path $gameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
+        if ($cm -eq 'i76e') {
+            Write-Host '    - this project''s controls: W A S D drive, arrow keys look (README-PATCH-KIT.md has the full list)'
+            Write-Host '    - gamepad / wheel button layer (plug the controller in before starting)'
+        } else { Write-Host '    - your own controls, as you had them (no gamepad button layer: it types this project''s keys)' }
         if ($detail) { Write-Host "    - $detail" }
     } else {
         Write-Host '    - keyboard answers in the menus (Enter / Y / N / Esc)'
@@ -244,7 +334,12 @@ if ($didSetup -or $SetupOnly) {
     $bat = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY.bat' }
     Write-Host "  To play: double-click $bat in this folder (it checks your monitor each time and starts the game)."
     if (-not $isNitro) { Write-Host '           PLAY-PREVIEW.bat = the same with the graphics preview; PLAY-T05.bat = straight into mission 5.' }
+    if (Test-Path -LiteralPath (Join-Path $gameDir 'input.map.i76e-default')) {
+        Write-Host '  Your own key bindings (input.map) were KEPT. The kit''s layout is beside it as input.map.i76e-default;' -ForegroundColor Yellow
+        Write-Host '  CONTROLS.bat switches: keep mine / use the kit''s layout / restore mine from the backup.' -ForegroundColor Yellow
+    }
     Write-Host '  Settings: double-click SETTINGS.bat (opens i76-settings.txt in Notepad, written at the first start).'
+    Write-Host '  Updates: double-click UPDATE.bat (downloads the newest kit; your controls and settings stay).'
     Write-Host '  Network games: run FIREWALL.bat once, or click Allow on private networks when Windows asks the first time you host.'
     Write-Host '  To undo: double-click UNINSTALL-i76e.bat - it puts every original game file back.'
     Write-Host '  Details of this setup: _i76e\setup.log'

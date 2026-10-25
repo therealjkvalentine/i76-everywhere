@@ -12,7 +12,10 @@
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
-    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, README-PATCH-KIT.md
+    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat, README-PATCH-KIT.md
+  CONTROLS.bat (_i76e\i76e-controls.ps1) and UPDATE.bat (_i76e\i76e-update.ps1) since 0.8.1 (kit-controls lane 2026-10-25,
+  docsecords\KIT-CONTROLS-UPDATER-2026-10-25.md): the player's own bindings are kept by the setup, CONTROLS.bat chooses, UPDATE.bat
+  pulls the newest release (SHA-256 from the release asset's digest; <zip>.sha256 is written beside the zip for --source tests).
   The same zip goes into a GOG Nitro Pack folder (nitro.exe) since 2026-10-25 (clean-install B6: Nitro needed MSVC + a repo clone
   through Build-From-GOG): PLAY-Nitro.bat runs i76e-prepare.ps1 -Game Nitro (the same proxy, which detects nitro.exe; preset
   nitro-tick42; dgVoodoo 2.87.5 incl. D3D8 / D3D9; the Nitro shell keys from nitshell-keys-patch.json; GOG's Nitro keys). The Gold
@@ -32,7 +35,7 @@ param(
     [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
     [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\patch-kit'),
-    [string]$Version = '0.8.0',
+    [string]$Version = '0.8.1',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''
 )
@@ -83,7 +86,26 @@ New-Item -ItemType Directory -Force (Join-Path $sr 'music-fix') | Out-Null
 Copy-Item -LiteralPath $Proxy -Destination (Join-Path $sr 'music-fix\Strlkup.dll') -Force
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
 # the optional extras (INSTALL-EXTRAS.bat; content-installer lane 2026-10-25): the script and its manifest of pinned downloads - no content
-foreach ($n in 'i76e-extras.ps1', 'extras.json') { Copy-Item -LiteralPath (Join-Path $repo "tools\patch-kit\$n") -Destination (Join-Path $i76e $n) -Force }
+foreach ($n in 'i76e-extras.ps1', 'extras.json', 'i76e-controls.ps1', 'i76e-update.ps1') { Copy-Item -LiteralPath (Join-Path $repo "tools\patch-kit\$n") -Destination (Join-Path $i76e $n) -Force }
+# every version of the control files the kit ever shipped (from git history), so setup-windows.ps1 knows an unedited kit file from
+# a player's own in a folder an older kit set up (before i76e-installed.md5 existed); as stored, and with CRLF / LF line ends
+$known = @('# md5 *name: control files shipped by some version of this repo (tools\package-patch-kit.ps1); setup-windows.ps1 replaces these, keeps any other')
+foreach ($pair in @(@('controls/input.map', 'input.map'), @('i76-remap.ahk', '_ahk\i76-remap.ahk'), @('i76-ch-fighterstick.ahk', '_ahk\i76-ch-fighterstick.ahk'))) {
+    $seen = @{}
+    foreach ($c in @(git -C $repo rev-list HEAD -- $pair[0])) {
+        $tmp = Join-Path $env:TEMP 'kit-known.bin'
+        & cmd.exe /c "git -C `"$repo`" show $($c):$($pair[0]) > `"$tmp`"" 2>$null
+        if (-not (Test-Path -LiteralPath $tmp)) { continue }
+        $raw = [IO.File]::ReadAllBytes($tmp); $txt = [Text.Encoding]::GetEncoding(28591).GetString($raw)
+        $lf = $txt.Replace("`r`n", "`n"); $crlf = $lf.Replace("`n", "`r`n")
+        foreach ($v in @($raw, [Text.Encoding]::GetEncoding(28591).GetBytes($lf), [Text.Encoding]::GetEncoding(28591).GetBytes($crlf))) {
+            $m = [BitConverter]::ToString([Security.Cryptography.MD5]::Create().ComputeHash([byte[]]$v)).Replace('-', '').ToLower()
+            if (-not $seen[$m]) { $seen[$m] = 1; $known += "$m *$($pair[1])" }
+        }
+    }
+    $m = Md5 (Join-Path $repo $pair[0]); if (-not $seen[$m]) { $known += "$m *$($pair[1])" }
+}
+$known | Set-Content -LiteralPath (Join-Path $sr 'tools\patch-kit\known-kit-md5.txt') -Encoding ascii
 
 # ---- dgVoodoo 2.87.3, unmodified x86 components only, checked against the release zip's hashes -------------------------
 function Ship-DgVoodoo([string]$srcDir, [hashtable]$hashes, [string]$ver, [string]$outDir, [string]$extraNote) {
@@ -258,6 +280,24 @@ if not exist "%~dp0i76-settings.txt" (
 )
 start "" notepad.exe "%~dp0i76-settings.txt"
 "@ -Encoding ascii
+# CONTROLS.bat / UPDATE.bat (kit-controls lane 2026-10-25). UPDATE.bat is ONE line: the updater replaces UPDATE.bat while cmd is
+# running it, and cmd reads a .bat line by line from its old offset; a line parsed before the copy ('... & exit /b') is safe.
+Set-Content -LiteralPath (Join-Path $Stage 'CONTROLS.bat') @"
+@echo off
+REM Interstate '76 - i76-everywhere Patch Kit ${Version}: your key bindings (input.map). The setup never replaces your own;
+REM this chooses: keep mine / use the kit's layout / restore mine from the backup.
+REM CONTROLS.bat status | keep | kit | mine   does one of them without the menu.
+setlocal
+set "CHOICE=menu"
+if not "%~1"=="" set "CHOICE=%~1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-controls.ps1" -Choice %CHOICE%
+"@ -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'UPDATE.bat') @"
+@echo off
+REM Interstate '76 - i76-everywhere Patch Kit: download and install the newest kit from GitHub. Your controls, settings, saves stay.
+REM UPDATE.bat --check   only says whether there is a newer kit.   README-PATCH-KIT.md, "Updating", explains the rest.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0_i76e\i76e-update.ps1" %* & call exit /b %%errorlevel%%
+"@ -Encoding ascii
 # FIREWALL.bat (owner 2026-10-25): one inbound allow rule for the game exe on private networks, self-elevating; the user runs it (never the setup: UAC)
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\FIREWALL.bat') -Destination (Join-Path $Stage 'FIREWALL.bat') -Force
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\README.md') -Destination (Join-Path $Stage 'README-PATCH-KIT.md') -Force
@@ -278,6 +318,7 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
     "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview); PLAY-Nitro.bat = the Nitro Pack (nitro.exe), preset nitro-tick42",
+    "CONTROLS.bat = keep / switch / restore the player's own key bindings (_i76e\i76e-controls.ps1); UPDATE.bat = the newest kit from GitHub (_i76e\i76e-update.ps1)",
     "INSTALL-EXTRAS.bat = optional extras (_i76e\i76e-extras.ps1 + extras.json: pinned downloads of community maps, opentrack, Python; German voices from the user's disc; private extra music)"
 ) | Set-Content -LiteralPath (Join-Path $i76e 'VERSION.txt') -Encoding ascii
 $sums = Get-ChildItem -LiteralPath $Stage -Recurse -File | Sort-Object FullName | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($Stage.Length + 1))" }
@@ -288,6 +329,7 @@ $zip = Join-Path $OutDir "Interstate76-Patch-Kit-i76-everywhere-v$Version-$sha.z
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $zip -CompressionLevel Optimal
 $sums | Set-Content -LiteralPath "$zip.MD5SUMS" -Encoding ascii
+"$((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLower())  $(Split-Path -Leaf $zip)" | Set-Content -LiteralPath "$zip.sha256" -Encoding ascii
 $n = @(Get-ChildItem -LiteralPath $Stage -Recurse -File).Count
 Say ("packed {0}: {1} files, {2:N1} MB, md5 {3}" -f $zip, $n, ((Get-Item -LiteralPath $zip).Length / 1MB), (Md5 $zip)) 'Green'
 Say "stage kept at $Stage (unzip-equivalent); proxy $proxyMd5, repo $sha"

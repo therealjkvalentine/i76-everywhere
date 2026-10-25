@@ -258,7 +258,25 @@ for i, a in A_Args {
     else if (a = "-whatif")
         WHATIF := true
     else if (a = "-device")
-        DEV := A_Args[i + 1]
+        DEV := A_Args[i + 1], gDevGiven := true
+}
+; 2026-10-25 (kit-controls lane): find the stick by its USB ID (068E:00F3) or its name, at whatever index it enumerates. In the
+; run mode a joystick that is not a Fighterstick is never driven (a second pad / wheel / stick would have had its hat and buttons
+; taken over by index); -device N still forces an index for the learn / test modes.
+if (!gDevGiven) {
+    found := 0
+    Loop, 16 {
+        if (JoyVidPid(A_Index) = "068E:00F3" || InStr(GetKeyState(A_Index . "JoyName"), "Fighterstick")) {
+            found := A_Index
+            break
+        }
+    }
+    if (found)
+        DEV := found
+    else if (mode = "run") {
+        Out("no CH Fighterstick (068E:00F3) connected - layer not started")
+        ExitApp, 0
+    }
 }
 
 ; ============================================================================
@@ -815,3 +833,13 @@ return
 OnExitHandler:
     ReleaseAll()
 ExitApp
+
+; ---- device identity (2026-10-25, kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md): a layer claims a
+; device by its USB VID:PID (winmm joyGetDevCapsW: wMid / wPid) or its name, never by its axis / button count - an
+; outside tester's flight stick (twist axis, 12 buttons) passed the old count test and its hat toggled lights / map / ignition.
+JoyVidPid(n) {   ; n = AHK joystick number 1..16 -> "VVVV:PPPP" (hex) or "" (winmm id n - 1; JOYCAPSW is 728 bytes)
+    VarSetCapacity(caps, 1024, 0)
+    if (DllCall("winmm\joyGetDevCapsW", "UInt", n - 1, "Ptr", &caps, "UInt", 728, "UInt") != 0)
+        return ""
+    return Format("{:04X}:{:04X}", NumGet(caps, 0, "UShort"), NumGet(caps, 2, "UShort"))
+}

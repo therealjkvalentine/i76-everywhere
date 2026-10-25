@@ -167,6 +167,11 @@ gWheelHatAlt := {0: ".", 18000: ","}   ; shift: gear up/down. THIS input.map bin
 gWheelPrev := {}
 gWheelHeld := {}
 gWheelPovPrev := -1
+; The wheel layer drives joystick1 only when joystick1 IS the T300 (VID:PID or name), checked once here (the engine and winmm
+; enumerate at start-up anyway). Anything else - a flight stick, a pad, another wheel - is left to input.map.
+gWheelVidPid := JoyVidPid(1)
+gWheelName := GetKeyState("1JoyName")
+gWheelIsT300 := (gWheelVidPid = "044F:B66E" || gWheelVidPid = "044F:B66F" || gWheelVidPid = "044F:B66D" || gWheelVidPid = "044F:B65D" || InStr(gWheelName, "T300"))
 SetTimer, WheelPoll, 15
 
 ; ---- XInput layer (2026-07-18): things winmm can NOT deliver.
@@ -338,7 +343,9 @@ wBtns := GetKeyState("JoyButtons")
 ;
 ; The wheel reports an R axis and the Fighterstick does not, so requiring R
 ; separates them on measured capability rather than on enumeration luck.
-if (wInfo = "" || InStr(wInfo, "U") || !InStr(wInfo, "R") || wBtns < 11) {
+; 2026-10-25: and only on the T300 itself (gWheelIsT300, by VID:PID / name): the capability test alone also matched a flight
+; stick with a twist axis and 11+ buttons, whose hat then tapped h / m / i / n over the player's own hat bindings.
+if (!gWheelIsT300 || wInfo = "" || InStr(wInfo, "U") || !InStr(wInfo, "R") || wBtns < 11) {
     WheelReleaseAll()
     return
 }
@@ -682,4 +689,14 @@ return
 RumblePulse(l, r, ticks) {
     global gTL, gTR, gTTicks
     gTL := l, gTR := r, gTTicks := ticks
+}
+
+; ---- device identity (2026-10-25, kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md): a layer claims a
+; device by its USB VID:PID (winmm joyGetDevCapsW: wMid / wPid) or its name, never by its axis / button count - an
+; outside tester's flight stick (twist axis, 12 buttons) passed the old count test and its hat toggled lights / map / ignition.
+JoyVidPid(n) {   ; n = AHK joystick number 1..16 -> "VVVV:PPPP" (hex) or "" (winmm id n - 1; JOYCAPSW is 728 bytes)
+    VarSetCapacity(caps, 1024, 0)
+    if (DllCall("winmm\joyGetDevCapsW", "UInt", n - 1, "Ptr", &caps, "UInt", 728, "UInt") != 0)
+        return ""
+    return Format("{:04X}:{:04X}", NumGet(caps, 0, "UShort"), NumGet(caps, 2, "UShort"))
 }

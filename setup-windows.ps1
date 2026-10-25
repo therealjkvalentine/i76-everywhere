@@ -94,8 +94,14 @@ param(
     # (controls\input.map), the default. stock = GOG's 1997 keys plus the minimal patch, and no
     # AutoHotkey pad / wheel / stick layers. Not given = keep what <game>\i76e-controls.txt
     # records from an earlier run, else i76e.
-    [ValidateSet('i76e','stock')]
+    # own (2026-10-25, kit-controls lane): the player's own input.map, which the setup never touches; no AutoHotkey layers
+    # (they type the i76e map's keys). The setup chooses it when it finds a map that is neither GOG's nor one it wrote.
+    [ValidateSet('i76e','stock','own')]
     [string]$Controls = 'i76e',
+    # Replace the control files even when they are the player's own (CONTROLS.bat "use the kit's layout"; the caller backs
+    # them up first). Without it the setup installs a layout only over GOG's file, an absent one, or one it wrote and nobody
+    # changed since; anything else is kept and the kit's version goes beside it as <name>.i76e-default.
+    [switch]$ReplaceControls,
     # Do only the control steps (5 and 5b: input.map and the AutoHotkey layer scripts) and stop.
     # Needs no dgVoodoo folder and changes nothing else in the game folder.
     [switch]$ControlsOnly,
@@ -186,9 +192,9 @@ if ($widePreset -and -not $ControlsOnly) {
 $controlsFile = Join-Path $GameDir 'i76e-controls.txt'
 if (-not $PSBoundParameters.ContainsKey('Controls') -and (Test-Path $controlsFile)) {
     $was = (Get-Content $controlsFile -TotalCount 1)
-    if ($was -eq 'stock' -or $was -eq 'i76e') {
+    if ($was -eq 'stock' -or $was -eq 'i76e' -or $was -eq 'own') {
         $Controls = $was
-        Write-Host "Controls: keeping '$Controls' (recorded in i76e-controls.txt by an earlier run; -Controls i76e / stock changes it)."
+        Write-Host "Controls: keeping '$Controls' (recorded in i76e-controls.txt by an earlier run; -Controls i76e / stock / own changes it)."
     }
 }
 
@@ -382,6 +388,51 @@ $mapPath = Join-Path $GameDir 'input.map'
 $shippedMap = Join-Path $repoGameDir 'controls\input.map'
 $mapStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 function Get-Md5([string]$p) { (Get-FileHash $p -Algorithm MD5).Hash.ToLower() }
+# --- the player's control files (2026-10-25, kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md) ---
+# An outside tester: the setup replaced his own bindings, on the install and again on every re-run. The rule since:
+# a control file is replaced only when it is GOG's own (md5 below), absent, or what this script wrote last time and
+# nobody changed since (<game>\i76e-installed.md5 records the md5 of each file it wrote). Anything else is the
+# player's: it stays, and the kit's version is written beside it as <name>.i76e-default (CONTROLS.bat switches).
+# -ReplaceControls overrides (the caller has backed the player's file up).
+$gogMapMd5 = @('74d2da3734b1c304e88b7ceb88050f1d')   # GOG 2.1.0.17 input.map, Gold and Nitro (the same file)
+$manifestPath = Join-Path $GameDir 'i76e-installed.md5'
+$legacyFolder = -not (Test-Path $manifestPath)   # set up before the manifest existed (or never): see Test-KitOwned
+# every version of the control files the kit ever shipped (tools\package-patch-kit.ps1 writes the list from git history)
+$knownKit = @{}
+$knownFile = Join-Path $repoGameDir 'tools\patch-kit\known-kit-md5.txt'
+if (Test-Path $knownFile) { foreach ($ln in (Get-Content $knownFile)) { if ($ln -match '^([0-9a-f]{32})\s+\*?(.+)$') { $knownKit["$($Matches[2].Trim())|$($Matches[1])"] = 1 } } }
+$manifest = @{}
+if (Test-Path $manifestPath) {
+    foreach ($ln in (Get-Content $manifestPath)) { if ($ln -match '^([0-9a-f]{32})\s+\*?(.+)$') { $manifest[$Matches[2].Trim()] = $Matches[1] } }
+}
+function Save-Manifest {
+    $rows = @('# md5 of each control file as setup-windows.ps1 wrote it; a file that no longer matches is the player''s and is kept') +
+            @($manifest.Keys | Sort-Object | ForEach-Object { "$($manifest[$_]) *$_" })
+    Set-Content -LiteralPath $manifestPath -Value $rows -Encoding ascii
+}
+# $true when the file at $p (relative name $rel) may be replaced: absent, GOG's (input.map), or unchanged since we wrote it.
+# Folders set up before the manifest existed: input.map.as-installed (always the kit's map in i76e mode before 2026-10-25)
+# stands in for input.map.
+function Test-KitOwned([string]$p, [string]$rel, [string[]]$stockMd5 = @()) {
+    if ($ReplaceControls -or -not (Test-Path -LiteralPath $p)) { return $true }
+    $m = Get-Md5 $p
+    if ($stockMd5 -contains $m) { return $true }
+    if ($knownKit.ContainsKey("$rel|$m")) { return $true }   # an unedited file of some kit version
+    if ($manifest.ContainsKey($rel)) { return ($manifest[$rel] -eq $m) }
+    if ($rel -eq 'input.map' -and $legacyFolder -and $recorded -eq 'i76e' -and (Test-Path "$mapPath.as-installed")) {
+        return ((Get-Md5 "$mapPath.as-installed") -eq $m)
+    }
+    return $false
+}
+$keptOwn = @()   # the player's files kept by this run (summary at the end)
+# The player's own file stays; the kit's version goes beside it as <name>.i76e-default.
+function Write-NoteOwn([string]$rel, [byte[]]$kitBytes, [string]$what) {
+    $p = Join-Path $GameDir $rel
+    [IO.File]::WriteAllBytes("$p.i76e-default", $kitBytes)
+    $script:keptOwn += $rel
+    $manifest.Remove($rel)
+    Write-Host "$rel is your own (not GOG's, and changed since the kit last wrote it): KEPT. The kit's $what layout is beside it as $(Split-Path -Leaf $rel).i76e-default; CONTROLS.bat switches between them." -ForegroundColor Yellow
+}
 # Keep the current input.map as input.map.<tag>-<timestamp>, unless a byte-identical
 # input.map.* is already there (so switching back and forth does not pile up copies).
 function Save-MapOnce([string]$tag) {
@@ -417,10 +468,22 @@ function Test-MapLint {
     return $null
 }
 # The minimal patch for GOG's own map (all this script did to input.map before 2026-10-03).
+# Get-StockPatched: the patched text of a map. Add-StockPatch applies it to input.map when that is GOG's map (or the kit's);
+# a player's own map is kept and gets the patched text beside it as input.map.i76e-default.
 function Add-StockPatch {
-    $map = Get-Content $mapPath -Raw
-    if ($map -notmatch 'setup-windows\.ps1|setup-mouse-and-pad\.sh') {
-        if (-not (Test-Path "$mapPath.pre-windows-setup")) { Copy-Item $mapPath "$mapPath.pre-windows-setup" -Force }
+    $cur = Get-Content $mapPath -Raw
+    if ($cur -match 'setup-windows\.ps1|setup-mouse-and-pad\.sh') { Write-Host "input.map already patched - skipping."; return }
+    $patched = Get-StockPatched $cur
+    if (-not (Test-KitOwned $mapPath 'input.map' $gogMapMd5)) {
+        Write-NoteOwn 'input.map' ([Text.Encoding]::ASCII.GetBytes($patched)) 'stock-keys'
+        return
+    }
+    if (-not (Test-Path "$mapPath.pre-windows-setup")) { Copy-Item $mapPath "$mapPath.pre-windows-setup" -Force }
+    Set-Content $mapPath $patched -Encoding ascii
+    $script:kitWroteMap = $true
+    Write-Host "input.map patched (backup: input.map.pre-windows-setup)."
+}
+function Get-StockPatched([string]$map) {
         # analog sinks: stale joystick5 -> joystick1
         # (instance .Replace() because the static one has no count overload)
         # ONE analog source per block. Until 2026-10-03 this wrote "- joystick1" AND "- mouse"
@@ -488,17 +551,24 @@ function Add-StockPatch {
             'hardpoint4_fire {', '   + keyboard   RightBracket', '}'
         ) -join "`r`n"
         $map = $map.TrimEnd() + "`r`n" + $add + "`r`n"
-        Set-Content $mapPath $map -Encoding ascii
-        Write-Host "input.map patched (backup: input.map.pre-windows-setup)."
-    } else {
-        Write-Host "input.map already patched - skipping."
-    }
+        return $map
 }
 
 $stockBak = Get-ChildItem (Join-Path $GameDir 'input.map.stock-*') -ErrorAction SilentlyContinue |
     Sort-Object Name | Select-Object -First 1
 $recorded = if (Test-Path $controlsFile) { Get-Content $controlsFile -TotalCount 1 } else { '' }
-if (-not (Test-Path $mapPath)) {
+$kitWroteMap = $false
+if ($Controls -eq 'own') {
+    # the player's map, untouched; the kit's layout beside it (Gold: this project's map; Nitro: the player's map + the minimal patch)
+    if (Test-Path $mapPath) {
+        $kitBytes = if (-not $isNitro -and (Test-Path $shippedMap)) { [IO.File]::ReadAllBytes($shippedMap) } else { [Text.Encoding]::ASCII.GetBytes((Get-StockPatched (Get-Content $mapPath -Raw))) }
+        [IO.File]::WriteAllBytes("$mapPath.i76e-default", $kitBytes)
+        $manifest.Remove('input.map')
+        Write-Host "Controls: own - your input.map is used as it is (the kit's layout is beside it as input.map.i76e-default; CONTROLS.bat switches)."
+    } else {
+        Write-Host "Controls: own, but there is no input.map in the folder - the game writes one with its default keys." -ForegroundColor Yellow
+    }
+} elseif (-not (Test-Path $mapPath) -and -not ($Controls -eq 'i76e' -and (Test-Path $shippedMap))) {
     Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
 } elseif ($Controls -eq 'i76e' -and -not (Test-Path $shippedMap)) {
     Write-Host "controls\input.map is missing from $repoGameDir - falling back to -Controls stock (GOG's keys + the minimal patch)." -ForegroundColor Yellow
@@ -506,8 +576,18 @@ if (-not (Test-Path $mapPath)) {
     Add-StockPatch
 } elseif ($Controls -eq 'i76e') {
     $shipMd5 = Get-Md5 $shippedMap
-    if ((Get-Md5 $mapPath) -eq $shipMd5) {
+    if ((Test-Path $mapPath) -and (Get-Md5 $mapPath) -eq $shipMd5) {
         Write-Host "input.map is already this project's map (controls\input.map, md5 $($shipMd5.Substring(0,8))) - nothing to do."
+        $kitWroteMap = $true
+    } elseif (-not (Test-KitOwned $mapPath 'input.map' $gogMapMd5)) {
+        # the player's own map. Edited after an earlier install (recorded i76e): stays i76e, the AutoHotkey layers too.
+        # Never the kit's (a customised map before the first install): 'own', no layers, since they type this project's keys.
+        Write-NoteOwn 'input.map' ([IO.File]::ReadAllBytes($shippedMap)) 'WASD'
+        if ($recorded -ne 'i76e') { $Controls = 'own' }
+    } elseif (-not (Test-Path $mapPath)) {
+        [IO.File]::WriteAllBytes($mapPath, [IO.File]::ReadAllBytes($shippedMap))
+        $kitWroteMap = $true
+        Write-Host "input.map (none in the folder) installed: this project's map (md5 $($shipMd5.Substring(0,8)))."
     } else {
         Write-Host "input.map: installing this project's control map (WASD-style, NOT the 1997 keys)."
         # The stock backup is taken ONCE. On a folder an earlier run patched, GOG's untouched map
@@ -538,6 +618,7 @@ if (-not (Test-Path $mapPath)) {
             Write-Host "input.map: the shipped map did not verify (md5 read-back or lint) - the previous map was put back. Controls are as before this run." -ForegroundColor Red
             $Controls = if ($recorded -eq 'i76e') { 'i76e' } else { 'stock' }
         } else {
+            $kitWroteMap = $true
             $lintNote = if ($null -eq $lintOk) { 'lint skipped: no Python found' } else { 'lint clean' }
             Write-Host "input.map installed (md5 $($shipMd5.Substring(0,8)), $lintNote). W A S D drive, the arrow keys look around."
             Write-Host "  Keys: docs\CONTROLS.md and docs\Interstate76-Controls-Quick-Reference.pdf."
@@ -551,6 +632,7 @@ if (-not (Test-Path $mapPath)) {
         Save-MapOnce 'before-stock'
         [IO.File]::WriteAllBytes($mapPath, [IO.File]::ReadAllBytes($stockBak.FullName))
         Write-Host "input.map: GOG's map restored from $($stockBak.Name)."
+        $manifest['input.map'] = Get-Md5 $mapPath   # an explicit mode switch: this map is the kit's to patch
         Add-StockPatch
     } elseif ($isShipped -or $recorded -eq 'i76e') {
         Write-Host "input.map is this project's map (or one edited from it) and there is no input.map.stock-* backup to go back to (a portable zip has none)." -ForegroundColor Red
@@ -569,8 +651,11 @@ if (Test-Path $mapPath) {
     # What this run left, for PLAY-i76.ps1's guard: if the in-game menu later wrecks input.map,
     # the launcher restores THIS file first, so it can never bring back a map of the other mode.
     Copy-Item $mapPath "$mapPath.as-installed" -Force
-    Set-Content $controlsFile @($Controls, "# written by setup-windows.ps1 $(Get-Date -Format 'yyyy-MM-dd HH:mm'); read by setup-windows.ps1 and PLAY-i76.ps1", "# i76e = this project's map (controls\input.map); stock = GOG's keys + the minimal patch, no AutoHotkey layers") -Encoding ascii
+    Set-Content $controlsFile @($Controls, "# written by setup-windows.ps1 $(Get-Date -Format 'yyyy-MM-dd HH:mm'); read by setup-windows.ps1 and PLAY-i76.ps1", "# i76e = this project's map (controls\input.map); stock = GOG's keys + the minimal patch, no AutoHotkey layers; own = the player's own map, untouched, no layers") -Encoding ascii
+    if ($kitWroteMap) { $manifest['input.map'] = Get-Md5 $mapPath; Remove-Item "$mapPath.i76e-default" -Force -ErrorAction SilentlyContinue }
+    elseif ($manifest.ContainsKey('input.map') -and $manifest['input.map'] -ne (Get-Md5 $mapPath)) { $manifest.Remove('input.map') }
 }
+Save-Manifest
 
 if (-not $ControlsOnly) {   # steps 5a - 5a3 (closed before step 5b)
 # --- 5a. saves: bring the repo's campaign saves across (base game only) --------
@@ -698,17 +783,17 @@ $ahkOut = Join-Path $GameDir '_ahk'
 $remapSrc = Join-Path $repoGameDir 'i76-remap.ahk'
 $layerScripts = 'i76-remap.ahk', 'i76-ch-fighterstick.ahk'
 $haveAhkSrc = ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')))
-if ($Controls -eq 'stock') {
+if ($Controls -ne 'i76e') {
     $off = Join-Path $ahkOut 'off-stock-controls'
     foreach ($f in $layerScripts) {
         $p = Join-Path $ahkOut $f
         if (Test-Path $p) {
             New-Item -ItemType Directory -Force $off | Out-Null
             Move-Item $p (Join-Path $off $f) -Force
-            Write-Host "Controls stock: _ahk\$f moved to _ahk\off-stock-controls\ (it types the i76e map's keys)."
+            Write-Host "Controls $Controls`: _ahk\$f moved to _ahk\off-stock-controls\ (it types the i76e map's keys)."
         }
     }
-    Write-Host "AutoHotkey pad / wheel / stick layers NOT deployed (-Controls stock)." -ForegroundColor Yellow
+    Write-Host "AutoHotkey pad / wheel / stick layers NOT deployed (-Controls $Controls)." -ForegroundColor Yellow
     Write-Host "  A gamepad still works natively: left stick, A fire, X cycle weapon, Y handbrake, D-pad glance (button numbers assumed, docs/GAMEPAD-PC-MAC.md)."
     Write-Host "  Lost with the layers: triggers, right-stick glance, the LB shift layer, wheel buttons, the Fighterstick, mouse buttons 4 / 5."
 } elseif (($haveAhkSrc -or (Test-Path (Join-Path $ahkOut 'AutoHotkeyU32.exe'))) -and (Test-Path $remapSrc)) {
@@ -719,9 +804,29 @@ if ($Controls -eq 'stock') {
             $p = Join-Path $AhkDir $extra; if (Test-Path $p) { Copy-Item $p $ahkOut -Force -ErrorAction SilentlyContinue }
         }
     }
-    Copy-Item $remapSrc $ahkOut -Force
-    $off = Join-Path $ahkOut 'off-stock-controls'   # copies set aside by an earlier -Controls stock run
+    $off = Join-Path $ahkOut 'off-stock-controls'   # copies set aside by an earlier -Controls stock / own run: back first
+    foreach ($f in $layerScripts) { $o = Join-Path $off $f; if ((Test-Path $o) -and -not (Test-Path (Join-Path $ahkOut $f))) { Move-Item $o (Join-Path $ahkOut $f) } }
     if (Test-Path $off) { Remove-Item $off -Recurse -Force }
+    # the layer scripts follow the control-file rule: an edited copy (not the one this script wrote) stays, the kit's goes
+    # beside it as <name>.i76e-default (not *.ahk, so PLAY-i76.ps1 never starts it). A folder from before the manifest:
+    # replaced, the old copy kept as <name>.pre-update.
+    function Install-Layer([string]$src) {
+        $n = Split-Path -Leaf $src; $dst = Join-Path $ahkOut $n; $rel = "_ahk\$n"; $sm = Get-Md5 $src
+        if ((Test-Path $dst) -and (Get-Md5 $dst) -eq $sm) { $manifest[$rel] = $sm; return }
+        if ((Test-Path $dst) -and -not $ReplaceControls -and -not $manifest.ContainsKey($rel) -and $legacyFolder -and -not $knownKit.Count) {
+            Copy-Item $dst "$dst.pre-update" -Force
+            Write-Host "  _ahk\$n updated; the copy that was there is kept as $n.pre-update."
+        } elseif (-not (Test-KitOwned $dst $rel)) {
+            Copy-Item $src "$dst.i76e-default" -Force
+            $script:keptOwn += $rel
+            Write-Host "_ahk\$n is your own edit: KEPT. The kit's is beside it as $n.i76e-default." -ForegroundColor Yellow
+            return
+        }
+        Copy-Item $src $dst -Force
+        Remove-Item "$dst.i76e-default" -Force -ErrorAction SilentlyContinue
+        $manifest[$rel] = $sm
+    }
+    Install-Layer $remapSrc
     # CH Fighterstick HOTAS layer, deployed alongside the remapper so a fresh
     # install has it. Harmless without the stick: it identifies the device itself
     # and exits if there is none. Enumerated here BY NAME because that is how this
@@ -729,7 +834,8 @@ if ($Controls -eq 'stock') {
     # stale while the repo's copy grew a whole wheel layer nobody was running.
     # Add new AHK layers here (and to $layerScripts above) or they silently never ship.
     $stickSrc = Join-Path $repoGameDir 'i76-ch-fighterstick.ahk'
-    if (Test-Path $stickSrc) { Copy-Item $stickSrc $ahkOut -Force }
+    if (Test-Path $stickSrc) { Install-Layer $stickSrc }
+    Save-Manifest
     Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk + i76-ch-fighterstick.ahk; starts with the game)."
     Write-Host "  Pad scheme: LB shift layer, triggers=fire/hp2, look-back rear gun, camera cycle."
     Write-Host "  Connect the controller BEFORE launching (the engine + XInput enumerate at startup)."
@@ -776,7 +882,7 @@ if ($widePreset) {
 $wheelExe = Join-Path $repoGameDir 'tools\i76wheel.exe'
 if (Test-Path $wheelExe) {
     Copy-Item $wheelExe $GameDir -Force
-    $wheelUpIs = if ($Controls -eq 'stock') { 'Enter' } else { 'Tab' }
+    $wheelUpIs = if ($Controls -ne 'i76e') { 'Enter' } else { 'Tab' }
     Write-Host "i76wheel.exe deployed (mouse wheel up = $wheelUpIs = cycle weapon, down = 5 = hardpoint 5; PLAY-i76.ps1 -WheelUp / -WheelDown change them)."
 } else {
     Write-Host "tools\i76wheel.exe not built - wheel targeting disabled (see tools\i76wheel.c)." -ForegroundColor Yellow
@@ -883,7 +989,10 @@ if ($fastPreset) {
     Write-Host "then the canonical test: Mission 5's ramp jump."
 }
 if (-not $isNitro) { Write-Host "DEBUG.bat (I76 Debug, a browser dashboard) and TRAINER.bat (its Trainer tab) attach to the running game; they need Python 3." }
-if ($Controls -eq 'i76e') {
+if ($keptOwn.Count) { Write-Host "Kept as you had them: $($keptOwn -join ', ') (the kit's versions are beside them as *.i76e-default; CONTROLS.bat switches)." -ForegroundColor Yellow }
+if ($Controls -eq 'own') {
+    Write-Host "Controls: own - your input.map as it was, no AutoHotkey layers. This project's map: CONTROLS.bat (kit), or -Controls i76e -ControlsOnly -ReplaceControls"
+} elseif ($Controls -eq 'i76e') {
     Write-Host "Controls: i76e - this project's WASD-style map, not the 1997 keys. Sheet: docs\Interstate76-Controls-Quick-Reference.pdf. The 1997 keys: -Controls stock -ControlsOnly"
 } else {
     Write-Host "Controls: stock - GOG's 1997 keys + the minimal patch; no AutoHotkey layers. This project's map: -Controls i76e -ControlsOnly"

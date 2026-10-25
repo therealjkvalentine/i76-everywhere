@@ -961,6 +961,44 @@ if ($SkipCutscenes) {
     Write-Host "mission briefing / closing movies skipped (I76_SKIP_CUTSCENES=1)" -ForegroundColor Cyan
 }
 
+# ---- whose input.map is this? (2026-10-25, kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md;
+# OWN-INPUT-MAP-2026-10-25.md s.2) The pad / wheel / stick layers TYPE this project's keys, so over a player's own map they
+# fight his bindings (an outside tester: "yaw settings with my joystick's hat"). In a Patch Kit folder (_i76e\) they start only
+# when input.map is a kit layout - the md5 the setup recorded (i76e-installed.md5), any shipped version (known-kit-md5.txt), the
+# kit's current map - or when CONTROLS.bat chose the kit's layout (i76e-layers.txt 'on', then edited by the player). Controls
+# mode 'own' = the player's map, always. Other folders (the developer's installs): unchanged, layers as before.
+$controlsMode = Get-Content (Join-Path $GameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
+$mapFileC = Join-Path $GameDir 'input.map'
+$mapKind = 'kit'; $mapWhy = 'not a Patch Kit folder'
+$kitFolder = Test-Path -LiteralPath (Join-Path $GameDir '_i76e\VERSION.txt')
+if ($kitFolder -or $controlsMode -eq 'own') {
+    $mMd5 = if (Test-Path -LiteralPath $mapFileC) { (Get-FileHash -LiteralPath $mapFileC -Algorithm MD5).Hash.ToLower() } else { '' }
+    $kitSet = @{}
+    foreach ($kf in @((Join-Path $GameDir 'i76e-installed.md5'), (Join-Path $GameDir '_i76e\repo\tools\patch-kit\known-kit-md5.txt'))) {
+        if (Test-Path -LiteralPath $kf) { foreach ($ln in (Get-Content -LiteralPath $kf)) { if ($ln -match '^([0-9a-f]{32})\s+\*?input\.map\s*$') { $kitSet[$Matches[1]] = 1 } } }
+    }
+    $shipC = Join-Path $GameDir '_i76e\repo\controls\input.map'
+    if (Test-Path -LiteralPath $shipC) { $kitSet[(Get-FileHash -LiteralPath $shipC -Algorithm MD5).Hash.ToLower()] = 1 }
+    $chosen = ((Get-Content (Join-Path $GameDir 'i76e-layers.txt') -TotalCount 1 -ErrorAction SilentlyContinue) -eq 'on')
+    if ($controlsMode -eq 'own') { $mapKind = 'mine'; $mapWhy = "controls mode own (your map, kept by the setup / CONTROLS.bat)" }
+    elseif (-not $mMd5) { $mapKind = 'kit'; $mapWhy = 'no input.map (the game writes its default)' }
+    elseif ($kitSet.ContainsKey($mMd5)) { $mapKind = 'kit'; $mapWhy = "the kit's layout (md5 $($mMd5.Substring(0, 8)))" }
+    elseif ($controlsMode -eq 'stock') { $mapKind = 'kit'; $mapWhy = "stock keys + the kit's additions (no key layers in this mode)" }
+    elseif ($chosen) { $mapKind = 'kit'; $mapWhy = "edited after CONTROLS.bat chose the kit's layout (i76e-layers.txt on)" }
+    else { $mapKind = 'mine'; $mapWhy = "your own (md5 $($mMd5.Substring(0, 8)) is not a kit layout)" }
+}
+$layersOff = ($mapKind -eq 'mine')
+# head look ANALOG patches out the engine's input poll, which silences a native hat glance: a map that binds a joystick hat
+# keeps it (DIGITAL start; Ctrl+Alt+H still cycles)
+$mapBindsHat = $false
+if (Test-Path -LiteralPath $mapFileC) { $mapBindsHat = ((Get-Content -LiteralPath $mapFileC -Raw) -match '(?im)^\s*[+-]\s*joystick\d*\s+Hat(Up|Down|Left|Right)\b') }
+$hatNote = ''
+if ($mapBindsHat -and $mapKind -eq 'mine' -and $HeadLookMode -eq 'ANALOG' -and -not $settingsParams.ContainsKey('HeadLookMode') -and -not $PSBoundParameters.ContainsKey('HeadLookMode')) {
+    $HeadLookMode = 'DIGITAL'; $hatNote = '; head look starts DIGITAL (your map binds the joystick hat)'
+}
+Write-LaunchLog ("controls: {0} - {1}{2}{3}" -f $(if ($mapKind -eq 'mine') { 'own map' } else { "kit's map" }), $mapWhy,
+    $(if (-not $kitFolder -and $controlsMode -ne 'own') { '' } elseif ($layersOff) { ' - pad / wheel / stick key layers OFF (they type the kit''s keys; CONTROLS.bat turns the kit''s layout on)' } elseif ($controlsMode -eq 'stock') { '' } else { ' - key layers on' }), $hatNote) 'DarkGray'
+
 if ($DryRun) {
     Write-Host "DRY RUN - nothing started." -ForegroundColor Yellow
     Write-Host ("  command:  `"{0}`" -glide" -f (Join-Path $GameDir $Exe))
@@ -970,16 +1008,15 @@ if ($DryRun) {
     $skipped = @()
     if ($LosslessScaling -and (Test-Path $LosslessScaling)) { $skipped += 'Lossless Scaling' }
     if (-not $NoHeadTrack -and $OpenTrack -and (Test-Path $OpenTrack) -and (Test-Path (Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk')) -and ($HeadTrack -or (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue))) { $skipped += 'opentrack + head look' }
-    if (Test-Path (Join-Path $GameDir '_ahk\AutoHotkeyU32.exe')) { $skipped += 'AHK layers' }
+    if (Test-Path (Join-Path $GameDir '_ahk\AutoHotkeyU32.exe')) { $skipped += $(if ($layersOff) { 'AHK layers: none of the key layers (own map)' } else { 'AHK layers' }) }
     if ($Ffb -and -not $NoFfb) { $skipped += 'FFB interposer' } elseif (-not $NoFfb) { $skipped += 'FFB interposer if a wheel is found' }
     if ($skipped) { Write-Host ("  helpers that a real run would also start: {0}" -f ($skipped -join ', ')) -ForegroundColor DarkGray }
     exit 0
 }
 
 $wheel = $null
-# Controls mode of this folder, as setup-windows.ps1 recorded it (absent = i76e, this project's map).
-$controlsMode = Get-Content (Join-Path $GameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
-if ($controlsMode -eq 'stock' -and -not $PSBoundParameters.ContainsKey('WheelUp') -and -not $settingsParams.ContainsKey('WheelUp')) { $WheelUp = 'Enter' }
+# Controls mode of this folder ($controlsMode, read above with the map check), as setup-windows.ps1 recorded it (absent = i76e).
+if (($controlsMode -eq 'stock' -or $controlsMode -eq 'own') -and -not $PSBoundParameters.ContainsKey('WheelUp') -and -not $settingsParams.ContainsKey('WheelUp')) { $WheelUp = 'Enter' }
 if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
     # Mouse wheel -> keystroke. Which hardpoint holds the dropper depends on the
     # car's loadout, not on the game, so it is a parameter rather than a constant.
@@ -995,7 +1032,7 @@ if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
 $ahk = $null
 $ahkExe = Join-Path $GameDir '_ahk\AutoHotkeyU32.exe'
 $ahkCfg = Join-Path $GameDir '_ahk\i76-remap.ahk'
-if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg)) {
+if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg) -and -not $layersOff) {
     $ahk = Start-Process -FilePath $ahkExe -ArgumentList "`"$ahkCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
@@ -1015,7 +1052,7 @@ if ($CursorOverlay -and -not $NoCursorOverlay -and (Test-Path $ahkExe) -and (Tes
 }
 
 $stickCfg = Join-Path $GameDir '_ahk\i76-ch-fighterstick.ahk'
-if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg)) {
+if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg) -and -not $layersOff) {
     $stick = Start-Process -FilePath $ahkExe -ArgumentList "`"$stickCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
@@ -1242,13 +1279,29 @@ if (Test-Path $shellPath) {
 # menu rewrite drops the steer/throttle blocks, and with no analog sink there is no
 # steering and no pedals however healthy the device is. That test is independent of
 # where buttons live, so it holds under either design.
+# 2026-10-25 (kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md): the guard is the one place a launch
+# replaces input.map, so it now steps aside for a player's own map: not in controls mode 'own' (the player's map, kept by
+# the setup), not when no joystick is connected (no analog sink is then needed, and a keyboard player's rebind through the
+# in-game menu is theirs), and never from the kit's side files (*.i76e-default, *.pre-update, *.i76e-last).
+function Test-JoystickConnected {
+    try {
+        if (-not ('I76Joy.W' -as [type])) { Add-Type -Namespace I76Joy -Name W -MemberDefinition '[DllImport("winmm.dll")] public static extern int joyGetPosEx(int id, byte[] info);' }
+        for ($id = 0; $id -lt 16; $id++) {
+            $ji = New-Object byte[] 52; [BitConverter]::GetBytes([int]52).CopyTo($ji, 0); [BitConverter]::GetBytes([int]0xFF).CopyTo($ji, 4)
+            if ([I76Joy.W]::joyGetPosEx($id, $ji) -eq 0) { return $true }
+        }
+        return $false
+    } catch { return $true }   # cannot tell: behave as before
+}
 $mapPath = Join-Path $GameDir 'input.map'
-if (Test-Path $mapPath) {
+if ((Test-Path $mapPath) -and $controlsMode -ne 'own') {
     $mapText = Get-Content $mapPath -Raw
     $hasAxis   = ($mapText -match '(?ims)^\s*steer\s*\{[^}]*joystick\d*\s+\S+/\S+') -and
                  ($mapText -match '(?ims)^\s*throttle\s*\{[^}]*joystick\d*\s+\S+/\S+')
     $hasButton = $true   # buttons live in i76-remap.ahk now, not here
-    if (-not $hasAxis) {
+    if (-not $hasAxis -and -not (Test-JoystickConnected)) {
+        Write-Host "input.map has no joystick steer / throttle block; no joystick is connected, so it is left as it is." -ForegroundColor DarkGray
+    } elseif (-not $hasAxis) {
         Write-Host "input.map has lost a joystick ANALOG SINK (steer / throttle) -" -ForegroundColor Yellow
         Write-Host "the in-game controls menu has rewritten it. No analog sink = no wheel, no pedals." -ForegroundColor Yellow
         # Pick a backup by the SAME test that just failed - intact analog sinks -
@@ -1265,7 +1318,7 @@ if (Test-Path $mapPath) {
         #     backups) are never candidates.
         # A folder the installer has not touched since has none of those names: unchanged there.
         $bak = Get-ChildItem (Join-Path $GameDir 'input.map.*') -ErrorAction SilentlyContinue |
-               Where-Object { $_.Name -notmatch '\.(stripped|stock|before-i76e|before-stock)-' } |
+               Where-Object { $_.Name -notmatch '\.(stripped|stock|before-i76e|before-stock)-|\.(i76e-default|pre-update|i76e-last)$' } |
                Sort-Object @{ Expression = { $_.Name -ne 'input.map.as-installed' } }, @{ Expression = { $_.LastWriteTime }; Descending = $true } |
                Where-Object {
                    $t = Get-Content $_.FullName -Raw
@@ -1273,9 +1326,10 @@ if (Test-Path $mapPath) {
                    ($t -match '(?ims)^\s*throttle\s*\{[^}]*joystick\d*\s+\S+/\S+')
                } | Select-Object -First 1
         if ($bak) {
-            Copy-Item $mapPath (Join-Path $GameDir ("input.map.stripped-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))) -Force
+            $strippedName = "input.map.stripped-" + (Get-Date -Format 'yyyyMMdd-HHmmss')
+            Copy-Item $mapPath (Join-Path $GameDir $strippedName) -Force
             Copy-Item $bak.FullName $mapPath -Force
-            Write-Host ("restored analog sinks from {0}" -f $bak.Name) -ForegroundColor Green
+            Write-Host ("restored analog sinks from {0}; the map that was there is kept as {1}" -f $bak.Name, $strippedName) -ForegroundColor Green
         } else {
             Write-Host "no backup with intact analog sinks found - the wheel will be dead." -ForegroundColor Red
             Write-Host "Restore input.map from the portable zip, then re-lint with" -ForegroundColor Red
