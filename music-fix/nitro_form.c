@@ -333,9 +333,30 @@ static const char *__cdecl nft_lookup(void *tab, const char *key) {   /* G6: the
     return r;
 }
 /* The host's 0x7676 session name (called from nmp_open before the real dpOpen; record +0x17, 32 bytes, NUL at [31]): the
- * name the JOIN lists show, "[AI Drop-In] <the name box>" (default: the arena) or "[Co-Op] <scene>" (P01..P19 from the
- * selected list record's file, the name box of a co-op host still holds an arena's title). A joiner (provider 6..9) and a
- * name already starting with '[' are left alone. Stock (604) sessions never come here (nmp_open checks the species). */
+ * name the JOIN lists show. The list column is ~145 px of the shell's handwriting font and the player count "(1/4)" is drawn
+ * at its right end (lapN-a1, 2026-10-25: "[AI Drop-In] Evening Stroll", ~240 px, ran through the count and the box), so the
+ * name is fitted to NF_NAME_PX (the count starts ~150 px after the text; lapN-a4: "[AI] Evening Stroll", 168 px, still ran into it): "[AI Drop-In] <name>" when it fits, else "[AI] <name>" cut until it fits; co-op is
+ * "[Co-Op] <scene>" (P01..P19 from the selected list record's file; the name box of a co-op host still holds an arena's
+ * title). A joiner (provider 6..9) and a name already starting with '[' are left alone. Stock (604) sessions never come here
+ * (nmp_open checks the species). */
+#define NF_NAME_PX 144
+static int nf_text_px(const char *s) {   /* the shell's own glyph widths (0x10017e50: font + [font + 0x10 + c * 4]), else 9 px a character */
+    BYTE *fp = g_nf_sh ? *(BYTE **)NF_R(0x1013049c) : 0; BYTE *font = fp ? *(BYTE **)(fp + 0x408) : 0; int w = 0;
+    for (; *s; s++) {
+        int c = (signed char)*s, g = 9;
+        if (font && !*(int *)NF_R(0x10132324)) __try { g = *(int *)(font + *(int *)(font + 0x10 + c * 4)); } __except (EXCEPTION_EXECUTE_HANDLER) { g = 9; }
+        w += g > 0 && g < 40 ? g : 9;
+    }
+    return w;
+}
+static void nf_fit_name(const char *tag_long, const char *tag_short, const char *nm, char *out) {   /* out: 32 bytes */
+    int n;
+    _snprintf(out, 31, "%s %s", tag_long, nm); out[31] = 0;
+    if (nf_text_px(out) <= NF_NAME_PX) return;
+    _snprintf(out, 31, "%s %s", tag_short, nm); out[31] = 0;
+    for (n = (int)strlen(out); n > (int)strlen(tag_short) + 2 && nf_text_px(out) > NF_NAME_PX; n--) out[n - 1] = 0;
+    while ((n = (int)strlen(out)) > 0 && out[n - 1] == ' ') out[n - 1] = 0;
+}
 static void nf_session_name(BYTE *sd) {
     char nm[32], out[32], scene[8] = ""; BYTE *l; int sel, k; const char *rec = 0;
     if (!g_nf_sh || !(g_nf_on || g_nf_types) || !nf_host_form() || sd[0x17] == '[') return;
@@ -345,12 +366,13 @@ static void nf_session_name(BYTE *sd) {
         if (l && sel >= 0 && sel < *(int *)(l + 4)) rec = ((char **)*(BYTE **)(l + 8))[sel];
         for (k = 0; rec && k < 7 && rec[0x20 + k] && rec[0x20 + k] != '.'; k++) { char c = rec[0x20 + k]; scene[k] = c >= 'a' && c <= 'z' ? (char)(c - 32) : c; }
         scene[k < 7 ? k : 7] = 0;
-        _snprintf(out, 31, "[Co-Op] %s", scene[0] ? scene : nm);
-    } else _snprintf(out, 31, "[AI Drop-In] %s", nm);
-    out[31] = 0;
+        nf_fit_name("[Co-Op]", "[Co-Op]", scene[0] ? scene : nm, out);
+    } else nf_fit_name("[AI Drop-In]", "[AI]", nm, out);
     memset(sd + 0x17, 0, 32); memcpy(sd + 0x17, out, strlen(out));
-    NMP_LOG("  nitro-form: session name '%s' -> '%s' (%s)", nm, out, g_nf_opt & NF_COOP ? "co-op" : "AI drop-in");
+    NMP_LOG("  nitro-form: session name '%s' -> '%s' (%s, %d px of %d)", nm, out, g_nf_opt & NF_COOP ? "co-op" : "AI drop-in", nf_text_px(out), NF_NAME_PX);
 }
+/* a joiner's view of an older host's plain 7676 name (nitro_mp.c's enum callback) */
+static void nf_legacy_name(BYTE *s) { char nm[32], out[32]; memcpy(nm, s + 0x17, 31); nm[31] = 0; nf_fit_name("[AI Drop-In]", "[AI]", nm, out); memset(s + 0x17, 0, 32); memcpy(s + 0x17, out, strlen(out)); }
 static void nf_open_note(void) {
     if (!g_nf_sh || !(g_nf_on || g_nf_types)) return;
     NMP_LOG("  nitro-form: at dpOpen - provider %d, game type %d (%s), form mask %02lx, team %ld, options %02lx, species word %04x", *(int *)NF_R(0x1004701c),

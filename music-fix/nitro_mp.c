@@ -30,9 +30,10 @@
  *      0xFFFF, packed by net_PackVehicleState) and the receiver compares it with its mirror of that car.
  *   6. LIST (nitshell): one dpEnumSessions with species 0 (= any, anet2 0x020f8a20), the stdcall callback filtered to 604
  *      and 0x7676. NAMES (2026-10-25, owner: no user-visible "ARENA+"): the HOST names its 0x7676 session at dpOpen,
- *      "[AI Drop-In] <arena>" / "[Co-Op] <scene>" (nitro_form.c nf_session_name; 31 characters, the record's +0x17 field);
- *      a joiner shows a name that already starts with '[' as it is and prefixes "[Drop-In] " to an older host's plain
- *      name (proxies before this one, which named nothing and prefixed "ARENA+ " on the joiner). Stock 604 sessions:
+ *      "[AI Drop-In] <arena>" / "[Co-Op] <scene>", fitted to the JOIN list's ~145 px (name + the count) ("[AI] <arena>" cut to fit when the long
+ *      tag does not fit; nitro_form.c nf_session_name / nf_fit_name, the shell's own glyph widths); a joiner shows a name
+ *      that already starts with '[' as it is and fits an older host's plain name the same way (proxies before this one
+ *      named nothing and prefixed "ARENA+ " on the joiner). Stock 604 sessions:
  *      the name is never touched on either side. On a game server (INTERNET) dpEnumSessions lists only the species
  *      the client subscribed to at dpSetGameServer (anet.inf 604; ANet 0.10 dp2.c), so species 0 changes nothing there.
  *   7. LOBBY: nmp_lobby_subscribe() is a STUB (record s.0.5.3): on a game server the client subscribes to the session
@@ -227,6 +228,8 @@ static void nmp_status(const char *tag) {
     NMP_LOG("%s", line);
 }
 
+static void nf_session_name(BYTE *sd);   /* nitro_form.c: the host's 0x7676 session name "[AI Drop-In] ..." / "[Co-Op] ..." */
+static void nf_legacy_name(BYTE *s);    /* nitro_form.c: an older host's plain 7676 name, fitted with the same tags */
 /* ---- nitshell: species of the session opened / joined, the single type-0 list ---- */
 typedef int (__stdcall *nmp_enumcb_fn)(BYTE *, long *, long, void *);
 typedef int (__cdecl *nmp_enum_fn)(void *, BYTE *, void *, long, nmp_enumcb_fn, void *);
@@ -236,9 +239,7 @@ static int __stdcall nmp_enum_cb(BYTE *s, long *tmo, long fl, void *ctx) {
     if (s) {
         WORD sp = *(WORD *)(s + 0xd);
         if (sp != NMP_SPECIES_STOCK && sp != NMP_SPECIES_ARENA) return 1;   /* another game's session: skip, go on */
-        if (sp == NMP_SPECIES_ARENA && s[0x17] != '[') {   /* an older host's plain name (it named nothing; this host names at dpOpen) */
-            char nm[32]; memcpy(nm, s + 0x17, 32); nm[31] = 0; _snprintf((char *)s + 0x17, 31, "[Drop-In] %s", nm); s[0x17 + 31] = 0;
-        }
+        if (sp == NMP_SPECIES_ARENA && s[0x17] != '[') nf_legacy_name(s);   /* an older host's plain name (it named nothing; this host names at dpOpen) */
     }
     return nmp_shell_cb(s, tmo, fl, ctx);
 }
@@ -249,7 +250,6 @@ static int __cdecl nmp_enum(void *dp, BYTE *sd, void *mbz, long tmo, nmp_enumcb_
     return nmp_real_enum(dp, sd0, mbz, tmo, nmp_enum_cb, ctx);
 }
 static void nf_open_note(void);   /* nitro_form.c: the host form's game type at dpOpen (log only) */
-static void nf_session_name(BYTE *sd);   /* nitro_form.c: the host's 0x7676 session name "[AI Drop-In] ..." / "[Co-Op] ..." */
 static int __cdecl nmp_open(void *dp, BYTE *sd, void *cb, void *ctx) {
     int r;
     if (sd) { g_nmp_species = *(WORD *)(sd + 0xd); if (g_nmp_species == NMP_SPECIES_ARENA) nf_session_name(sd); }
