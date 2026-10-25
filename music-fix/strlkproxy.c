@@ -4705,7 +4705,15 @@ static LONG CALLBACK crash_log_handler(EXCEPTION_POINTERS *ep) {
         /* nitro-owner lane 2026-10-23: Nitro's PIT CPU-speed probe (nitro.c nitro_pit_skip) faults first-chance at every boot and the
          * game handles it; it used to take this handler's one shot, so a later real fault on Nitro (the mission-over Replay's
          * "Unhandled Exception" box) left no record. Logged once, the shot kept. */
-        static int pit_seen; if (pit_seen++ < 4) mlog("crash-log: Nitro's PIT probe 0xC0000096 at 0x%08lX (first chance, handled by the game) - not counted", (unsigned long)(DWORD_PTR)r->ExceptionAddress);
+        /* clean-install fixes 2026-10-25: ONE line per boot, worded so a user grepping "CRASH" counts 0 */
+        static int pit_seen; if (!pit_seen++) mlog("pit-probe: handled probe (not a crash) - the 1997 CPU-speed probe 0xC0000096 at exe+0x%lX, refused by Windows and handled by the game (Nitro)", (unsigned long)((DWORD_PTR)r->ExceptionAddress - 0x00400000));
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    if (g_exe == EXE_GOLD && r->ExceptionCode == 0xC0000096 && (DWORD)(DWORD_PTR)r->ExceptionAddress >= 0x00499950 && (DWORD)(DWORD_PTR)r->ExceptionAddress < 0x004999f0) {
+        /* clean-install fixes 2026-10-25: Gold's same probe at exe+0x99997 (GOG 2.1.0.17 and the AiO build), frame 0 of every boot on
+         * Windows 10 / 11. It used to print four CRASH: lines (code, stack, modules, exe addresses) and take this handler's one shot,
+         * so a later real fault left no record. Now one handled-probe line, the shot kept. */
+        static int gpit_seen; if (!gpit_seen++) mlog("pit-probe: handled probe (not a crash) - the 1997 CPU-speed probe 0xC0000096 at exe+0x%lX, refused by Windows and handled by the game", (unsigned long)((DWORD_PTR)r->ExceptionAddress - 0x00400000));
         return EXCEPTION_CONTINUE_SEARCH;
     }
     depth++;

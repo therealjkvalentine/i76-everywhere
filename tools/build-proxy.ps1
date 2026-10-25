@@ -17,7 +17,7 @@ if (Test-Path -LiteralPath $OutDir) { Remove-Item -LiteralPath $OutDir -Recurse 
 $src = Join-Path $OutDir 'src'; New-Item -ItemType Directory -Force $src | Out-Null
 $tar = Join-Path $OutDir 'src.tar'
 git -C $repo archive -o $tar $sha music-fix tools/telemetry/i76tel.h tools/trainer/i76trn.h
-tar -xf $tar -C $src; Remove-Item $tar
+& (Join-Path $env:SystemRoot 'System32\tar.exe') -xf $tar -C $src; Remove-Item $tar   # Windows' bsdtar: Git for Windows' GNU tar earlier on PATH reads C: as a host (clean-install B7)
 Remove-Item (Join-Path $src 'music-fix\*.dll') -ErrorAction SilentlyContinue
 $sha | Set-Content (Join-Path $src 'COMMIT')
 $bat = Join-Path $OutDir 'b.bat'
