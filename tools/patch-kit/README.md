@@ -66,6 +66,7 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 | `PLAY-Nitro.bat` | Only for the **Nitro Pack** folder (see "Nitro Pack" below). In a Gold folder it says so and does nothing. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
 | `INSTALL-EXTRAS.bat` | **Optional extras** (below): community maps, head look, Python for the debug tool, German voices, your own extra music. |
+| `FIREWALL.bat` | Lets LAN games through Windows Firewall (see "Network games (LAN)"); run it once if you play on a network. |
 | **`SETTINGS.bat`** | Opens **`i76-settings.txt`** in Notepad: render scale, antialiasing, field of view, draw distance, force feedback, sound, co-op (see "Settings" below). |
 
 Options you can add after the launcher name (open a command window in the folder, or edit a shortcut):
@@ -98,6 +99,14 @@ menu-mouse DLL, the graphics preview and the mission-5 launchers, and the debug 
 `--display WxH`, `--setup` and `--resetup` work as for `PLAY.bat`. `UNINSTALL-i76e.bat` undoes it the same way.
 
 If you have both games, unzip the kit into each folder; the two installs do not share anything.
+
+## Network games (LAN)
+
+MULTI MELEE > HOST / JOIN go straight to a LAN game (IPX over your home network). Windows Firewall has to let the game receive the
+other machines' packets: **run `FIREWALL.bat` once** (it asks for administrator rights and adds one rule for the game in this folder,
+private networks only; the undo command is in its first lines), **or click *Allow* on private networks when Windows asks the first
+time you host.** Every player needs the same kit version (and the same community maps, if you use them). Problems: the
+*Network / LAN game problem* form (see "Problems and feedback"), with the logs from every machine.
 
 ## Optional extras (`INSTALL-EXTRAS.bat`)
 
@@ -296,7 +305,7 @@ model). For a network game, attach the files from every machine (rename them `ho
 | Black window, a tiny 4:3 window, or a 3dfx logo at start | dgVoodoo (the graphics layer) ignored our settings and used a global file. Delete `%APPDATA%\dgVoodoo\dgVoodoo.conf` (press Win+R, type `%APPDATA%\dgVoodoo`, Enter) and start again. |
 | Black screen (or PLEASE STAND BY) forever | You are on Remote Desktop (the 3D cannot start there - use the PC itself), or something else grabbed the screen. Close it from Task Manager, start again, send `mciproxy.log`. |
 | Picture stretched / off-centre / pointer misses the buttons | `PLAY.bat --display WxH` with your monitor's real size; or try `PLAY-16x10.bat`. Tell us either way. |
-| Low frame rate | `PLAY.bat --no-supersample`. Also close GOG Galaxy's overlay and any screen-recording / RGB software. There is no fps counter in the game; "smooth or not" is what we want to hear. |
+| Low frame rate | `PLAY.bat --no-supersample` (or `render scale = 1` in `i76-settings.txt`). Also close GOG Galaxy's overlay and any screen-recording / RGB software. Optional, your choice (needs administrator rights): a Microsoft Defender exclusion for the game folder (Windows Security > Virus & threat protection > Manage settings > Exclusions) steadies the frame rate on some PCs; the kit does not set it. There is no fps counter in the game; "smooth or not" is what we want to hear. |
 | No music in missions | On the Galaxy build of the game GOG's own music player is used (our fix cannot attach there): check that the game folder has a `music` folder with `2.mp3` ... `17.mp3`, and the AUDIO slider in the game's options. On the other build our fix plays the tracks. |
 | Gamepad / wheel has no buttons | Plug it in before starting. The button layer needs our key layout (the default). |
 | The game crashes | Send `mciproxy.log` - a line starting `CRASH:` says where. (A line `pit-probe: handled probe (not a crash)` at the very start is normal: a 1997 CPU-speed probe that Windows refuses and the game handles itself. It is not a crash and has no `CRASH:` line.) |
@@ -311,7 +320,7 @@ It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`,
 `input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: right
 after it, every one of the GOG install's files is byte-identical to a fresh install). One file will differ if you have played: the game
 itself rewrites `Lee.fot` as you play (Gold), so a hash check after playing shows that one difference - that is the game's, not ours.
-Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `i76-settings.txt`,
+Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `FIREWALL.bat`, `i76-settings.txt`,
 `README-PATCH-KIT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
 `i76shell.dll.pre-i76e-keys` / `nitshell.dll.pre-i76e-keys`, `input.map.stock-*` / `input.map.pre-windows-setup`) are safe to delete. Bookmarks
 stay: if the setup copied in our set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG

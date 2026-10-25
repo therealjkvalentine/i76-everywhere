@@ -12,7 +12,7 @@
                      components (files) included.")
     _i76e\AutoHotkey\ AutoHotkeyU32.exe 1.1.37.02 + its GPL licence (the pad / wheel / stick layer)
     _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
-    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, README-PATCH-KIT.md
+    PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, README-PATCH-KIT.md
   The same zip goes into a GOG Nitro Pack folder (nitro.exe) since 2026-10-25 (clean-install B6: Nitro needed MSVC + a repo clone
   through Build-From-GOG): PLAY-Nitro.bat runs i76e-prepare.ps1 -Game Nitro (the same proxy, which detects nitro.exe; preset
   nitro-tick42; dgVoodoo 2.87.5 incl. D3D8 / D3D9; the Nitro shell keys from nitshell-keys-patch.json; GOG's Nitro keys). The Gold
@@ -258,6 +258,8 @@ if not exist "%~dp0i76-settings.txt" (
 )
 start "" notepad.exe "%~dp0i76-settings.txt"
 "@ -Encoding ascii
+# FIREWALL.bat (owner 2026-10-25): one inbound allow rule for the game exe on private networks, self-elevating; the user runs it (never the setup: UAC)
+Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\FIREWALL.bat') -Destination (Join-Path $Stage 'FIREWALL.bat') -Force
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\README.md') -Destination (Join-Path $Stage 'README-PATCH-KIT.md') -Force
 
 # ---- the game-byte guard: nothing of GOG's may be in the stage --------------------------------------------------------

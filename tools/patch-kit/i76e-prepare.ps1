@@ -244,6 +244,8 @@ if ($didSetup -or $SetupOnly) {
     $bat = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY.bat' }
     Write-Host "  To play: double-click $bat in this folder (it checks your monitor each time and starts the game)."
     if (-not $isNitro) { Write-Host '           PLAY-PREVIEW.bat = the same with the graphics preview; PLAY-T05.bat = straight into mission 5.' }
+    Write-Host '  Settings: double-click SETTINGS.bat (opens i76-settings.txt in Notepad, written at the first start).'
+    Write-Host '  Network games: run FIREWALL.bat once, or click Allow on private networks when Windows asks the first time you host.'
     Write-Host '  To undo: double-click UNINSTALL-i76e.bat - it puts every original game file back.'
     Write-Host '  Details of this setup: _i76e\setup.log'
     Write-Host ''
