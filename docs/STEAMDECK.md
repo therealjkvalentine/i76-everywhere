@@ -3,6 +3,8 @@
 *Companion to the macOS port. The Deck is Linux, so almost everything we learned on the Mac
 transfers — minus the one layer that caused us the most pain.*
 
+> **Download: [Deck Kit v0.1.0 (pre-release)](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/deck-v0.1.0)** - not yet community tested; tell us how it went in a GitHub issue.
+>
 > **2026-10-25: users build it with the Deck Kit.** [`deck/kit/`](../deck/kit/README.md) (`i76-deck-kit.sh install --gog
 > <GOG installer>`; zip from `tools/package-deck-kit.ps1`) replaces `deck/deck-install.sh`: pinned sha256 downloads, the proxy,
 > the rumble shim, the Deck preset + `i76-env.local.sh`, LAN, tested in a fresh folder from GOG's installer. The owner's Deck

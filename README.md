@@ -95,7 +95,7 @@ leave it in your Downloads folder. Everything below works from that file; nothin
 |---|---|---|
 | **Windows 10/11** | 120 fps with the game's timing kept right, longer draw distance, music that continues, controller and wheel layouts; widescreen opt-in | played daily by the owner; the installer has not yet been run end to end on a freshly installed PC |
 | **Mac, Apple Silicon** | Glide renderer through Wine, about 100-120 fps, fullscreen, music | beta: one manual step (the Wine wrapper) before the scripts |
-| **Steam Deck** | Glide through dgVoodoo/Vulkan, controller layout | beta: not yet run end to end on a fresh Deck |
+| **Steam Deck** | Glide through dgVoodoo/Vulkan, controller layout, rumble | pre-release **[Deck Kit v0.1.0](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/deck-v0.1.0)**: not yet community tested, expect rough edges; tested end to end in a fresh folder on one Deck |
 
 **Windows**
 1. Get this repo (green *Code* button > *Download ZIP*, then unzip).
@@ -114,8 +114,9 @@ Options (original 1997 keys, 20 fps stock, widescreen, another folder) and undoi
 4. Open **`~/Applications/Sikarugir/Interstate 76 Gold.app`**. The first start asks for microphone access. The game never
    records anything; macOS asks any app that opens an audio output unit on some Macs (section 12 of the same file).
 
-**Steam Deck**
-1. Put the GOG installer in `~/Downloads`.
+**Steam Deck** ([Deck Kit v0.1.0 pre-release](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/deck-v0.1.0): not yet community tested; Claude Code pointed at this repository can usually diagnose problems, and we would love your feedback in a GitHub issue)
+1. Put the GOG installer in `~/Downloads`, and unzip the Deck Kit there; then run `bash i76-deck-kit.sh install --gog ~/Downloads/setup_interstate76_2.1.0.17.exe` in Konsole (steps: [deck/kit/README.md](deck/kit/README.md)).
+   The older route below still works:
 2. In Desktop Mode run [`deck/Install-I76.desktop`](deck/Install-I76.desktop) (or the one-liner in
    [docs/STEAMDECK.md](docs/STEAMDECK.md)).
 3. Back in Game Mode, start it from your library. Details and the controller layout: [docs/STEAMDECK.md](docs/STEAMDECK.md).
