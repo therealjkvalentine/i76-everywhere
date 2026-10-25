@@ -64,12 +64,12 @@ static DWORD g_nf_rec[2][5] = { { 0x10, NF_X - 3, NF_X + 24, NF_BOX1_Y - 2, NF_B
                                 { 0x11, NF_X - 3, NF_X + 24, NF_BOX2_Y - 1, NF_BOX2_Y + 13 } };
 struct nf_line { short x, y, what; const char *s; };
 static const struct nf_line g_nf_lines[] = {   /* the description is the owner-approved text, unchanged, wrapped */
-    { NF_X, NF_Y, 0, "ARENA+" },
+    { NF_X, NF_Y, 0, "AI DROP-IN" },
     { NF_X, NF_Y + 16, 0, "Every arena plus the" },
     { NF_X, NF_Y + 29, 0, "original '76 missions," },
     { NF_X, NF_Y + 42, 0, "with AI filling the" },
     { NF_X, NF_Y + 55, 0, "open slots." },
-    { NF_X, NF_BOX1_Y, NF_ARENA, "ARENA+" },
+    { NF_X, NF_BOX1_Y, NF_ARENA, "AI DROP-IN" },
     { NF_X, NF_BOX2_Y, NF_COOP, "CO-OP SCENES" },
 };
 static int g_nf_width[8];   /* text widths of the first draw (logged once) */
@@ -209,7 +209,10 @@ static void nft_coop_only(void) {   /* P01-P19 as the whole arena list (after th
     nf_coop_append(l);
 }
 static void nft_sync(void) {   /* main thread: options and species from the selected type */
-    int t = nft_type(); LONG o = !nf_host_form() ? 0 : t == NFT_ARENA ? NF_ARENA : t == NFT_COOP ? (NF_ARENA | NF_COOP) : 0;
+    /* INTERNET (provider 4) stays stock (2026-10-25, record NITRO-LOBBY-2026-10-25): a lobby client subscribes only to the
+     * species of anet.inf (604) at dpSetGameServer, so a 0x7676 session on bz911 / interstate76.com would be listed to nobody
+     * and would put an unknown species on a community server; the popup there keeps its 5 stock rows (nft_popup). */
+    int t = nft_type(); LONG o = !nf_host_form() || *(int *)NF_R(0x1004701c) == 4 ? 0 : t == NFT_ARENA ? NF_ARENA : t == NFT_COOP ? (NF_ARENA | NF_COOP) : 0;
     WORD sp = o ? NMP_SPECIES_ARENA : g_nf_species0;
     if (t == NFT_COOP && o && !nft_coop_only_listed()) nft_coop_only();   /* the arena list was rebuilt under us */
     if (*(WORD *)NF_R(0x10046cb0) != sp) *(WORD *)NF_R(0x10046cb0) = sp;
@@ -298,7 +301,7 @@ static void __cdecl nft_popup(DWORD *desc, DWORD pic, DWORD b) {   /* the GAME T
     DWORD *r2 = (DWORD *)NF_R(0x100459b0), *r3 = (DWORD *)NF_R(0x100459c4);
     int p = *(int *)NF_R(0x1004701c), rh = *(int *)NF_R(0x10138c38), d = 0;
     memcpy(r2, list24, 20); memcpy(r3, btn24, 20); g_nft_fresh = 0;
-    if ((p == 3 || p == 4) && desc[6] == 5 && desc[8] == 5 && rh > 0 && rh < 40 && pic == 0x24) {
+    if (p == 3 && desc[6] == 5 && desc[8] == 5 && rh > 0 && rh < 40 && pic == 0x24) {   /* IPX only (2026-10-25): see nft_sync */
         d = 2 * rh; desc[3] += d; desc[2] += NFT_PIC_WIDEN; desc[6] = desc[8] = 7; desc[10] = (DWORD)(DWORD_PTR)nft_rows; g_nft_fresh = 1;
         r2[2] += NFT_PIC_WIDEN; r2[4] += d; r3[1] += NFT_PIC_WIDEN; r3[2] += NFT_PIC_WIDEN; r3[3] += d; r3[4] += d;
     }
@@ -328,6 +331,25 @@ static const char *__cdecl nft_lookup(void *tab, const char *key) {   /* G6: the
         NMP_LOG("  nitro-types: lobby mode text for form mask %02lx -> '%s'", m, r ? r : "(null)");
     }
     return r;
+}
+/* The host's 0x7676 session name (called from nmp_open before the real dpOpen; record +0x17, 32 bytes, NUL at [31]): the
+ * name the JOIN lists show, "[AI Drop-In] <the name box>" (default: the arena) or "[Co-Op] <scene>" (P01..P19 from the
+ * selected list record's file, the name box of a co-op host still holds an arena's title). A joiner (provider 6..9) and a
+ * name already starting with '[' are left alone. Stock (604) sessions never come here (nmp_open checks the species). */
+static void nf_session_name(BYTE *sd) {
+    char nm[32], out[32], scene[8] = ""; BYTE *l; int sel, k; const char *rec = 0;
+    if (!g_nf_sh || !(g_nf_on || g_nf_types) || !nf_host_form() || sd[0x17] == '[') return;
+    memcpy(nm, sd + 0x17, 31); nm[31] = 0;
+    if (g_nf_opt & NF_COOP) {
+        l = *(BYTE **)NF_R(0x10179eac); sel = *(int *)NF_R(0x10045858);
+        if (l && sel >= 0 && sel < *(int *)(l + 4)) rec = ((char **)*(BYTE **)(l + 8))[sel];
+        for (k = 0; rec && k < 7 && rec[0x20 + k] && rec[0x20 + k] != '.'; k++) { char c = rec[0x20 + k]; scene[k] = c >= 'a' && c <= 'z' ? (char)(c - 32) : c; }
+        scene[k < 7 ? k : 7] = 0;
+        _snprintf(out, 31, "[Co-Op] %s", scene[0] ? scene : nm);
+    } else _snprintf(out, 31, "[AI Drop-In] %s", nm);
+    out[31] = 0;
+    memset(sd + 0x17, 0, 32); memcpy(sd + 0x17, out, strlen(out));
+    NMP_LOG("  nitro-form: session name '%s' -> '%s' (%s)", nm, out, g_nf_opt & NF_COOP ? "co-op" : "AI drop-in");
 }
 static void nf_open_note(void) {
     if (!g_nf_sh || !(g_nf_on || g_nf_types)) return;
