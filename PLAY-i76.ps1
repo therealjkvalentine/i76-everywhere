@@ -161,21 +161,47 @@ param(
     [string]$RenderScale = '',
     # Apply the render scale / antialiasing step (dgVoodoo.wide.conf -> dgVoodoo.conf), print it and exit 0 without starting
     # anything (exit 5 if the step failed). For tests and for checking a local.psd1.
-    [switch]$RenderOnly
+    [switch]$RenderOnly,
+    # Skip <GameDir>\i76-settings.txt, the player's settings file (see "player settings file" below).
+    [switch]$NoSettings,
+    # Write <GameDir>\i76-settings.txt (and SETTINGS.bat) for this preset and this PC if it is missing, then exit 0. Never overwrites
+    # an existing file. SETTINGS.bat runs it when the file is not there yet; a setup can run it too.
+    [switch]$WriteSettings
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
+# ---- feedback (2026-10-25, owner: "ask for feedback via GitHub issues"): every log the kit writes starts with this line.
+$issueUrl = 'https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose'
+$issueBanner = "If something went wrong, attach this file to a GitHub issue: $issueUrl"
+function Set-LogBanner([string]$path, [switch]$Create) {
+    # Puts $issueBanner as the first line of a log another program appends to (the proxy's mciproxy.log, the interposer's,
+    # opentrack-autostart's, the kit setup's). Byte level, so the writer's encoding is kept. Never fatal.
+    try {
+        if (-not (Test-Path -LiteralPath $path)) {
+            if ($Create) { [IO.File]::WriteAllText($path, "$issueBanner`r`n", [Text.Encoding]::ASCII) }
+            return
+        }
+        $b = [IO.File]::ReadAllBytes($path)
+        $head = [Text.Encoding]::ASCII.GetBytes($issueBanner)
+        if ($b.Length -ge $head.Length -and [Text.Encoding]::ASCII.GetString($b, 0, $head.Length) -eq $issueBanner) { return }
+        $nb = New-Object byte[] ($head.Length + 2 + $b.Length)
+        [Array]::Copy($head, $nb, $head.Length); $nb[$head.Length] = 13; $nb[$head.Length + 1] = 10
+        [Array]::Copy($b, 0, $nb, $head.Length + 2, $b.Length)
+        [IO.File]::WriteAllBytes($path, $nb)
+    } catch { }
+}
+
 # ---- launcher log (2026-10-24): the .bat files run this script hidden, so what was switched on is also written
-# to <game>\play-i76.log (the last 400 lines are kept). Lines are "<time> <text>".
+# to <game>\play-i76.log (the last 400 lines are kept, after the feedback line). Lines are "<time> <text>".
 $launchClock = [Diagnostics.Stopwatch]::StartNew()
 $launchLog = Join-Path $GameDir 'play-i76.log'
 function Write-LaunchLog([string]$text, [string]$color = 'Cyan') {
     Write-Host $text -ForegroundColor $color
-    if ($DryRun) { return }
+    if ($DryRun -or $WriteSettings) { return }
     try {
-        $old = @(); if (Test-Path $launchLog) { $old = @(Get-Content $launchLog -Tail 399) }
+        $old = @(); if (Test-Path $launchLog) { $old = @(Get-Content $launchLog -Tail 399 | Where-Object { $_ -ne $issueBanner }) }
         $line = "{0} +{1:0.00}s {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $launchClock.Elapsed.TotalSeconds, $text
-        Set-Content -Path $launchLog -Value ($old + $line) -Encoding UTF8
+        Set-Content -Path $launchLog -Value (@($issueBanner) + $old + $line) -Encoding UTF8
     } catch { }
 }
 
@@ -236,6 +262,232 @@ if ($presetFile) {
 }
 # stock with no presets\ folder at all (an old portable zip) is fine: stock sets nothing.
 if ($presetData) { foreach ($k in ($presetData.Env.Keys | Sort-Object)) { $gameEnv[$k] = [string]$presetData.Env[$k] } }
+$envSrc = @{}   # key -> where a value that is not the preset's came from (i76-settings.txt line N), for the log lines
+
+# ---- player settings file: <GameDir>\i76-settings.txt (2026-10-25, owner: "Is psd1 easy for laypeople, or is there a more intuitive
+# format that opens in a text editor?"; docs/records/SETTINGS-FILE-2026-10-25.md). Plain "name = value" lines, # comments, grouped;
+# every line says what it does, the allowed values and the value at the time the file was written. "default" (or an empty value)
+# = keep what the launcher chooses. SETTINGS.bat opens it in Notepad. Written on the first launch when missing (and by -WriteSettings).
+# PRECEDENCE, lowest first: the launcher's preset < i76-settings.txt < presets\local.psd1 (power users) < command-line options
+# (-RenderScale, -NoFfb, -Windowed, ... and the .bat flags that pass them). A line that cannot be read is reported by its line number
+# (console + play-i76.log) and skipped; the launch goes on. Game switches (I76_*) are not applied to preset stock (PLAY-VANILLA /
+# PLAY-stock stay the stock game, as with local.psd1); the launcher's own options (force feedback, head look, mouse wheel) are.
+# -NoSettings skips the file.
+$settingsFile = Join-Path $GameDir 'i76-settings.txt'
+$onOff = @{ 'on' = 'on'; 'yes' = 'on'; 'true' = 'on'; '1' = 'on'; 'off' = 'off'; 'no' = 'off'; 'false' = 'off'; '0' = 'off' }
+# Kind: choice (Allowed, optional Map of synonyms -> value), number (Min, Max), onoff, key (a key name for i76wheel), windowed, note.
+# Target: env:<I76_KEY> | param:<name> (handled below) | ffb:<tune key> | none.
+$settingsSchema = @(
+  @{ Group = 'Graphics'; Name = 'render scale'; Target = 'env:I76_RENDER_SCALE'; Kind = 'choice'; Allowed = @('1', '1.5', '2'); Stock = '2'; Unset = 'the launcher''s default'
+     Help = @('How big the 3D picture is drawn before it is fitted to your monitor: 2 = twice your monitor''s size each way (sharpest,',
+              'heaviest on the graphics card), 1 = your monitor''s own size (lightest - try it if the game is not smooth). Windows only.') }
+  @{ Group = 'Graphics'; Name = 'antialiasing'; Target = 'env:I76_AA'; Kind = 'choice'; Allowed = @('off', '2', '4', '8'); Stock = '4'; Unset = 'the launcher''s default'
+     Map = @{ '0' = 'off'; 'off' = 'off'; 'none' = 'off'; '2x' = '2'; '4x' = '4'; '8x' = '8' }
+     Help = @('Smooths jagged edges (MSAA). off is the lightest, 8 the smoothest and heaviest. Windows only.') }
+  @{ Group = 'Graphics'; Name = 'field of view'; Target = 'env:I76_FOV'; Kind = 'number'; Min = 60; Max = 120; Unit = 'degrees'; Stock = '90'
+     Help = @('How wide you see, in degrees, measured on a 4:3 screen (the 1997 value is 90). A wide monitor shows more to the sides',
+              'on top of this by itself (90 becomes about 106 on 16:9 and 122 on 21:9); nothing is stretched.') }
+  @{ Group = 'Graphics'; Name = 'hood view field of view'; Target = 'env:I76_FOV_HOOD'; Kind = 'number'; Min = 80; Max = 150; Unit = 'degrees'; Stock = '120'
+     Help = @('The same for the hood view (F6). The 1997 value is 120.') }
+  @{ Group = 'Graphics'; Name = 'draw distance'; Target = 'env:I76_FAR_CLIP'; Kind = 'number'; Min = 100; Max = 2500; Unit = 'metres'; Stock = '600'
+     Help = @('How far the terrain, cars and buildings are drawn. 1997: 600. Farther costs frame rate, mostly in the binoculars.') }
+  @{ Group = 'Graphics'; Name = 'road distance'; Target = 'env:I76_ROAD_DIST'; Kind = 'number'; Min = 450; Max = 3000; Unit = 'metres'; Stock = '450'
+     Help = @('How far roads are drawn. 1997: 450.') }
+  @{ Group = 'Graphics'; Name = 'terrain detail'; Target = 'env:I76_TERRAIN_LOD'; Kind = 'number'; Min = 1; Max = 256; Integer = $true; Stock = '1'
+     Help = @('How far out the ground keeps its full shape (1 = 1997). Above 1 needs a draw distance (the launcher refuses otherwise).') }
+  @{ Group = 'Graphics'; Name = 'terrain texture distance'; Target = 'env:I76_TERRAIN_TEX'; Kind = 'number'; Min = 1; Max = 16; Integer = $true; Stock = '1'
+     Help = @('How many times farther the sharp ground textures reach (1 = 1997).') }
+  @{ Group = 'Graphics'; Name = 'object detail distance'; Target = 'env:I76_OBJECT_LOD'; Kind = 'number'; Min = 1; Max = 16; Integer = $true; Stock = '1'
+     Help = @('How many times farther cars and buildings keep their detailed models (1 = 1997).') }
+  @{ Group = 'Graphics'; Name = 'road texture distance'; Target = 'env:I76_ROAD_TEX'; Kind = 'number'; Min = 1; Max = 16; Integer = $true; Stock = '1'
+     Help = @('How many times farther the sharp road texture reaches (1 = 1997).') }
+  @{ Group = 'Graphics'; Name = 'shadow distance'; Target = 'env:I76_SHADOW_DIST'; Kind = 'number'; Min = 1; Max = 16; Integer = $true; Stock = '1'
+     Help = @('How many times farther shadows are drawn (1 = 1997, 50 m).') }
+  @{ Group = 'Graphics'; Name = 'bush distance'; Target = 'env:I76_CLUTTER_DIST'; Kind = 'number'; Min = 120; Max = 2500; Unit = 'metres'; Stock = '120'
+     Help = @('How far the little bushes are drawn. 1997: 120.') }
+  @{ Group = 'Graphics'; Name = 'bush density'; Target = 'env:I76_CLUTTER_DENSITY'; Kind = 'number'; Min = 0.1; Max = 1; Stock = '1'
+     Help = @('1 = every bush, 0.5 = half of them.') }
+  @{ Group = 'Graphics'; Name = 'mirror distance'; Target = 'env:I76_MIRROR_FAR'; Kind = 'number'; Min = 100; Max = 2500; Unit = 'metres'; Stock = '100'
+     Help = @('How far the rear-view mirror sees. 1997: 100.') }
+  @{ Group = 'Graphics'; Name = 'refresh rate'; Target = 'env:I76_GLIDE_REFRESH'; Kind = 'choice'; Allowed = @('60', '70', '72', '75', '80', '85', '90', '100', '120'); Stock = '60'
+     Help = @('The refresh rate the 3D asks for, in Hz: the frame-rate ceiling. 120 = up to 120 fps.') }
+  @{ Group = 'Graphics'; Name = 'windowed'; Target = 'param:Windowed'; Kind = 'windowed'; Stock = 'off'
+     Help = @('off = full screen. auto = a window at the top left, narrower than the screen. Or a size such as 1920x1080.') }
+
+  @{ Group = 'Controls'; Name = 'head look'; Target = 'param:HeadLook'; Kind = 'choice'; Allowed = @('auto', 'start', 'off'); Stock = 'auto'
+     Help = @('Head tracking with opentrack. auto = used when opentrack is already running when you start the game; start = the',
+              'launcher starts opentrack too; off = never.') }
+  @{ Group = 'Controls'; Name = 'head look mode'; Target = 'param:HeadLookMode'; Kind = 'choice'; Allowed = @('analog', 'digital', 'off'); Stock = 'analog'
+     Help = @('How head look starts (Ctrl+Alt+H changes it in the game).') }
+  @{ Group = 'Controls'; Name = 'wheel force feedback'; Target = 'param:WheelFfb'; Kind = 'choice'; Allowed = @('auto', 'on', 'off'); Stock = 'auto'
+     Help = @('Our force feedback for a steering wheel. auto = on when a force-feedback wheel is plugged in; on = always try;',
+              'off = the game''s own 1997 effects.') }
+  @{ Group = 'Controls'; Name = 'game force feedback'; Target = 'param:GameFfb'; Kind = 'onoff'; Stock = 'on'
+     Help = @('off = no force feedback at all (the wheel still steers).') }
+  @{ Group = 'Controls'; Name = 'pavement scale'; Target = 'ffb:PavementScale'; Kind = 'number'; Min = 0; Max = 1; Stock = '0.5'
+     Help = @('With our wheel force feedback: how busy the road feels on pavement compared with off-road (1 = the same, 0.5 = half).',
+              'The FFB panel''s slider changes it for one session; this line sets it again at the next start.') }
+  @{ Group = 'Controls'; Name = 'mouse wheel up'; Target = 'param:WheelUp'; Kind = 'key'; Stock = 'Tab'
+     Help = @('The key the mouse wheel types when rolled up (Tab = next weapon on this kit''s keys). A key name as in input.map.') }
+  @{ Group = 'Controls'; Name = 'mouse wheel down'; Target = 'param:WheelDown'; Kind = 'key'; Stock = '5'
+     Help = @('The key for the wheel rolled down (5 = fire hardpoint 5, usually the dropper).') }
+
+  @{ Group = 'Sound'; Name = 'effects volume'; Target = 'env:I76_SFX_GAIN'; Kind = 'number'; Min = -40; Max = 20; Unit = 'dB'; Stock = '0'; Unset = 'as the game has it'
+     Help = @('Louder or quieter than the game''s own mix, in dB: 0 = as the game has it, -6 = about half as loud, +6 = twice.') }
+  @{ Group = 'Sound'; Name = 'voice volume'; Target = 'env:I76_VOICE_GAIN'; Kind = 'number'; Min = -40; Max = 20; Unit = 'dB'; Stock = '0'; Unset = 'as the game has it'
+     Help = @('The same for the voices.') }
+  @{ Group = 'Sound'; Name = 'music volume'; Target = 'env:I76_MUSIC_GAIN'; Kind = 'number'; Min = -40; Max = 20; Unit = 'dB'; Stock = '0'; Unset = 'as the game has it'
+     Help = @('The same for the music (the game''s AUDIO slider still works on top).') }
+
+  @{ Group = 'Multiplayer'; Name = 'player name'; Target = 'none'; Kind = 'note'
+     Help = @('Your driver name for network games is typed in the game''s own menus; it is not stored in this file.') }
+  @{ Group = 'Multiplayer'; Name = 'co-op scaling'; Target = 'env:I76_COOP_SCALE'; Kind = 'onoff'; Stock = 'on'; Unset = 'the default with computer cars in network games'
+     Help = @('Co-op missions with friends: each enemy that attacks brings one extra copy per friend who joined. off = the 1997 mission.') }
+  @{ Group = 'Multiplayer'; Name = 'co-op extra enemies'; Target = 'env:I76_COOP_SCALE_MAX'; Kind = 'number'; Min = 0; Max = 3; Integer = $true; Stock = '3'; Unset = 'the default'
+     Help = @('The most extra copies of one enemy co-op scaling brings in (0 to 3).') }
+  @{ Group = 'Multiplayer'; Name = 'co-op damage'; Target = 'env:I76_COOP_DAMAGE'; Kind = 'number'; Min = 0.1; Max = 4; Stock = '1'
+     Help = @('In network games, how hard your weapons hit (1 = as 1997, 0.5 = half).') }
+  @{ Group = 'Multiplayer'; Name = 'computer car skill'; Target = 'param:AiSkill'; Kind = 'choice'; Allowed = @('1', '2', '3', '4', '5'); Stock = '3'
+     Help = @('Computer cars in the melee arenas: 1 = the best drivers and shots, 5 = the weakest. Only the host''s value counts.') }
+  @{ Group = 'Multiplayer'; Name = 'legacy multiplayer menu'; Target = 'param:LegacyMultiplayer'; Kind = 'onoff'; Stock = 'off'
+     Help = @('on = the 1997 MODEM / IPX / INTERNET / NULLMODEM choice in HOST / JOIN (and no computer cars), for playing with a stock game.') }
+
+  @{ Group = 'Advanced'; Name = 'skip mission movies'; Target = 'env:I76_SKIP_CUTSCENES'; Kind = 'onoff'; Stock = 'off'
+     Help = @('on = no briefing / closing movie around each mission (movies in the middle of a mission stay).') }
+  @{ Group = 'Advanced'; Name = 'simulation tick'; Target = 'param:TickMs'; Kind = 'number'; Min = 16.7; Max = 66.7; Unit = 'ms'; Stock = '41.667'
+     Help = @('How often the game world is simulated, in milliseconds (41.667 = 24 times a second, the 1997 car step). Only for',
+              'launchers with a simulation tick. In a network game every player should use the same value.') }
+)
+function ConvertTo-SettingKey([string]$s) { ($s.ToLowerInvariant() -replace '[^a-z0-9]', '') }
+$settingsByKey = @{}
+foreach ($e in $settingsSchema) {
+    $settingsByKey[(ConvertTo-SettingKey $e.Name)] = $e
+    if ($e.Target -like 'env:*') { $settingsByKey[(ConvertTo-SettingKey $e.Target.Substring(4))] = $e }   # I76_RENDER_SCALE = 1 also works
+}
+function Test-SettingValue($e, [string]$v) {
+    # @($ok, $normalised, $why)
+    $lv = $v.Trim().ToLowerInvariant()
+    switch ($e.Kind) {
+        'choice' {
+            if ($e.Map -and $e.Map.ContainsKey($lv)) { $lv = $e.Map[$lv] }
+            if ($e.Allowed -contains $lv) { return @($true, $lv, '') }
+            return @($false, $null, ('not one of ' + ($e.Allowed -join ', ')))
+        }
+        'onoff' { if ($onOff.ContainsKey($lv)) { return @($true, $onOff[$lv], '') }; return @($false, $null, 'not on or off') }
+        'number' {
+            $tv = 0.0
+            if ($lv -notmatch '^[+-]?\d+(\.\d+)?$' -or -not [double]::TryParse($lv, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$tv)) {
+                return @($false, $null, 'not a number (use a dot for decimals, e.g. 1.5)')
+            }
+            if ($e.Integer -and $tv -ne [Math]::Floor($tv)) { return @($false, $null, 'not a whole number') }
+            if ($tv -lt $e.Min -or $tv -gt $e.Max) { return @($false, $null, ("outside {0} to {1}" -f $e.Min, $e.Max)) }
+            return @($true, $tv.ToString('0.###', [Globalization.CultureInfo]::InvariantCulture), '')
+        }
+        'key' { if ($v.Trim() -match '^[A-Za-z0-9]{1,12}$') { return @($true, $v.Trim(), '') }; return @($false, $null, 'not a key name (letters / digits, e.g. Tab, Enter, 5)') }
+        'windowed' {
+            if ($lv -in 'off', 'no', 'auto') { return @($true, $(if ($lv -eq 'no') { 'off' } else { $lv }), '') }
+            if ($lv -match '^\s*\d{3,5}\s*x\s*\d{3,5}\s*$') { return @($true, ($lv -replace '\s', ''), '') }
+            return @($false, $null, 'not off, auto or a size like 1920x1080')
+        }
+    }
+    return @($false, $null, 'this line is a note, not a setting')
+}
+function Read-I76Settings([string]$path) {
+    # -> @{ Values = list of @{ Entry; Raw; Value; Line } (or @{ Env; Value; Line } for a plain I76_* line); Errors = list of text }
+    $res = @{ Values = New-Object System.Collections.ArrayList; Errors = New-Object System.Collections.ArrayList }
+    try { $lines = [IO.File]::ReadAllLines($path) } catch { [void]$res.Errors.Add("could not be read: $($_.Exception.Message)"); return $res }
+    $seen = @{}
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $n = $i + 1; $t = ($lines[$i] -replace '^﻿', '').Trim()
+        if (-not $t -or $t.StartsWith('#') -or $t.StartsWith(';') -or ($t.StartsWith('[') -and $t.EndsWith(']'))) { continue }
+        $eq = $t.IndexOf('=')
+        if ($eq -lt 1) { [void]$res.Errors.Add(("line {0}: '{1}' - not a 'name = value' line; skipped" -f $n, $t)); continue }
+        $name = $t.Substring(0, $eq).Trim(); $val = $t.Substring($eq + 1)
+        $hc = $val.IndexOf(' #'); if ($hc -ge 0) { $val = $val.Substring(0, $hc) }   # a note after the value
+        $val = $val.Trim().Trim('"').Trim("'").Trim()
+        $nk = ConvertTo-SettingKey $name
+        $e = $settingsByKey[$nk]
+        if (-not $e) {
+            if ($name -match '^I76_[A-Z0-9_]+$') {   # Advanced: any engine switch by its own name, passed to the game as written
+                if ($val -ieq 'default') { continue }
+                [void]$res.Values.Add(@{ Env = $name; Value = $val; Line = $n }); continue
+            }
+            [void]$res.Errors.Add(("line {0}: '{1}' - no setting called '{2}'; skipped" -f $n, $t, $name)); continue
+        }
+        if ($e.Kind -eq 'note') { continue }
+        if ($val -eq '' -or $val -ieq 'default') { continue }
+        $chk = Test-SettingValue $e $val
+        if (-not $chk[0]) { [void]$res.Errors.Add(("line {0}: '{1}' - {2}; skipped (the launcher's value is used)" -f $n, $t, $chk[2])); continue }
+        if ($seen.ContainsKey($e.Name)) { [void]$res.Errors.Add(("line {0}: '{1}' - '{2}' is already set on line {3}; the later line wins" -f $n, $t, $e.Name, $seen[$e.Name])) }
+        $seen[$e.Name] = $n
+        [void]$res.Values.Add(@{ Entry = $e; Raw = $val; Value = $chk[1]; Line = $n })
+    }
+    return $res
+}
+$settingsLog = @()
+$settingsParams = @{}   # param name -> @(value, line) for the launcher's own options, applied below unless given on the command line
+$ffbTuneWant = $null
+if (-not $NoSettings -and -not $WriteSettings -and (Test-Path -LiteralPath $settingsFile)) {
+    $sr = Read-I76Settings $settingsFile
+    $nSet = 0
+    foreach ($v in $sr.Values) {
+        $src = "i76-settings.txt line $($v.Line)"
+        if ($v.Env) {
+            if ($Preset -eq 'stock') { $settingsLog += ("settings: {0} {1} = {2} NOT applied (preset stock stays stock)" -f $src, $v.Env, $v.Value); continue }
+            $was = if ($gameEnv.Contains($v.Env)) { $gameEnv[$v.Env] } else { '(unset)' }
+            if ($v.Value -eq '') { if ($gameEnv.Contains($v.Env)) { $gameEnv.Remove($v.Env) } } else { $gameEnv[$v.Env] = $v.Value }
+            $envSrc[$v.Env] = $src; $nSet++
+            $settingsLog += ("settings: {0}: {1}={2} (preset {3})" -f $src, $v.Env, $(if ($v.Value -eq '') { '(unset)' } else { $v.Value }), $was)
+            continue
+        }
+        $e = $v.Entry; $tgt = $e.Target -split ':', 2
+        switch ($tgt[0]) {
+            'env' {
+                $k = $tgt[1]
+                if ($Preset -eq 'stock') { $settingsLog += ("settings: {0}: {1} = {2} NOT applied (preset stock stays stock)" -f $src, $e.Name, $v.Raw); break }
+                $ev = $v.Value
+                if ($e.Kind -eq 'onoff') { $ev = if ($v.Value -eq 'on') { '1' } else { '0' } }
+                if ($k -eq 'I76_AA' -and $ev -eq 'off') { $ev = '0' }
+                if ($k -eq 'I76_SKIP_CUTSCENES' -and $ev -eq '0') { $ev = '' }
+                $was = if ($gameEnv.Contains($k)) { $gameEnv[$k] } else { '(unset)' }
+                if ($ev -eq '') { if ($gameEnv.Contains($k)) { $gameEnv.Remove($k) } } else { $gameEnv[$k] = $ev }
+                $envSrc[$k] = $src; $nSet++
+                $settingsLog += ("settings: {0}: {1} = {2} -> {3}={4} (preset {5})" -f $src, $e.Name, $v.Raw, $k, $(if ($ev -eq '') { '(unset)' } else { $ev }), $was)
+            }
+            'param' { $settingsParams[$tgt[1]] = @($v.Value, $src, $e.Name, $v.Raw); $nSet++ }
+            'ffb' { $ffbTuneWant = @($tgt[1], [double]::Parse($v.Value, [Globalization.CultureInfo]::InvariantCulture), $src); $nSet++ }
+        }
+    }
+    foreach ($er in $sr.Errors) { $settingsLog += "settings: i76-settings.txt $er" }
+    $settingsLog += ("settings: i76-settings.txt read - {0} value(s) changed from the launcher's, {1} line(s) not understood{2}" -f $nSet, $sr.Errors.Count, $(if ($sr.Errors.Count) { ' (listed above; the game starts anyway)' } else { '' }))
+} elseif ($NoSettings -and (Test-Path -LiteralPath $settingsFile)) {
+    $settingsLog += 'settings: i76-settings.txt NOT read (-NoSettings)'
+}
+# the launcher's own options from the file; a switch / value given on the command line wins
+foreach ($pn in @($settingsParams.Keys)) {
+    $pv = $settingsParams[$pn][0]; $src = $settingsParams[$pn][1]; $label = "{0}: {1} = {2}" -f $src, $settingsParams[$pn][2], $settingsParams[$pn][3]
+    $cli = switch ($pn) {
+        'HeadLook' { $PSBoundParameters.ContainsKey('HeadTrack') -or $PSBoundParameters.ContainsKey('NoHeadTrack') }
+        'WheelFfb' { $PSBoundParameters.ContainsKey('Ffb') -or $PSBoundParameters.ContainsKey('NoFfb') }
+        'GameFfb'  { $PSBoundParameters.ContainsKey('FfbOff') }
+        default    { $PSBoundParameters.ContainsKey($pn) }
+    }
+    if ($cli) { $settingsLog += "settings: $label - the command line says otherwise, it wins"; continue }
+    if ($pn -eq 'TickMs' -and -not $gameEnv.Contains('I76_SIM_TICK_MS')) { $settingsLog += "settings: $label - NOT applied: this launcher's preset has no simulation tick"; continue }
+    switch ($pn) {
+        'HeadLook' { if ($pv -eq 'start') { $HeadTrack = [switch]$true } elseif ($pv -eq 'off') { $NoHeadTrack = [switch]$true } }
+        'WheelFfb' { if ($pv -eq 'on') { $Ffb = [switch]$true } elseif ($pv -eq 'off') { $NoFfb = [switch]$true } }
+        'GameFfb'  { if ($pv -eq 'off') { $FfbOff = [switch]$true } }
+        'HeadLookMode' { $HeadLookMode = $pv.ToUpperInvariant() }
+        'WheelUp' { $WheelUp = $pv }
+        'WheelDown' { $WheelDown = $pv }
+        'AiSkill' { $AiSkill = [int]$pv }
+        'LegacyMultiplayer' { if ($pv -eq 'on') { $LegacyMultiplayer = [switch]$true } }
+        'Windowed' { if ($pv -ne 'off') { $Windowed = $pv } }
+        'TickMs' { $TickMs = $pv }
+    }
+    $settingsLog += "settings: $label"
+}
 
 # ---- per-machine override: <GameDir>\presets\local.psd1 (2026-10-24, owner: machines differ - Macs ~60 fps under Wine, a 5090,
 # this PC at 120). Same format as a preset (an Env hashtable). Its keys REPLACE the preset's; a key set to '' REMOVES the preset's
@@ -251,13 +503,160 @@ if ($Preset -ne 'stock' -and -not $NoLocal -and (Test-Path $localFile)) {
         foreach ($k in ($ld.Env.Keys | Sort-Object)) {
             $nv = [string]$ld.Env[$k]
             $was = if ($gameEnv.Contains($k)) { $gameEnv[$k] } else { '(unset)' }
+            $wasFrom = if ($envSrc.ContainsKey($k)) { "$($envSrc[$k]) said" } else { 'preset' }
             if ($nv -eq '') { if ($gameEnv.Contains($k)) { $gameEnv.Remove($k) }; $nv = '(unset)' } else { $gameEnv[$k] = $nv }
-            $localOverride += ("local override: {0}={1} (preset {2})" -f $k, $nv, $was)
+            $envSrc[$k] = 'local'
+            $localOverride += ("local override: {0}={1} ({2} {3})" -f $k, $nv, $wasFrom, $was)
         }
         if (-not $ld.Env.Count) { $localOverride += "local override $localFile sets nothing" }
     }
 } elseif (Test-Path $localFile) {
     $localOverride += ("local override presets\local.psd1 NOT applied ({0})" -f $(if ($NoLocal) { '-NoLocal' } else { 'preset stock stays stock' }))
+}
+
+# ---- i76-settings.txt: written when missing (first launch, or -WriteSettings / SETTINGS.bat), with this PC's values in the notes
+function Get-SettingNow($e) {
+    # the value this launch would use without the file (preset + local.psd1), as the file spells it
+    $tgt = $e.Target -split ':', 2
+    switch ($tgt[0]) {
+        'env' {
+            $k = $tgt[1]
+            if (-not $gameEnv.Contains($k)) { return @($e.Stock, $(if ($e.Unset) { $e.Unset } else { 'the 1997 value' })) }
+            $v = "$($gameEnv[$k])"; $from = if ($envSrc[$k] -eq 'local') { 'presets\local.psd1' } else { "preset $presetName" }
+            if ($e.Kind -eq 'onoff') { $v = if ($v -eq '0' -or $v -eq '') { 'off' } else { 'on' } }
+            if ($k -eq 'I76_AA' -and $v -eq '0') { $v = 'off' }
+            return @($v, $from)
+        }
+        'param' {
+            switch ($tgt[1]) {
+                'HeadLook' { return @($(if ($NoHeadTrack) { 'off' } elseif ($HeadTrack) { 'start' } else { 'auto' }), '') }
+                'WheelFfb' { return @($(if ($NoFfb) { 'off' } elseif ($Ffb) { 'on' } else { 'auto' }), '') }
+                'GameFfb' { return @($(if ($FfbOff) { 'off' } else { 'on' }), '') }
+                'HeadLookMode' { return @($HeadLookMode.ToLowerInvariant(), '') }
+                'WheelUp' { return @($WheelUp, '') }
+                'WheelDown' { return @($WheelDown, '') }
+                'AiSkill' { return @($(if ($AiSkill -ge 1) { "$AiSkill" } else { '3' }), '') }
+                'LegacyMultiplayer' { return @($(if ($LegacyMultiplayer) { 'on' } else { 'off' }), '') }
+                'Windowed' { return @($(if ($Windowed) { $Windowed } else { 'off' }), '') }
+                'TickMs' { if ($gameEnv.Contains('I76_SIM_TICK_MS')) { return @("$($gameEnv['I76_SIM_TICK_MS'])", "preset $presetName") }; return @('-', 'this launcher has no simulation tick') }
+            }
+        }
+        'ffb' {
+            $tf = Get-FfbTuneFile
+            try { if ($tf -and (Test-Path -LiteralPath $tf)) { $j = Get-Content -LiteralPath $tf -Raw | ConvertFrom-Json; if ($null -ne $j.($tgt[1])) { return @("$($j.($tgt[1]))", 'the FFB tune file') } } } catch { }
+            return @($e.Stock, 'the FFB default')
+        }
+    }
+    return @('', '')
+}
+function Get-FfbTuneFile {
+    # the interposer reads ffb-tune-owner.json beside itself (tools\ffb in the repo, _ffb in a game folder)
+    $d = Join-Path $PSScriptRoot 'tools\ffb'
+    if (-not (Test-Path (Join-Path $d 'ffb-interposer.ps1'))) { $d = Join-Path $GameDir '_ffb' }
+    if (-not (Test-Path -LiteralPath $d)) { return $null }
+    return (Join-Path $d 'ffb-tune-owner.json')
+}
+function Write-I76Settings {
+    $dW = 0; $dH = 0; $dFrom = 'the main monitor'
+    $kd = Join-Path $GameDir '_i76e\display.txt'
+    if ((Test-Path -LiteralPath $kd) -and ((Get-Content -LiteralPath $kd -TotalCount 1) -match '^\s*(\d+)x(\d+)')) { $dW = [int]$Matches[1]; $dH = [int]$Matches[2]; $dFrom = '_i76e\display.txt' }
+    else { try { Add-Type -AssemblyName System.Windows.Forms; $b0 = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $dW = $b0.Width; $dH = $b0.Height } catch { } }
+    $otHere = (Test-Path $OpenTrack) -or (Test-Path (Join-Path $GameDir '_tools\opentrack\opentrack.exe'))
+    $L = New-Object System.Collections.Generic.List[string]
+    $L.Add('# Interstate ''76 settings (i76-settings.txt)')
+    $L.Add("# $issueBanner")
+    $L.Add('#')
+    $L.Add('# HOW TO CHANGE A SETTING: change the word after the = sign, save (Ctrl+S), close Notepad and start the game as usual.')
+    $L.Add('#   default  = keep what the launcher chooses; the "now:" note above each line says what that is.')
+    $L.Add('#   Lines that start with # are notes. A line the launcher cannot read is listed in play-i76.log with its line number')
+    $L.Add('#   and skipped - the game still starts. Delete this file to get a fresh one (SETTINGS.bat or the next start writes it).')
+    $L.Add(("# Written {0} for this PC: monitor {1}x{2} (from {3}), launcher preset {4}, opentrack {5}." -f (Get-Date -Format 'yyyy-MM-dd HH:mm'), $dW, $dH, $dFrom, $presetName, $(if ($otHere) { 'installed' } else { 'not installed' })))
+    $L.Add('# Order: the launcher''s preset < this file < presets\local.psd1 (for power users, if you made one) < options typed after')
+    $L.Add('# the launcher''s name (e.g. PLAY.bat --no-supersample). The stock launchers (PLAY-stock / PLAY-VANILLA) ignore the game')
+    $L.Add('# settings here and use only the controls ones.')
+    $grp = ''
+    foreach ($e in $settingsSchema) {
+        if ($e.Group -ne $grp) {
+            $grp = $e.Group
+            $L.Add(''); $L.Add(('# ==== {0} {1}' -f $grp, ('=' * [Math]::Max(4, 100 - $grp.Length)))); $L.Add("[$grp]")
+        }
+        $L.Add('')
+        foreach ($h in $e.Help) { $L.Add("# $h") }
+        if ($e.Kind -eq 'note') { continue }
+        $allowed = switch ($e.Kind) {
+            'choice' { $e.Allowed -join ', ' }
+            'onoff' { 'on, off' }
+            'number' { "{0} to {1}{2}" -f $e.Min, $e.Max, $(if ($e.Unit) { " $($e.Unit)" } else { '' }) }
+            'key' { 'a key name, e.g. Tab, Enter, 5' }
+            'windowed' { 'off, auto, or a size like 1920x1080' }
+        }
+        $now = Get-SettingNow $e
+        $nowText = "now: $($now[0])"
+        if ($e.Name -eq 'render scale' -and $dW -gt 0) {
+            $rs = 2.0; [void][double]::TryParse("$($now[0])", [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$rs)
+            $nowText += " = the 3D drawn at {0}x{1}" -f ([int]([Math]::Floor($dW * $rs / 2) * 2)), ([int]([Math]::Floor($dH * $rs / 2) * 2))
+        }
+        if ($now[1]) { $nowText += " ($($now[1]))" }
+        $L.Add("# allowed: $allowed, default.   $nowText")
+        $L.Add("$($e.Name) = default")
+    }
+    $L.Add('')
+    $L.Add('# Any engine switch from the project''s list (music-fix/README.md) can be added here by its own name, e.g.')
+    $L.Add('#   I76_GLIDE_GAMMA = 1.3')
+    $L.Add('# It goes to the game as written; I76_SOMETHING =  (nothing after the =) removes the launcher''s value.')
+    [IO.File]::WriteAllLines($settingsFile, $L.ToArray(), (New-Object Text.UTF8Encoding $false))
+}
+function Write-SettingsBat {
+    $bat = Join-Path $GameDir 'SETTINGS.bat'
+    if (Test-Path -LiteralPath $bat) { return }
+    $gameFull = (Resolve-Path -LiteralPath $GameDir).Path.TrimEnd('\')
+    $me = if ($PSScriptRoot.TrimEnd('\') -ieq $gameFull) { '%~dp0PLAY-i76.ps1' } else { $PSCommandPath }
+    $pr = if ($presetFile -and $Preset -notmatch '\.psd1$') { $Preset } elseif ($presetFile) { $presetFile } else { 'stock' }
+    @('@echo off',
+      'REM Opens i76-settings.txt (the game''s settings: graphics, controls, sound, multiplayer) in Notepad.',
+      'REM Change a value, save, close Notepad, start the game. Written by PLAY-i76.ps1.',
+      "if not exist `"%~dp0i76-settings.txt`" powershell -NoProfile -ExecutionPolicy Bypass -File `"$me`" -GameDir `"%~dp0.`" -Preset `"$pr`" -WriteSettings >nul",
+      'start "" notepad.exe "%~dp0i76-settings.txt"') | Set-Content -LiteralPath $bat -Encoding ascii
+}
+$presetName = if ($presetData) { "$($presetData.Name)" } else { 'stock' }
+if ($WriteSettings) {
+    if (Test-Path -LiteralPath $settingsFile) { Write-Host "i76-settings.txt already exists in $GameDir - not overwritten." -ForegroundColor DarkGray }
+    else {
+        try { Write-I76Settings; Write-Host "wrote $settingsFile (launcher preset $presetName)" -ForegroundColor Cyan }
+        catch { Write-Host "could not write $settingsFile : $_" -ForegroundColor Red; exit 6 }
+    }
+    try { Write-SettingsBat } catch { }
+    exit 0
+}
+if (-not $DryRun -and -not $RenderOnly -and -not $NoSettings -and $Preset -ne 'stock' -and -not (Test-Path -LiteralPath $settingsFile)) {
+    try { Write-I76Settings; Write-SettingsBat; $settingsLog += "settings: wrote i76-settings.txt (first start; every line says 'default', so nothing changes until you edit it; SETTINGS.bat opens it)" }
+    catch { $settingsLog += "settings: could not write i76-settings.txt: $_" }
+}
+# pavement scale -> the interposer's tune file (only the one key; the FFB panel writes the same file)
+if ($ffbTuneWant -and -not $DryRun -and -not $RenderOnly) {
+    $tf = Get-FfbTuneFile
+    if (-not $tf) { $settingsLog += "settings: $($ffbTuneWant[2]): pavement scale NOT applied - no _ffb folder (no wheel force feedback in this folder)" }
+    else {
+        try {
+            $tune = [ordered]@{}
+            if (Test-Path -LiteralPath $tf) { $j = Get-Content -LiteralPath $tf -Raw | ConvertFrom-Json; foreach ($p in $j.PSObject.Properties) { $tune[$p.Name] = $p.Value } }
+            $old = $tune[$ffbTuneWant[0]]
+            if ($null -eq $old -or [double]$old -ne $ffbTuneWant[1]) {
+                $tune[$ffbTuneWant[0]] = $ffbTuneWant[1]
+                Set-Content -LiteralPath $tf -Value ($tune | ConvertTo-Json) -Encoding ascii
+                $settingsLog += ("settings: {0}: {1} {2} -> {3} in {4}" -f $ffbTuneWant[2], $ffbTuneWant[0], $(if ($null -eq $old) { '(default)' } else { $old }), $ffbTuneWant[1], (Split-Path $tf -Leaf))
+            } else { $settingsLog += ("settings: {0}: {1} {2} (the tune file has it already)" -f $ffbTuneWant[2], $ffbTuneWant[0], $ffbTuneWant[1]) }
+        } catch { $settingsLog += "settings: pavement scale NOT applied: $_" }
+    }
+} elseif ($ffbTuneWant) { $settingsLog += ("settings: {0}: {1} = {2} (DRY RUN: the FFB tune file is not written)" -f $ffbTuneWant[2], $ffbTuneWant[0], $ffbTuneWant[1]) }
+
+Write-LaunchLog ("---- PLAY-i76.ps1 {0}" -f (($MyInvocation.BoundParameters.GetEnumerator() | ForEach-Object { if ($_.Value -is [switch]) { "-$($_.Key)" } else { "-$($_.Key) $($_.Value)" } }) -join ' ')) 'DarkGray'
+foreach ($lo in $settingsLog) { Write-LaunchLog $lo $(if ($lo -match 'not understood|skipped|NOT|wins|could not') { 'Yellow' } else { 'Cyan' }) }
+foreach ($lo in $localOverride) { Write-LaunchLog $lo 'Yellow' }
+# the other logs a player may be asked for start with the feedback line too (proxy, interposer, opentrack helper, kit setup)
+if (-not $DryRun) {
+    Set-LogBanner (Join-Path $GameDir 'mciproxy.log') -Create:(Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))
+    foreach ($lg in '_ffb\ffb-interposer.log', '_ahk\opentrack-autostart.log', '_i76e\setup.log') { Set-LogBanner (Join-Path $GameDir $lg) }
 }
 
 # ---- render scale + antialiasing (I76_RENDER_SCALE / I76_AA; 2026-10-25, owner: "Supersampling and AA probably need to be in the
@@ -275,7 +674,7 @@ if ($Preset -ne 'stock' -and -not $NoLocal -and (Test-Path $localFile)) {
 $renderLine = $null; $renderFailed = $false
 function Get-RenderKey([string]$name) {
     if ($ld -and $ld.Env -and $ld.Env.ContainsKey($name) -and "$($ld.Env[$name])" -ne '') { return @("$($ld.Env[$name])", 'local') }
-    if ($gameEnv.Contains($name)) { return @("$($gameEnv[$name])", "preset $Preset") }
+    if ($gameEnv.Contains($name)) { return @("$($gameEnv[$name])", $(if ($envSrc.ContainsKey($name)) { $envSrc[$name] } else { "preset $Preset" })) }
     $e = [Environment]::GetEnvironmentVariable($name); if ($e) { return @("$e", 'environment') }
     return @($null, 'default')
 }
@@ -436,7 +835,9 @@ if ($Windowed) {
         $f = [math]::Min($rScale, [math]::Min(8192.0 / $ww, 8192.0 / $wh))   # I76_RENDER_SCALE (default 2)
         $gw = [int]([math]::Floor($ww * $f / 2) * 2); $gh = [int]([math]::Floor($wh * $f / 2) * 2)
         $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
-        if ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*= false') {
+        if ($DryRun) {
+            Write-Host ("windowed {0}x{1}: DRY RUN - dgVoodoo.conf not changed" -f $ww, $wh) -ForegroundColor Yellow
+        } elseif ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*= false') {
             $winConfBak = "$confPath.pre-windowed"
             Copy-Item $confPath $winConfBak -Force
             # AppControlledScreenMode = false: with the conf's own 'true' the game's exclusive full-screen request wins and dgVoodoo
@@ -531,8 +932,6 @@ if ($gameEnv.Count) {
 } else {
     Write-Host "preset $presetLabel (no engine switches)" -ForegroundColor DarkGray
 }
-Write-LaunchLog ("---- PLAY-i76.ps1 {0}" -f (($MyInvocation.BoundParameters.GetEnumerator() | ForEach-Object { if ($_.Value -is [switch]) { "-$($_.Key)" } else { "-$($_.Key) $($_.Value)" } }) -join ' ')) 'DarkGray'
-foreach ($lo in $localOverride) { Write-LaunchLog $lo 'Yellow' }
 
 # music-fix/ (the Strlkup.dll IAT hook that restores the CD-audio soundtrack) logs to
 # mciproxy.log only when this is set. Set UNCONDITIONALLY: it was opt-in, which meant the
@@ -580,7 +979,7 @@ if ($DryRun) {
 $wheel = $null
 # Controls mode of this folder, as setup-windows.ps1 recorded it (absent = i76e, this project's map).
 $controlsMode = Get-Content (Join-Path $GameDir 'i76e-controls.txt') -TotalCount 1 -ErrorAction SilentlyContinue
-if ($controlsMode -eq 'stock' -and -not $PSBoundParameters.ContainsKey('WheelUp')) { $WheelUp = 'Enter' }
+if ($controlsMode -eq 'stock' -and -not $PSBoundParameters.ContainsKey('WheelUp') -and -not $settingsParams.ContainsKey('WheelUp')) { $WheelUp = 'Enter' }
 if (Test-Path (Join-Path $GameDir 'i76wheel.exe')) {
     # Mouse wheel -> keystroke. Which hardpoint holds the dropper depends on the
     # car's loadout, not on the game, so it is a parameter rather than a constant.
@@ -1082,6 +1481,8 @@ if ($proc) {
 if ($proc) {
     $proc.WaitForExit()
     Write-LaunchLog ("game exited (code {0})" -f $proc.ExitCode) 'DarkGray'
+    # logs first written during the session get the feedback line too
+    Set-LogBanner (Join-Path $GameDir 'mciproxy.log')
 }
 
 if ($wheel    -and -not $wheel.HasExited)    { Stop-Process -Id $wheel.Id    -Force }
@@ -1146,3 +1547,5 @@ try {
         [I76.KbRelease]::keybd_event([byte]$vk, 0, $flags, [System.UIntPtr]::Zero)
     }
 } catch { }
+# the helpers' logs (they have exited or been stopped above) start with the feedback line too
+foreach ($lg in '_ffb\ffb-interposer.log', '_ahk\opentrack-autostart.log') { Set-LogBanner (Join-Path $GameDir $lg) }
