@@ -131,7 +131,7 @@ UNTESTED), `graphics-mac` / `graphics-mac-fast` (Macs). The stock launchers (PLA
 | `I76_GLIDE_REFRESH` | Hz (60) | the refresh the 3D asks for (120 = 120 fps) |
 | `I76_RENDER_SCALE` | 1, 1.5, 2 (2) | Windows: the 3D is rendered at that many times the monitor's size per axis, then shown at the monitor's size (2 = a 2x2 supersample, sharpest and heaviest; 1 = the monitor's own size, lightest; `PLAY.bat --no-supersample` in the kit = 1) |
 | `I76_AA` | 0, 2, 4, 8 (4) | Windows: antialiasing (MSAA) off / 2x / 4x / 8x |
-| `I76_RENDER_WIDTH` | pixels (1488 on the MacBook) | Mac only: OpenGLide's render width (`OpenGLid.INI` `Resolution=`, height = 3/4 of it), a key in the app prefix's `user.reg` `[Environment]`; read by the Mac launcher from its next rebuild (not in the installed apps yet) |
+| (Mac) | - | Macs run OpenGLide, not dgVoodoo: `I76_RENDER_SCALE` / `I76_AA` do nothing there. The Mac renders at its window's size (the launcher sets `OGL_VIEWPORT` from the display at every start; `OpenGLid.INI` `Resolution=` is overridden), so there is no Mac render-size key yet (`I76_RENDER_WIDTH` is reserved for it); Mac antialiasing is `OGL_MSAA` (4) in the app prefix's `user.reg` `[Environment]` |
 
 `I76_RENDER_SCALE` / `I76_AA` are read by PLAY-i76.ps1, not by the game: when they differ from the conf it rewrites
 `dgVoodoo.wide.conf` (only the `[Glide] Resolution` and `Antialiasing` lines; the installed file is kept as

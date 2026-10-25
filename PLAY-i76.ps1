@@ -275,7 +275,7 @@ function Get-RenderKey([string]$name) {
 $inv = [Globalization.CultureInfo]::InvariantCulture
 $rsRaw = Get-RenderKey 'I76_RENDER_SCALE'; $aaRaw = Get-RenderKey 'I76_AA'
 if ($RenderScale) { $rsRaw = @($RenderScale, '-RenderScale') }
-# I76_RENDER_WIDTH is the Mac's key (OpenGLide's output width, the graphics-mac tiers): nothing on Windows
+# I76_RENDER_WIDTH is reserved for a Mac render-size key (not implemented: RENDER-KEYS-2026-10-25.md s.3): nothing on Windows
 foreach ($k in 'I76_RENDER_SCALE', 'I76_AA', 'I76_RENDER_WIDTH') { if ($gameEnv.Contains($k)) { $gameEnv.Remove($k) } }
 $rScale = 2.0; $rsFrom = $rsRaw[1]
 if ($null -ne $rsRaw[0]) {
