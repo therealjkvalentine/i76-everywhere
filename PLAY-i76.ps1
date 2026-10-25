@@ -724,7 +724,7 @@ if (-not $proc) {
 # process has to exist first. It waits for a mission to load on its own (the
 # player entity only exists in one), so starting it here rather than making the
 # user launch it by hand mid-mission is safe. Own window so the panel is visible.
-$ffb = $null
+$ffbProc = $null
 $ffbDir = Join-Path $PSScriptRoot 'tools\ffb'
 if (-not (Test-Path (Join-Path $ffbDir 'ffb-interposer.ps1'))) { $ffbDir = Join-Path $GameDir '_ffb' }
 $ffbScript = Join-Path $ffbDir 'ffb-interposer.ps1'
@@ -757,13 +757,13 @@ if ($NoFfb) {
 }
 if ($ffbWant -and $proc) {
     try {
-        $ffb = Start-Process -FilePath 'powershell.exe' `
+        $ffbProc = Start-Process -FilePath 'powershell.exe' `
             -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$ffbScript`"" -PassThru -ErrorAction Stop
-    } catch { $ffb = $null }
-    if (-not $ffb) { $ffbStatus = "FFB: the game's own - the interposer did not start" }
+    } catch { $ffbProc = $null }
+    if (-not $ffbProc) { $ffbStatus = "FFB: the game's own - the interposer did not start" }
     else { $ffbStatus += ' (it takes the wheel and turns the game''s own effects off while it runs; its panel is the window it opens)' }
 }
-Write-LaunchLog $ffbStatus $(if ($ffb) { 'Cyan' } else { 'DarkGray' })
+Write-LaunchLog $ffbStatus $(if ($ffbProc) { 'Cyan' } else { 'DarkGray' })
 
 # Soundtrack, AFTER the game: it finds the game by process and reads the music
 # folder next to the exe. It exits on its own when the game exits.
@@ -796,8 +796,8 @@ if ($otHelper -and -not $otHelper.HasExited) { Stop-Process -Id $otHelper.Id -Fo
 # The music helper exits on its own when the game does, but kill it if it lingers -
 # an MCI device left open holds the file and can wedge later playback.
 if ($music -and -not $music.HasExited) { Stop-Process -Id $music.Id -Force }
-if ($ffb -and -not $ffb.HasExited) {
-    Stop-Process -Id $ffb.Id -Force
+if ($ffbProc -and -not $ffbProc.HasExited) {
+    Stop-Process -Id $ffbProc.Id -Force
     # Belt and braces: if the force was latched when we killed it, the wheel would
     # keep pulling. Re-open the device briefly and zero it.
     try {
