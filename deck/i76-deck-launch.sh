@@ -373,8 +373,11 @@ if [ -f "$REGF" ] && [ -n "$PROTON" ] && [ -n "${STEAM_COMPAT_DATA_PATH:-}" ]; t
     if grep -q "Interstate '76 Gold Edition" "$SYSREG" 2>/dev/null; then
         log "registry: GOG keys present in the prefix"
     else
-        "$PROTON" run regedit /S "Z:$(printf '%s' "$REGF" | sed 's#/#\#g')" >>"$LOG" 2>&1 || true
-        if grep -q "Interstate '76 Gold Edition" "$SYSREG" 2>/dev/null; then log "registry: GOG keys imported ($(grep -c '"Minimum"="0"' "$SYSREG") Minimum lines)"
+        # relative name from the folder (a Z:\ path lost its backslashes on the way in: "Unable to open the file 'Z:'")
+        ( cd "$I76_HOME" && "$PROTON" run regedit /S i76-gog-keys.reg ) >>"$LOG" 2>&1 || true
+        # wineserver writes system.reg lazily (a few seconds after the last client): poll before judging
+        for _i in $(seq 1 20); do grep -q "Interstate '76 Gold Edition" "$SYSREG" 2>/dev/null && break; sleep 1; done
+        if grep -q "Interstate '76 Gold Edition" "$SYSREG" 2>/dev/null; then log "registry: GOG keys imported ($(grep -c '"Minimum"="0"' "$SYSREG") Minimum lines, ${_i} s)"
         else log "registry: WARNING - GOG keys not in $SYSREG after regedit (the game may ask for CD 2)"; fi
     fi
 fi
