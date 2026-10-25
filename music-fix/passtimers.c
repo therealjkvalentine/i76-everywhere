@@ -36,6 +36,8 @@ static unsigned __int64 g_pt_tsc0; static LARGE_INTEGER g_pt_q0;
 static unsigned __int64 g_pt_rd_ovh;             /* ticks of one back-to-back rdtsc pair */
 /* fe_DrawTri: [0] inside the flush, [1] outside */
 static unsigned __int64 g_pt_dt_own[2], g_pt_dt_sync[2]; static DWORD g_pt_dt_n[2];
+/* the terrain shade loop 0x490f08..0x490f6d (U7): from the view transform's return to the emit wrap's entry, every pass */
+static unsigned __int64 g_pt_sh0, g_pt_shade; static DWORD g_pt_shade_n;
 /* clutter hooks */
 static unsigned __int64 g_pt_cl_draw, g_pt_cl_build, g_pt_cl_tab; static DWORD g_pt_cl_draw_n;
 /* phase: 0 other, 1 main clutter call, 2 rear mirror, 3 hardware flush */
@@ -327,6 +329,8 @@ static void pt_report(void) {
     mlog("  pass-timers: fe_DrawTri inside the flush %.0f calls/frame, own %.1f ns/call = %.1f us/frame, glide2x sync %.1f ns/call = %.1f us/frame; outside %.0f calls/frame, own %.1f us, sync %.1f us/frame",
          g_pt_dt_n[0] / F, g_pt_dt_n[0] ? g_pt_dt_own[0] * ns / g_pt_dt_n[0] : 0.0, g_pt_dt_own[0] * ns / 1000.0 / F, g_pt_dt_n[0] ? g_pt_dt_sync[0] * ns / g_pt_dt_n[0] : 0.0, g_pt_dt_sync[0] * ns / 1000.0 / F,
          g_pt_dt_n[1] / F, g_pt_dt_own[1] * ns / 1000.0 / F, g_pt_dt_sync[1] * ns / 1000.0 / F);
+    mlog("  pass-timers: terrain shade loop %.1f us/frame (%.2f passes/frame; 0x490f08..0x490f6d, the transform return to the emit)", g_pt_shade * ns / 1000.0 / F, g_pt_shade_n / F);
+    g_pt_shade = 0; g_pt_shade_n = 0;
     mlog("  pass-timers: clutter hooks: draw wrap %.1f us/frame (%.0f calls), build %.1f us/frame, template tables %.1f us/frame; morph (its own timer line) separate",
          g_pt_cl_draw * ns / 1000.0 / F, g_pt_cl_draw_n / F, g_pt_cl_build * ns / 1000.0 / F, g_pt_cl_tab * ns / 1000.0 / F);
     for (p = 0; p < PT_PH; p++)

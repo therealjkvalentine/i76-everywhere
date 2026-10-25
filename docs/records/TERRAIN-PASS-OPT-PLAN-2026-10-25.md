@@ -419,3 +419,29 @@ sync 104-137 ns/call (< 150), polygon path 34-46 ns/vertex vs triangle 35-45 (eq
 Read-out for the record: ZGLIDE's two triangle loops (ZGLIDE+0x2a58 / +0x2d8e) build three fresh GrVertex on the stack per triangle
 from 36-byte source records, so an IAT-level coalescer would have to rediscover shared vertices by content; the plan's Render-op patch
 remains the only route if a later dgVoodoo version changes the cost model.
+
+### U7 static slope-term shade table (`I76_SHADE_TABLE=1`, lab opt-in; `I76_SHADE_TABLE_VERIFY=1`; music-fix/shadetable.c)
+
+The call of `renderer_ShadeTerrainVertex` 0x490fb0 at 0x490f50 goes to a copy of the exe's own function (0x490fb0..0x4911d2 copied into
+an executable buffer, the five world_GetTerrainSampleRaw calls relocated, the unused rsqrt 0x495000 replaced by `fldz`). At 0x491155,
+where the slope term s sits in st(0), the copy stores s as an 80-bit value (`fstp tbyte`: exact under any precision control) in the
+sample's slot (per 128 x 128 tile, 16 bytes per sample, committed on first touch, a generation stamp; new generation at every
+world_InitTerrainGrid 0x493080 and whenever [0x6442c0] or the light vector change). A later vertex on the same sample loads s and runs
+the copied tail (the depth term, the clamps, the ambient). The pass timer gained a shade-loop interval (the view transform's return to
+the emit wrap's entry, every pass).
+
+| | table off (u7a, n 3) | table on |
+|---|---|---|
+| equivalence (u7smoke parked + u7v on the route: every vertex also shaded by the stock function) | - | **0 bit mismatches** in 18.5 M (parked) + 39.7 M (route) vertices; 99.97 % of the vertices from the table, 0 off the grid |
+| terrain shade loop, us / frame (1.5 passes / frame, 11-15 windows) | 355-419 (boots: 373-411, 364-419, 360-417) | **404-471** (u7b1, 14 windows) |
+| hill / ridge median fps (timers on) | 49.5 49.2 48.4 / 51.6 51.9 52.2 | 48.5 / 51.6 |
+| CRASH | 0 | 0 (u7smoke, u7v, u7b1-3, u7f1-2) |
+
+**U7 line:** "U7: shade stream bit-exact over 58 M vertices; terrain pass +40 to +60 us (355-419 -> 404-471 us per frame)." Equivalence
+**PASS**; the saving **FAIL** - the table is slower than the stock function on this machine. The stock function's five height reads hit
+the same few cache lines of the 2-byte heightmap; the table's 16-byte slots spread one vertex's state over 8x the memory, and the
+call into the slot helper plus the 80-bit load cost about what the arithmetic did (~38 -> ~42 ns per vertex). The 4.5 % the profile
+attributed to GetTerrainSampleRaw + rsqrt + ShadeTerrainVertex is mostly the loop's memory traffic, which the table does not remove.
+Left in the source as an opt-in lab switch (off), not in any preset. Harness note: u7b2, u7b3 and u7f1 (and u3bf3) ended within 10 s of
+the boot with the game alive and no CRASH line (the route driver exited early; another lane's boots were interleaving), so they gave no
+rows; the conclusion rests on u7b1's 14 windows against the 3 off boots, all of them on the same side.

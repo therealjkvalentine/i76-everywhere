@@ -1607,6 +1607,7 @@ static void frame_log_line(void) {
 }
 static void pass_timers_frame(void);                         /* passtimers.c */
 static void m16_memo_frame(void);                            /* m16memo.c */
+static void shade_table_frame(void);                         /* shadetable.c */
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now, fl_in = {0}, fl_cap = {0};
     if (g_fl_period) QueryPerformanceCounter(&fl_in);
@@ -1644,6 +1645,7 @@ clock:
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_cdmg_log) coop_dmg_frame();                       /* I76_COOP_DMG_LOG (lab): mission cars' damage words / drawn rows */
     m16_memo_frame();                                       /* m16memo.c: I76_M16_MEMO 600-frame line */
+    shade_table_frame();                                    /* shadetable.c: I76_SHADE_TABLE 600-frame line */
     pass_timers_frame();                                    /* passtimers.c: I76_PASS_TIMERS 600-frame report, registry hooks at frame 300 / 1500 */
     terrain_pops_frame();                                   /* terrainpops.c: I76_SHADE_SMOOTH table rebuild; the lab instruments' 600-frame report */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
@@ -9471,6 +9473,7 @@ static void apply_terrain_hyst(void) {
 #include "m16memo.c"       /* I76_M16_MEMO: face textures' .m16 variants resolved once per mission (terrain-pass-opt U3; before passtimers.c: its wraps chain onto these) */
 #include "passtimers.c"    /* lab: I76_PASS_TIMERS / I76_PASS_DUMP: per-pass timers, call counts, equivalence hashes (terrain-pass-opt lane 2026-10-25; before faredge.c: fe_DrawTri reads it) */
 #include "faredge.c"       /* I76_HAZE / I76_GLIDE_FOG / I76_EDGE_FADE: far-edge fade (far-edge lane 2026-10-23; before terrainmorph.c: its emit wrap chains fe_haze_apply) */
+#include "shadetable.c"    /* I76_SHADE_TABLE (lab, opt-in): the terrain shade loop's static slope term from a per-sample table (terrain-pass-opt U7; measured slower, TERRAIN-PASS-OPT-PLAN) */
 #include "terrainmorph.c"  /* I76_TERRAIN_MORPH / _MORPH_LOG / I76_TERRAIN_FLAT_SPLIT: geomorph + flat-tile split (TERRAIN-MORPH-2026-10-21) */
 #include "terrainpops.c"   /* lab: I76_TEX_LEVEL_LOG (texture level switches per pass), I76_SHADE_CENSUS (ZGLIDE vertex colour levels) (terrain-pop lane 2026-10-23) */
 static void apply_terrain_lod(void) {
@@ -10562,6 +10565,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_no_minimize();      /* opt-in: I76_NO_MINIMIZE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */
         apply_terrain_morph();    /* opt-in: I76_TERRAIN_MORPH=<band> (geomorph), I76_TERRAIN_FLAT_SPLIT=<f>[,eps] (Gold only) */
+        apply_shade_table();      /* lab: I76_SHADE_TABLE=1 (+ _VERIFY): the shade loop's slope term from a per-sample table (shadetable.c; Gold) */
         apply_detail_distance();  /* experiment: I76_TERRAIN_TEX=<1..16>, I76_OBJECT_LOD=<1..16> */
         apply_shadow_road_dist(); /* experiment: I76_SHADOW_DIST, I76_ROAD_TEX, I76_ROAD_DIST */
         apply_road_pool();        /* with I76_ROAD_DIST > 450 or I76_FAR_CLIP: span-node pool x16 + end guard (I76_ROAD_POOL=0 off) */

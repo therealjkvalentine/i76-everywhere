@@ -324,9 +324,12 @@ static void __cdecl tm_xform_wrap(void) {
 done:
     QueryPerformanceCounter(&q1); g_tm_ticks += q1.QuadPart - q0.QuadPart;     /* the morph's own work (the transform below excluded) */
     ((void (__cdecl *)(void))(DWORD_PTR)g_tm_ret_xform)();
+    if (g_pt_on) g_pt_sh0 = pt_now();                     /* I76_PASS_TIMERS: the shade loop runs from here to the emit wrap */
 }
 static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
-    LARGE_INTEGER q0, q1; QueryPerformanceCounter(&q0);
+    LARGE_INTEGER q0, q1;
+    if (g_pt_on && g_pt_sh0) { g_pt_shade += pt_net(pt_now() - g_pt_sh0); g_pt_shade_n++; g_pt_sh0 = 0; }
+    QueryPerformanceCounter(&q0);
     if (g_tm_slhave && !g_tm_have) {                       /* stateless, no instrument: the shade of the listed vertices only */
         float *U = *(float * volatile *)(DWORD_PTR)g_ta_U; int k;
         if (U && *(volatile int *)(DWORD_PTR)g_ta_lit != 0)
