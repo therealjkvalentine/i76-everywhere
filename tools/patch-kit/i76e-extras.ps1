@@ -178,12 +178,15 @@ function Convert-Wrev9([byte[]]$b) {
 function Install-Maps {
     $targets = @{}
     if ($kind -eq 'gold') { $targets['gold'] = $GameDir } else { $targets['nitro'] = $GameDir }
-    if ($NitroDir) {
-        if ((Game-Kind $NitroDir) -ne 'nitro') { Fail "-NitroDir: no nitro.exe in $NitroDir" }
-        $targets['nitro'] = (Resolve-Path -LiteralPath $NitroDir).Path
+    if ($NitroDir -and $kind -eq 'gold') {
+        if ((Test-Path -LiteralPath $NitroDir) -and (Game-Kind $NitroDir) -eq 'nitro') { $targets['nitro'] = (Resolve-Path -LiteralPath $NitroDir).Path }
+        else { Say "  Nitro maps: skipped - $NitroDir is not a Nitro Pack folder (no nitro.exe there); the Gold maps go ahead." 'Yellow' }
     }
+    # the half that is absent: said plainly, the rest goes ahead (owner 2026-10-25: Gold-only, Nitro-only and both)
+    if (-not $targets.ContainsKey('gold')) { Say "  Gold maps: skipped - this is the Nitro Pack folder. For the Gold maps run INSTALL-EXTRAS.bat in your Interstate '76 Gold folder (the kit unzipped there)." 'Yellow' }
+    if (-not $targets.ContainsKey('nitro')) { Say "  Nitro maps: skipped - no Nitro Pack folder here. If you have the Nitro Pack, unzip the kit into its folder and run INSTALL-EXTRAS.bat there (or: INSTALL-EXTRAS.bat -Maps -NitroDir <Nitro Pack folder>)." 'Yellow' }
     $sel = @($manifest.maps | Where-Object { $targets.ContainsKey($_.game) -and (-not $Only.Count -or $Only -contains $_.id) })
-    if (-not $sel.Count) { Say '  no map for this folder (Gold maps need a Gold folder, Nitro maps -NitroDir <Nitro Pack folder>)' 'Yellow'; return }
+    if (-not $sel.Count) { Say '  no map to install for this folder.' 'Yellow'; return }
     Say ''
     Say 'Community maps - made by players in 1997-2002, kept online by Local Ditch and Lightfoot''s Stolen Maps (interstate76.com).' 'Cyan'
     Say 'Each is downloaded from that site (nothing is rehosted), checked, and installed with its readme. The 1997 Gold maps are'
@@ -328,7 +331,7 @@ function Read-Zfs([string]$path, [switch]$Names) {   # ZFSF v1: 28-byte header, 
     } finally { $fs.Dispose() }
 }
 function Install-GermanVoices([string]$src) {
-    if ($kind -ne 'gold') { Fail 'German voices: a Gold folder (i76.exe) only' }
+    if ($kind -ne 'gold') { Say "  German voices: skipped - they are for Interstate '76 Gold (the Nitro Pack has no German dub to swap in). Run INSTALL-EXTRAS.bat in your Gold folder." 'Yellow'; return }
     Say ''
     Say 'German voices - Groove, Taurus, Skeeter and the rest in the 1997 German dub, from YOUR German retail Interstate ''76.' 'Cyan'
     Say 'The voice lines are unpacked from its I76.ZFS into voices-de\ (only lines this game also has); nothing of the game itself'
@@ -418,10 +421,13 @@ if (-not $any) {
     Say 'Each option below says what it adds and asks first. Nothing here is needed to play.'
     Install-Maps
     if ($kind -eq 'gold') { Install-OpenTrack; Show-Ahk; Install-Python }
-    if ($kind -eq 'gold' -and -not $Yes) {
+    else { Say ''; Say "  opentrack (head look), Python (DEBUG.bat) and German voices are Gold-only extras: skipped in the Nitro Pack folder." 'Yellow' }
+    if (-not $Yes) {
         Say ''
-        $g = Read-Host 'German voices: the folder of your German retail Interstate ''76 (CD 1 or its install folder), or Enter to skip'
-        if ($g) { Install-GermanVoices $g }
+        if ($kind -eq 'gold') {
+            $g = Read-Host 'German voices: the folder of your German retail Interstate ''76 (CD 1 or its install folder), or Enter to skip'
+            if ($g) { Install-GermanVoices $g }
+        }
         $mx = Read-Host 'Extra music (private): a folder of your own .mp3 / .wav to shuffle in, or Enter to skip'
         if ($mx) { Set-MusicExtra $mx }
     }
@@ -429,6 +435,7 @@ if (-not $any) {
     exit 0
 }
 if ($Maps) { Install-Maps }
+if ($kind -ne 'gold' -and ($OpenTrack -or $Python)) { Say "  opentrack / Python: skipped - Gold-only extras (head look and DEBUG.bat drive Interstate '76 Gold). Run INSTALL-EXTRAS.bat in your Gold folder for them." 'Yellow'; $OpenTrack = $false; $Python = $false }
 if ($OpenTrack) { Install-OpenTrack }
 if ($Python) { Install-Python }
 if ($GermanVoices) { Install-GermanVoices $GermanVoices }

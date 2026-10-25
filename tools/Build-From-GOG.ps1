@@ -14,6 +14,9 @@
     puts the GOG files back. README-PATCH-KIT.md in the copy explains the launchers and keys.
 
   Nitro Pack (nitro.exe): the same steps; step 4 runs i76e-prepare.ps1 -Game Nitro (since 2026-10-25 the kit's own Nitro route).
+  Gold only, Nitro only, or both (owner 2026-10-25): -GogDir is a game folder (i76.exe or nitro.exe), or a folder that holds the
+  game folders (e.g. "C:\GOG Games" with "Interstate 76" and/or "Interstate 76 Nitro Pack"): every game found there is built into
+  -OutDir\<its folder name>, and a game that is not there is named and skipped (with -Game Gold / Nitro only that one).
 
     tools\Build-From-GOG.ps1 -GogDir "C:\GOG Games\Interstate 76" -OutDir "C:\Games\I76-everywhere" [-Ref HEAD] [-Preset tick19-42]
                              [-Display 3440x1440] [-NoSupersample] [-DgVoodooDir <unpacked dgVoodoo2_87_5.zip>] [-DgVoodooFallbackDir <unpacked dgVoodoo2_87_3.zip>] [-AhkDir <AutoHotkeyU32.exe dir>]
@@ -31,19 +34,39 @@ function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $
 function Die([string]$m) { Write-Host "Build-From-GOG: $m" -ForegroundColor Red; exit 1 }
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
+if (-not (Test-Path -LiteralPath $GogDir -PathType Container)) { Die "-GogDir $GogDir is not a folder" }
 $GogDir = (Resolve-Path -LiteralPath $GogDir).Path.TrimEnd('\')
-if ($Game -eq 'auto') { $Game = if (Test-Path -LiteralPath "$GogDir\i76.exe") { 'Gold' } elseif (Test-Path -LiteralPath "$GogDir\nitro.exe") { 'Nitro' } else { Die "no i76.exe or nitro.exe in $GogDir" } }
-$exeName = if ($Game -eq 'Gold') { 'i76.exe' } else { 'nitro.exe' }
-if (-not (Test-Path -LiteralPath "$GogDir\$exeName")) { Die "no $exeName in $GogDir" }
-foreach ($mark in 'i76.exe.u32xorig', 'strlkup_orig.dll', '_i76e', 'nitro.exe.u32xorig') {
-    if (Test-Path -LiteralPath "$GogDir\$mark") { Die "$GogDir is not a fresh GOG install ($mark present) - point -GogDir at an untouched copy" }
+# the games to build: [kind, source folder, output folder]
+$jobs = @()
+$direct = if (Test-Path -LiteralPath "$GogDir\i76.exe") { 'Gold' } elseif (Test-Path -LiteralPath "$GogDir\nitro.exe") { 'Nitro' } else { '' }
+if ($direct) { $jobs += , @($direct, $GogDir, $OutDir) }
+else {
+    foreach ($d in @(Get-ChildItem -LiteralPath $GogDir -Directory -ErrorAction SilentlyContinue)) {
+        $k = if (Test-Path -LiteralPath (Join-Path $d.FullName 'i76.exe')) { 'Gold' } elseif (Test-Path -LiteralPath (Join-Path $d.FullName 'nitro.exe')) { 'Nitro' } else { '' }
+        if ($k -and -not @($jobs | Where-Object { $_[0] -eq $k }).Count) { $jobs += , @($k, $d.FullName, (Join-Path $OutDir $d.Name)) }
+    }
 }
-if (Test-Path -LiteralPath $OutDir) { if (-not $Force) { Die "$OutDir exists (pass -Force to replace it)" }; Remove-Item -LiteralPath $OutDir -Recurse -Force }
+if ($Game -ne 'auto') { $jobs = @($jobs | Where-Object { $_[0] -eq $Game }) }
+foreach ($k in 'Gold', 'Nitro') {
+    if (($Game -eq 'auto' -or $Game -eq $k) -and -not @($jobs | Where-Object { $_[0] -eq $k }).Count) {
+        $what = if ($k -eq 'Gold') { "Interstate '76 Gold (i76.exe)" } else { "the Nitro Pack (nitro.exe)" }
+        Say "    $what : not in $GogDir$(if (-not $direct) { ' or its sub-folders' }) - skipped" 'Yellow'
+    }
+}
+if (-not $jobs.Count) { Die "nothing to build: no i76.exe or nitro.exe in $GogDir$(if (-not $direct) { ' or its sub-folders' })" }
+foreach ($j in $jobs) {
+    foreach ($mark in 'i76.exe.u32xorig', 'strlkup_orig.dll', '_i76e', 'nitro.exe.u32xorig') {
+        if (Test-Path -LiteralPath "$($j[1])\$mark") { Die "$($j[1]) is not a fresh GOG install ($mark present) - point -GogDir at an untouched copy" }
+    }
+    if (Test-Path -LiteralPath $j[2]) { if (-not $Force) { Die "$($j[2]) exists (pass -Force to replace it)" } }
+}
 $sha = (git -C $repo rev-parse --short $Ref).Trim()
 $work = Join-Path $env:LOCALAPPDATA "i76e-cache\build-$sha"
 New-Item -ItemType Directory -Force $work | Out-Null
-Say "=== Build-From-GOG: $Game from $GogDir -> $OutDir (repo $sha) ===" 'Cyan'
-Say "    $exeName md5 $(Md5 "$GogDir\$exeName")"
+foreach ($j in $jobs) {
+    $exeName = if ($j[0] -eq 'Gold') { 'i76.exe' } else { 'nitro.exe' }
+    Say "=== Build-From-GOG: $($j[0]) from $($j[1]) -> $($j[2]) (repo $sha); $exeName md5 $(Md5 "$($j[1])\$exeName") ===" 'Cyan'
+}
 
 # ---- third-party components: given, or downloaded once into the cache ----------------------------------------------------
 $cache = Join-Path $env:LOCALAPPDATA 'i76e-cache'
@@ -99,9 +122,14 @@ Say "    proxy: $proxyFrom, md5 $(Md5 $proxy)"
 $stage = Join-Path $work 'stage'
 & (Join-Path $PSScriptRoot 'package-patch-kit.ps1') -Proxy $proxy -ProxyCommit $sha -DgVoodooDir $DgVoodooDir -DgVoodooFallbackDir $DgVoodooFallbackDir -AhkDir $AhkDir -OutDir (Join-Path $work 'zip') -Stamp "build-$sha" -Stage $stage
 if ($LASTEXITCODE) { Die 'package-patch-kit.ps1 failed' }
+$failed = @()
+foreach ($j in $jobs) {
+$Game = $j[0]; $src = $j[1]; $OutDir = $j[2]
 # ---- 3. the copy, the overlay over it (the same as unzipping the kit into the GOG folder) ------------------------------------------
-Say "    copying $GogDir -> $OutDir"
-Copy-Item -LiteralPath $GogDir -Destination $OutDir -Recurse
+if (Test-Path -LiteralPath $OutDir) { Remove-Item -LiteralPath $OutDir -Recurse -Force }   # -Force was checked above
+New-Item -ItemType Directory -Force (Split-Path -Parent $OutDir) | Out-Null
+Say "    copying $src -> $OutDir"
+Copy-Item -LiteralPath $src -Destination $OutDir -Recurse
 Copy-Item -Path (Join-Path $stage '*') -Destination $OutDir -Recurse -Force
 # ---- 4. the first-run setup + display fit (what the first PLAY.bat / PLAY-Nitro.bat does), without starting the game ----------------
 # Gold: preset tick19-42; Nitro (2026-10-25: the kit's Nitro route, i76e-prepare.ps1 -Game Nitro): preset nitro-tick42, GOG's Nitro
@@ -112,7 +140,9 @@ if ($Preset) { $pa += @('-Preset', $Preset) }
 if ($Display) { $pa += @('-Display', $Display) }
 if ($NoSupersample) { $pa += '-NoSupersample' }
 & powershell.exe @pa
-if ($LASTEXITCODE) { Die "i76e-prepare.ps1 exited $LASTEXITCODE - the copy is set up only partly; read the lines above and $OutDir\_i76e\setup.log" }
+if ($LASTEXITCODE) { Say "Build-From-GOG: $Game - i76e-prepare.ps1 exited $LASTEXITCODE; $OutDir is set up only partly (read the lines above and $OutDir\_i76e\setup.log)" 'Red'; $failed += $Game; continue }
 if ($Game -eq 'Gold') { Say "=== done: $OutDir\PLAY.bat (stable) / PLAY-PREVIEW.bat (graphics preview); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
-else { Say "=== done: $OutDir\PLAY-Nitro.bat (preset $(if ($Preset) { $Preset } else { 'nitro-tick42' })); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
+else { Say "=== done: $OutDir\PLAY-Nitro.bat (preset $(if ($Preset -and $Preset -ne 'tick19-42') { $Preset } else { 'nitro-tick42' })); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
+}
+if ($failed.Count) { exit 1 }
 exit 0

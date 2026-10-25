@@ -22,7 +22,7 @@
   game file (i76.exe, i76shell.dll, *.ZFS, *.MW2, *.DEF, strlkup_orig.dll, I76PATCH.DLL, movies, music ...).
 
     tools\package-patch-kit.ps1 -Proxy <clean-built Strlkup.dll> -DgVoodooDir <unpacked 2.87.5> -DgVoodooFallbackDir <unpacked 2.87.3> -AhkDir <AutoHotkeyU32.exe folder>
-                            [-OutDir C:\Users\james\i76-uncap-lab\downloads\patch-kit] [-Version 0.7.3] [-Stamp yyyymmdd] [-Stage <dir>]
+                            [-OutDir C:\Users\james\i76-uncap-lab\downloads\patch-kit] [-Version 0.8.0] [-Stamp yyyymmdd] [-Stage <dir>]
   Writes <OutDir>\Interstate76-Patch-Kit-i76-everywhere-v<Version>-<sha>.zip and <zip>.MD5SUMS beside it. Record: docs\records\SCOTT-BUILD-2026-10-23.md (history).
 #>
 param(
@@ -32,7 +32,7 @@ param(
     [Parameter(Mandatory)][string]$DgVoodooFallbackDir,  # dgVoodoo 2.87.3, unpacked: kept in _i76e\dgVoodoo-2.87.3 as the swap-back fallback
     [Parameter(Mandatory)][string]$AhkDir,
     [string]$OutDir = 'C:\Users\james\i76-uncap-lab\downloads\patch-kit',
-    [string]$Version = '0.7.4',
+    [string]$Version = '0.8.0',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''
 )

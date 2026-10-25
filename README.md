@@ -15,8 +15,8 @@
 we fix and extend it around the original code, so saves, add-on maps and multiplayer keep working.
 Nothing of the game is in this repo or the kit, and every file the kit changes is kept and restorable.
 
-**[Download the Patch Kit v0.7.3 (Windows 10/11, 4.2 MB)](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.7.3)**
-· [release notes](docs/release/RELEASE-NOTES-v0.7.md) · Mac and Steam Deck: [below](#play-it-on-a-modern-pc-mac-or-steam-deck)
+**[Download the Patch Kit v0.8.0 (Windows 10/11, Gold and Nitro Pack, 5.8 MB)](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v0.8.0)**
+· [release notes](docs/release/RELEASE-NOTES-v0.8.0.md) · [report a problem](https://github.com/therealjkvalentine/i76-everywhere/issues) · Mac and Steam Deck: [below](#play-it-on-a-modern-pc-mac-or-steam-deck)
 
 ## What you get
 

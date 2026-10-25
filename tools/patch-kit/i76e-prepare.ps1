@@ -63,9 +63,11 @@ function Child([string]$script, [string[]]$argv) {
 $hasGold = Test-Path -LiteralPath (Join-Path $gameDir 'i76.exe'); $hasNitro = Test-Path -LiteralPath (Join-Path $gameDir 'nitro.exe')
 $kind = $Game
 if ($kind -eq 'auto') { $kind = if ($hasGold) { 'Gold' } elseif ($hasNitro) { 'Nitro' } else { '' } }
-if (-not $kind) { Fail "no i76.exe or nitro.exe next to the _i76e folder ($gameDir). Unzip the kit INTO your Interstate '76 folder (the one that holds i76.exe) or your Nitro Pack folder (the one that holds nitro.exe)." }
-if ($kind -eq 'Nitro' -and -not $hasNitro) { Fail "PLAY-Nitro.bat is for the Nitro Pack folder (the one with nitro.exe). This folder holds i76.exe: start PLAY.bat here." }
-if ($kind -eq 'Gold' -and -not $hasGold) { Fail "this folder has no i76.exe$(if ($hasNitro) { ' (it is the Nitro Pack folder): start PLAY-Nitro.bat here' })." }
+# the half that is absent: a plain message, nothing changed, no log dump (owner 2026-10-25: Gold-only, Nitro-only and both work)
+function Absent([string]$m) { Write-Host ''; Write-Host "  $m" -ForegroundColor Yellow; Write-Host '  Nothing was changed in this folder.' -ForegroundColor Yellow; Log "absent: $m"; exit 3 }
+if (-not $kind) { Absent "This folder ($gameDir) has neither i76.exe (Interstate '76 Gold) nor nitro.exe (the Nitro Pack). Unzip the kit INTO your game folder: the one that holds i76.exe, or the one that holds nitro.exe (or both, one copy each)." }
+if ($kind -eq 'Nitro' -and -not $hasNitro) { Absent "PLAY-Nitro.bat is for the Nitro Pack folder (the one with nitro.exe). This is the Interstate '76 Gold folder: start PLAY.bat here. To set up the Nitro Pack too, unzip the kit into its folder as well." }
+if ($kind -eq 'Gold' -and -not $hasGold) { Absent "This folder has no i76.exe$(if ($hasNitro) { ": it is the Nitro Pack folder - start PLAY-Nitro.bat here" })." }
 $isNitro = ($kind -eq 'Nitro')
 $exeName = if ($isNitro) { 'nitro.exe' } else { 'i76.exe' }
 $gameName = if ($isNitro) { "Interstate '76 Nitro Pack" } else { "Interstate '76 Gold" }

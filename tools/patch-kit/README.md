@@ -1,6 +1,7 @@
 # Interstate '76 Patch Kit (i76-everywhere)
 
-Tester build, first tested by one tester on 2026-10-23.
+**Version 0.8.0** (tester build; the kit was first tested by one tester on 2026-10-23). Found a problem? Report it on GitHub Issues:
+https://github.com/therealjkvalentine/i76-everywhere/issues
 
 This is the i76-everywhere Interstate '76 project, written by its developer, packed so it installs over **your own GOG copy** of the game.
 It contains none of the game itself - only our fixes, launchers and two helper programs - and it patches your
