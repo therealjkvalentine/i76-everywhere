@@ -53,7 +53,7 @@ foreach ($k in 'Gold', 'Nitro') {
         Say "    $what : not in $GogDir$(if (-not $direct) { ' or its sub-folders' }) - skipped" 'Yellow'
     }
 }
-if (-not $jobs.Count) { Die "nothing to build: no i76.exe or nitro.exe in $GogDir$(if (-not $direct) { ' or its sub-folders' })" }
+if (-not $jobs.Count) { Die "nothing to build: $(if ($Game -ne 'auto') { "no $Game game" } else { 'no i76.exe or nitro.exe' }) in $GogDir$(if (-not $direct) { ' or its sub-folders' })" }
 foreach ($j in $jobs) {
     foreach ($mark in 'i76.exe.u32xorig', 'strlkup_orig.dll', '_i76e', 'nitro.exe.u32xorig') {
         if (Test-Path -LiteralPath "$($j[1])\$mark") { Die "$($j[1]) is not a fresh GOG install ($mark present) - point -GogDir at an untouched copy" }
