@@ -2973,6 +2973,66 @@ static void apply_ffb_guard(void) {
     mlog("  ffb-guard: ffb_PlayEffect 0x446110 %s (I7FF_SIM_Effect only while I7FF_InitSystem has a device)",
          patch_bytes(0x00446110, old, w, 5, "ffb-guard") ? "guarded" : "NOT guarded (bytes differ)");
 }
+/* CO-OP SCRIPT GUARD (I76_COOP_SCRIPT_GUARD, default 1 with I76_COOP_CHAIN; records/LAN-FIXES-2026-10-24.md s.6).
+ * The owner's host-death crashes (family pack, 2026-10-24): host i76.exe+0x684BD read 0x30 (esi 0), joiner +0xB902 read
+ * 0x40 and +0x9D8D0 read 0x40 (eax 0); the lab (family source d249380, after a host migration and a host death) host and
+ * joiner both at +0x94DB5 read 0x18 from 0x49d5f0. All four are the mission script's actions (the FSM dispatcher 0x412ce0):
+ * every entity argument is re-resolved through 0x45f0f0, which gives NULL once the object it names is gone (a player car
+ * the network code removed: the host's own car on a respawn, the old host's car on a migration), and the action
+ * functions use it unchecked: 0x40b8e0 / 0x40b940 (is within distance / box of a path point), 0x49d5f0 / 0x49d740 (the
+ * script camera on an object), 0x468440 (an object's world position, cached). Each of these gets an entry check: a NULL
+ * object argument returns 0 (0x468440: its output vector zeroed and returned) instead of reading page 0. The script then
+ * runs on: the mission's own "player is dead / gone" rule fails it and the chain reloads the scene for everybody. */
+static void *g_csg_mem; static volatile LONG g_csg_hits[5];
+static int csg_one(int k, DWORD fn, const BYTE *exp_, int n, const int *chk, int nchk, int zero_out) {
+    BYTE *s = (BYTE *)g_csg_mem + k * 96, *p = s, w[16]; int i; LONG rel; DWORD op;
+    if (memcmp((void *)fn, exp_, n) != 0) return 0;          /* no counter on the fast path: only on a skip */
+    for (i = 0; i < nchk; i++) {                             /* cmp dword [esp+k], 0 ; je skip */
+        *p++ = 0x83; *p++ = 0x7C; *p++ = 0x24; *p++ = (BYTE)chk[i]; *p++ = 0x00;
+        *p++ = 0x0F; *p++ = 0x84; *(DWORD *)p = 0; p += 4;   /* patched to skip below */
+    }
+    memcpy(p, exp_, n); p += n;                              /* the relocated instructions (position independent) */
+    *p++ = 0xE9; rel = (LONG)((fn + n) - ((DWORD)(DWORD_PTR)p + 4)); memcpy(p, &rel, 4); p += 4;
+    {   BYTE *skip = p, *q = s; int j;
+        for (j = 0; j < nchk; j++) { q += 5; q += 2; rel = (LONG)(skip - (q + 4)); memcpy(q, &rel, 4); q += 4; }
+        *p++ = 0xF0; *p++ = 0xFF; *p++ = 0x05; *(DWORD *)p = (DWORD)(DWORD_PTR)&g_csg_hits[k]; p += 4;   /* lock inc [hits] */
+        if (zero_out) {                                      /* mov eax,[esp+4]; mov [eax],0; [eax+4],0; [eax+8],0 */
+            static const BYTE z[] = { 0x8B, 0x44, 0x24, 0x04, 0xC7, 0x00, 0, 0, 0, 0, 0xC7, 0x40, 0x04, 0, 0, 0, 0, 0xC7, 0x40, 0x08, 0, 0, 0, 0 };
+            memcpy(p, z, sizeof z); p += sizeof z;
+        } else { *p++ = 0x31; *p++ = 0xC0; }                 /* xor eax, eax */
+        *p++ = 0xC3;
+    }
+    memset(w, 0x90, sizeof w); w[0] = 0xE9; rel = (LONG)((DWORD)(DWORD_PTR)s - (fn + 5)); memcpy(w + 1, &rel, 4);
+    if (!VirtualProtect((void *)fn, n, PAGE_EXECUTE_READWRITE, &op)) return 0;
+    memcpy((void *)fn, w, n); VirtualProtect((void *)fn, n, op, &op); FlushInstructionCache(GetCurrentProcess(), (void *)fn, n);
+    return memcmp((void *)fn, w, n) == 0;
+}
+static void apply_coop_script_guard(void) {
+    static const BYTE e0[] = { 0x83, 0xEC, 0x08, 0x8B, 0x44, 0x24, 0x0C };                  /* 0x40b8e0 */
+    static const BYTE e1[] = { 0x8B, 0x44, 0x24, 0x04, 0x8B, 0x4C, 0x24, 0x08 };            /* 0x40b940 */
+    static const BYTE e2[] = { 0x81, 0xEC, 0x9C, 0x00, 0x00, 0x00 };                        /* 0x49d5f0 */
+    static const BYTE e3[] = { 0x55, 0x8B, 0xEC, 0x81, 0xEC, 0xA0, 0x00, 0x00, 0x00 };      /* 0x49d740 */
+    static const BYTE e4[] = { 0x83, 0xEC, 0x28, 0x33, 0xD2 };                              /* 0x468440 */
+    static const int c8[] = { 8 }, c4_14[] = { 4, 0x14 }, c10[] = { 0x10 };
+    int ok = 0;
+    if (env_flag("I76_COOP_SCRIPT_GUARD", 8, 1) == 0) { mlog("  coop-script-guard: off (I76_COOP_SCRIPT_GUARD=0)"); return; }
+    g_csg_mem = VirtualAlloc(NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!g_csg_mem) return;
+    ok += csg_one(0, 0x0040b8e0, e0, sizeof e0, c8, 1, 0);
+    ok += csg_one(1, 0x0040b940, e1, sizeof e1, c8, 1, 0);
+    ok += csg_one(2, 0x0049d5f0, e2, sizeof e2, c4_14, 2, 0);
+    ok += csg_one(3, 0x0049d740, e3, sizeof e3, c10, 1, 0);
+    ok += csg_one(4, 0x00468440, e4, sizeof e4, c8, 1, 1);
+    mlog("  coop-script-guard: %d/5 script action functions check their object argument (0x40b8e0 0x40b940 0x49d5f0 0x49d740 0x468440)", ok);
+}
+static void coop_script_guard_log(void) {                    /* from the pump: a skipped NULL is worth a line */
+    static LONG seen[5]; int k;
+    for (k = 0; k < 5; k++) if (g_csg_hits[k] != seen[k]) {
+        static const DWORD fn[5] = { 0x40b8e0, 0x40b940, 0x49d5f0, 0x49d740, 0x468440 };
+        mlog("  coop-script-guard: 0x%06lx called with a NULL object %ld time(s) (a removed car the script still names) - skipped", (unsigned long)fn[k], g_csg_hits[k] - seen[k]);
+        seen[k] = g_csg_hits[k];
+    }
+}
 static void apply_coop_damage(void) {
     static const struct { DWORD site, target; void *stub; const char *what; } s[4] = {
         { 0x004a76c5, 0x00458bf0, (void *)coop_is_human,        "impact: is-player" },
@@ -3628,6 +3688,7 @@ static int __cdecl coop_dpReceive(void *dp, void *from, void *to, int flags, voi
     }
     g_coop_ai_role = role;
     if (g_coop_reload_host && coop_chain_frames_running()) g_coop_reload_host = 0;   /* the reload is over: mission frames run */
+    if (g_csg_mem) coop_script_guard_log();
     if (role == 1 && g_coop_test_host_respawn && g_coop_chain && coop_ai_in_mission() && (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)))
         coop_auto_respawn("host (LAB I76_COOP_TEST_HOST_RESPAWN)");   /* LAB ONLY: the player asking for a respawn in the death view */
     if (role == 1) { coop_ai_host_send(); coop_obj_catchup(); if (g_coop_cb_qn) coop_cb_flush(); if (g_coop_obj_qn) coop_obj_flush(); }
@@ -3911,6 +3972,7 @@ static __declspec(naked) void coop_player_car_stub(void) {  /* replaces `push 0x
  *   - facing: the host's heading (yaw only).
  * No candidate (the host is dead, gone, or boxed in): the stock spawn point. Logged as "coop-near-host". */
 static int g_coop_near = 1;
+static BYTE *g_coop_mp_obj;                                  /* the mission player object adopted for the host in this load (coop_spawn) */
 #define COOP_TRAIL 64
 static double g_ct_x[COOP_TRAIL], g_ct_z[COOP_TRAIL]; static int g_ct_n, g_ct_head; static BYTE *g_ct_car; static DWORD g_ct_last;
 static BYTE *coop_host_car(void) {
@@ -4030,6 +4092,18 @@ static char *coop_spawn_near_host(unsigned id, int idx, int type, void *data, si
 }
 static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size_t size) {   /* replaces `call 0x451180` x7 */
     WORD host = *(volatile WORD *)0x00541064, me = *(volatile WORD *)0x00541028;
+    /* The HOST's respawn in a co-op scene / scenario (records/LAN-FIXES-2026-10-24.md s.6). The host's car there is the
+     * mission's player object (adopted below), the one the script names; a respawn builds a new car and removes it
+     * (0x451180: 0x4575d0 + 0x465310), the script's next action on "player" resolves NULL and the game dies (the owner's
+     * host crash at +0x684BD). The host's death already fails the mission and the chain reloads it for everybody (~7 s),
+     * so a respawn of the host in these missions is not built, on any machine: the dead car stays until the reload. */
+    if (g_coop_chain && g_coop_adopt && *(volatile int *)0x00541030 && host && (WORD)id == host && g_coop_mp_obj &&
+        (coop_chain_num((const char *)0x005049f0) || coop_scen_num((const char *)0x005049f0)) && coop_host_car() == g_coop_mp_obj &&
+        !coop_car_alive(g_coop_mp_obj)) {
+        static DWORD said;
+        if (GetTickCount() - said > 3000) { said = GetTickCount(); mlog("  coop-chain: the host's respawn (id %u) is not built in a co-op mission - its car is the mission's player object; the mission's loss reloads it", id); }
+        return (char *)g_coop_mp_obj;
+    }
     if (g_coop_chain && *(volatile int *)0x00541030 && host && me && (WORD)id == me && me != host) {
         int done; char *o = coop_spawn_near_host(id, idx, type, data, size, &done);
         if (done) return o;
@@ -4047,7 +4121,7 @@ static char *__cdecl coop_spawn(unsigned id, int idx, int type, void *data, size
                 if (nm9[0]) sprintf(g_coop_host_car, "%s.vcf", nm9);   /* for the next load, coop_player_car */
             }
             ((int (__cdecl *)(short, DWORD, DWORD, BYTE *))0x00454750)((short)id, (DWORD)nm, (DWORD)(nm >> 32), o);
-            g_coop_adopted++;
+            g_coop_adopted++; g_coop_mp_obj = o;
             mlog("  coop-chain: host (id %u) %s the mission's player object %p (%.8s; model %.8s)", id, (WORD)id == me ? "drives" : "is shown as", o, (char *)&nm, (char *)o);
             return (char *)o;
         }
@@ -4245,6 +4319,7 @@ static void apply_coop_ai(HMODULE exe) {
                 g_coop_near = env_flag("I76_COOP_NEAR_HOST", 8, 1) != 0;
                 g_coop_host_wait_ms = env_int("I76_COOP_HOST_WAIT_MS", 8, 3000); if (g_coop_host_wait_ms < 0) g_coop_host_wait_ms = 0;
                 g_coop_test_host_respawn = env_flag("I76_COOP_TEST_HOST_RESPAWN", 8, 0) == 1;
+                apply_coop_script_guard();
                 mlog("  coop-chain: host handshake after a chain reload: %s", g_coop_host_wait_ms ? "the quiet wait ends after I76_COOP_HOST_WAIT_MS" : "stock (I76_COOP_HOST_WAIT_MS=0)");
                 mlog("  coop-chain: joiners spawn near the host in co-op scenes and scenarios %s", g_coop_near ? "ON (I76_COOP_NEAR_HOST)" : "OFF (I76_COOP_NEAR_HOST=0)");
             }
