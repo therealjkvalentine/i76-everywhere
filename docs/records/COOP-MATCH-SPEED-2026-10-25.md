@@ -70,6 +70,10 @@ airborne, slide, reverse and top-speed branches are **not verified live**; they 
 
 ## Builds and installs
 
-See the commit log for the source commit; the proxy built from it (builds\nitro-port-20261021\build.ps1 -Ref) went into lab
-`dev-gold` and `test-gold` only. **Not** in main (`Games\I76\Interstate 76 Gold`): it goes with the next promotion, and the Macs
-take the same md5 as the PC in that family rollout.
+- Proxy **5dca9d79e0ab3f42bf729dfed6223154** = i76-everywhere 4a57eb9 (`builds
+itro-port-20261021uild.ps1 -Tag cms-4a57eb9 -Ref 4a57eb9`,
+  built twice, byte-identical).
+- Installed in lab `dev-gold` (was b53d1271) and `test-gold` (was 5d6f9828), md5 read back; the old DLLs are in each folder's
+  `_rollback\coop-match-20261025\`; AGENTS.md / VERSION.md there updated.
+- **Not** in main (`Games\I76\Interstate 76 Gold`, 5d6f9828): it goes with the next promotion, as a family rollout with the Macs
+  on the same md5.
