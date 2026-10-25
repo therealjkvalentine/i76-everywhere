@@ -1196,6 +1196,31 @@ static void apply_mission_launch(void) {
  *
  * Independent of I76_MISSION: it works through the menus and the campaign too (a player option). Gold addresses;
  * on Nitro the sites are not in sites_nitro.h, so nitro_patch_bytes refuses and logs "feature off". */
+/* ===========================================================================
+ * FORCE FEEDBACK OFF   (I76_FFB_OFF=1; off by default)
+ * ===========================================================================
+ * The owner (2026-10-25): automated desktop tests must not drive the wheel (it changes the control inputs and wears the
+ * hardware). The launcher's -NoFfb only skips our interposer; the game's own force feedback (I7_SFRCE.DLL, the SideWinder
+ * helper that opens the wheel DISCL_EXCLUSIVE and plays the effects) would still run.
+ * WinMain calls ffb_Init 0x445a60 once (0x402f93); it calls the loader 0x446020:
+ *     0x446050  call [GetModuleHandleA]('I7_SFRCE.DLL') / 0x446056 mov esi,eax / 0x446058 test esi,esi / jne 0x446070
+ *     0x44605c  ... call [LoadLibraryA] / cmp esi,0x20 ...  GetProcAddress x3 ...
+ *     0x4460ba  xor esi,esi / 0x4460c0 OutputDebugStringA("Error loading i7_SFRCE.dll") / return 0
+ * ffb_Init then leaves 0x52bbd0 ("FFB up") at 0, and every later FFB call (0x446110 effect, 0x446170 exit, 0x445b10)
+ * tests the resolved pointers / that flag first: the path of a machine with no I7_SFRCE.DLL. So `test esi,esi; jne`
+ * (85 F6 75 14) becomes `jmp 0x4460ba` (EB 60 90 90): the DLL is never loaded, DirectInput never opens the wheel, no effect
+ * is created or started, and nothing here touches the wheel's axes (the game reads them through winmm / input.map as
+ * before). ffbfocus.c then logs "I7_SFRCE.DLL never loaded". Gold address; Nitro: no site, refused. */
+static void apply_ffb_off(void) {
+    static const BYTE old[4] = { 0x85, 0xF6, 0x75, 0x14 };
+    static const BYTE jmp[4] = { 0xEB, 0x60, 0x90, 0x90 };
+    int ok;
+    if (env_flag("I76_FFB_OFF", 8, 0) != 1) return;
+    ok = patch_bytes(0x00446058, old, jmp, 4, "ffb-off: I7_SFRCE.DLL load");
+    mlog("  ffb: OFF (I76_FFB_OFF): %s", ok && (g_exe == EXE_NITRO || memcmp((const void *)0x00446058, jmp, 4) == 0)
+         ? "I7_SFRCE.DLL load skipped (0x446058 -> jmp 0x4460ba, the engine's no-FFB path), read back ok" : "NOT applied - the game's force feedback stays ON");
+}
+
 static void apply_skip_cutscenes(void) {
     static const BYTE intro_old[5] = { 0xE8, 0x4F, 0x69, 0x09, 0x00 };   /* call 0x49a070 @ 0x40371c */
     static const BYTE outro_old[5] = { 0xE8, 0x06, 0x5E, 0x09, 0x00 };   /* call 0x49a070 @ 0x404265 */
@@ -9912,6 +9937,7 @@ static void nitro_dllmain(void) {
     cwd_fix();
     apply_mission_launch();   /* I76_MISSION / I76_SKIP_MOVIES */
     apply_skip_cutscenes();   /* I76_SKIP_CUTSCENES (refuses on Nitro: no sites) */
+    apply_ffb_off();          /* I76_FFB_OFF (refuses on Nitro: no site) */
     apply_multi_instance();
     apply_no_minimize();      /* also I76_KEEP_ACTIVE */
     apply_terrain_lod();      /* I76_TERRAIN_LOD / _A / _B (+ vertex guard, I76_TERRAIN_HYST / _FREEZE) */
@@ -10021,6 +10047,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         }
         apply_mission_launch();   /* before the exe's entry point, so before the buffer is read */
         apply_skip_cutscenes();   /* opt-in: I76_SKIP_CUTSCENES=1 (mission intro/outro movies), =2 (+ in-mission) */
+        apply_ffb_off();          /* opt-in: I76_FFB_OFF=1 (the game's own force feedback never loads; harness default) */
         apply_multi_instance();   /* opt-in: I76_MULTI_INSTANCE=1 */
         apply_no_minimize();      /* opt-in: I76_NO_MINIMIZE=1 */
         apply_terrain_lod();      /* experiment: I76_TERRAIN_LOD=<1..16> */

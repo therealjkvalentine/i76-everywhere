@@ -95,6 +95,9 @@ param(
     # -Mission alike: the game goes straight to the mission (proxy I76_SKIP_CUTSCENES=1; the mission then plays exactly as
     # one that has no movie). Movies a mission plays in the middle stay on. Needs the proxy deployed.
     [switch]$SkipCutscenes,
+    # Turn the game's own force feedback off without unplugging the wheel (proxy I76_FFB_OFF=1: I7_SFRCE.DLL is never loaded,
+    # as on a machine without it; the wheel still steers). Implies -NoFfb (no custom interposer either).
+    [switch]$FfbOff,
     # Mouse wheel bindings (i76wheel.exe). The engine's mouse device has three
     # buttons and no wheel channels, so the wheel cannot be bound in input.map at
     # all - it is translated to a keystroke instead.
@@ -547,6 +550,11 @@ if ($Mission) {
         if ($SkipMovies) { $gameEnv['I76_SKIP_MOVIES'] = '1' }
         Write-Host "booting directly into $Mission$(if ($SkipMovies) { ' (movies skipped)' })" -ForegroundColor Cyan
     }
+}
+
+if ($FfbOff -or $env:I76_FFB_OFF -eq '1') {   # the lab harness sets the env key: the interposer stays off too
+    $gameEnv['I76_FFB_OFF'] = '1'; $NoFfb = $true
+    Write-Host "force feedback OFF (I76_FFB_OFF=1: no game effects, no interposer)" -ForegroundColor Cyan
 }
 
 if ($SkipCutscenes) {
