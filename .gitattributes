@@ -42,3 +42,8 @@ presets/best-wide-balanced.psd1         -text
 presets/best-120.psd1                   -text
 tools/conf/*.conf                       text eol=crlf
 dgVoodoo.daily-driver-2026-10-03.conf   text eol=crlf
+
+# The I'76 Mac Kit (tools/mac-kit) is read by bash / awk on a Mac: pins.txt, the env files, the README and the profile
+# must stay LF in a Windows working copy too (a CR at a URL's end breaks curl). The launch stubs are Mach-O binaries.
+tools/mac-kit/**                text eol=lf
+tools/mac-kit/stubs/Sikarugir-* binary
