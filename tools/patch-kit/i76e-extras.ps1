@@ -96,7 +96,7 @@ function Get-Pinned([string]$url, [string]$sha, [long]$size, [string]$what) {
     New-Item -ItemType Directory -Force $dlDir | Out-Null
     $out = Join-Path $dlDir $name
     if ((Test-Path -LiteralPath $out) -and (Get-Item -LiteralPath $out).Length -eq $size -and (ShaFile $out) -eq $sha) { Say "  ${what}: $name already downloaded (sha256 ok)" 'DarkGray'; return $out }
-    Say "  ${what}: downloading $url ($([math]::Round($size / 1MB, 1)) MB)"
+    Say "  ${what}: downloading $url ($([math]::Round($size / 1MB, 2)) MB)"
     try { Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $out -UserAgent 'i76-everywhere-patch-kit' } catch { Say "  ${what}: download failed: $($_.Exception.Message)" 'Yellow'; return $null }
     $got = ShaFile $out
     if ($got -ne $sha) { Remove-Item -LiteralPath $out -Force; Say "  ${what}: sha256 $got is not the pinned $sha - NOT used (the file on the server changed; tell the kit's maintainer)" 'Yellow'; return $null }

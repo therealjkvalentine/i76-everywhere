@@ -262,7 +262,9 @@ foreach ($dll in 'Glide.dll','Glide2x.dll','Glide3x.dll') {
 }
 # DDraw wrapping: the 2D shell (menus/cutscenes) is DirectDraw - wrapping it gives
 # the menus the same 3x upscale as the sim (see [DirectX] in dgVoodoo.windows.conf)
-foreach ($dll in 'DDraw.dll','D3DImm.dll') {
+# Nitro: also D3D8 / D3D9 (the seven x86 DLLs of the Nitro lanes' copies, docs/records/NITRO-WIN11-2026-10-25.md)
+$ddrawSet = @('DDraw.dll','D3DImm.dll'); if ($isNitro) { $ddrawSet += @('D3D8.dll','D3D9.dll') }
+foreach ($dll in $ddrawSet) {
     Copy-Item (Join-Path $DgVoodooDir "MS\x86\$dll") $GameDir -Force
 }
 Copy-Item (Join-Path $DgVoodooDir 'dgVoodooCpl.exe') $GameDir -Force
