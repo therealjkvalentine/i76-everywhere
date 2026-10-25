@@ -529,7 +529,7 @@ if ($headOn) {
             $otDetect = $true
             if ($det.changed) { Write-Host ("opentrack: game detection switched on (i76.exe -> {0}); it starts tracking when the game starts" -f $det.profile) -ForegroundColor DarkGray }
         } else { Write-Host "opentrack: could not set game detection ($($det.error)) - the Start button will be pressed instead" -ForegroundColor Yellow }
-        try { $ot = Start-Process -FilePath $OpenTrack -PassThru -ErrorAction Stop } catch { $ot = $null }
+        try { $ot = Start-Process -FilePath $OpenTrack -WindowStyle Minimized -PassThru -ErrorAction Stop } catch { $ot = $null }
         if (-not $ot) {
             $headOn = $false
             $headStatus = "head look: skipped - opentrack did not start ($OpenTrack)"
@@ -809,7 +809,7 @@ if ($NoFfb) {
 if ($ffbWant -and $proc) {
     try {
         $ffbProc = Start-Process -FilePath 'powershell.exe' `
-            -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$ffbScript`"" -PassThru -ErrorAction Stop
+            -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$ffbScript`"" -WindowStyle Hidden -PassThru -ErrorAction Stop
     } catch { $ffbProc = $null }
     if (-not $ffbProc) { $ffbStatus = "FFB: the game's own - the interposer did not start" }
     else { $ffbStatus += ' (it takes the wheel and turns the game''s own effects off while it runs; its panel is the window it opens)' }
@@ -893,6 +893,26 @@ if (-not $NoMusic) {
         if ($MusicMissionOnly) { $args += '-MissionOnly' }
         $music = Start-Process -FilePath 'powershell.exe' -ArgumentList $args -WindowStyle Hidden -PassThru
     }
+}
+
+# The helpers (opentrack, the interposer, the panel) can come up in front of the game and leave it inactive from its first tick
+# (gate finding 2026-10-25: with helpers on, the T05 opening never finished; helpers off or this step: it runs). They are started
+# minimised / hidden above; once they are up the game window is brought back to the front, ONCE. Nothing a helper does changes.
+if ($proc) {
+    try {
+        Add-Type -Namespace I76F -Name W -ErrorAction SilentlyContinue -MemberDefinition @'
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);
+'@
+        $fgEnd = (Get-Date).AddSeconds(40)
+        while ((Get-Date) -lt $fgEnd -and -not $proc.HasExited) { $proc.Refresh(); if ($proc.MainWindowHandle -ne [IntPtr]::Zero) { break }; Start-Sleep -Milliseconds 500 }
+        if (-not $proc.HasExited -and $proc.MainWindowHandle -ne [IntPtr]::Zero) {
+            Start-Sleep -Seconds 4
+            [I76F.W]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero); [I76F.W]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)   # a tap of Alt lets SetForegroundWindow through
+            $fgOk = [I76F.W]::SetForegroundWindow($proc.MainWindowHandle)
+            Write-LaunchLog ("game window brought to the front after the helpers started ({0})" -f $fgOk) 'DarkGray'
+        }
+    } catch { }
 }
 
 if ($proc) {
