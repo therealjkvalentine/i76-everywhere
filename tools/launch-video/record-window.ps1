@@ -19,7 +19,11 @@ public struct RECT { public int L, T, R, B; }
 "@
 $r = New-Object LvO.U+RECT; [void][LvO.U]::GetWindowRect($g.MainWindowHandle, [ref]$r)
 $x = [math]::Max(0, $r.L); $y = [math]::Max(0, $r.T); $w = ($r.R - $x) -band -2; $h = ($r.B - $y) -band -2
-if ($Rect) { $x, $y, $w, $h = $Rect -split ',' | ForEach-Object { [int]$_ } }
+if ($Rect) {
+    $n = @($Rect -split '[,\s]+' | Where-Object { $_ -ne '' } | ForEach-Object { [int]$_ })
+    if ($n.Count -ne 4) { Write-Host "-Rect needs x,y,w,h (got '$Rect') - nothing recorded" -ForegroundColor Red; exit 2 }
+    $x, $y, $w, $h = $n
+}
 $Out = Join-Path $script:LvCap ("raw\owner-$Tag\" + (Get-Date -Format 'yyyyMMdd-HHmmss')); New-Item -ItemType Directory -Force $Out | Out-Null
 Write-Host "recording $($g.ProcessName) pid $($g.Id) window ${w}x${h} at $x,$y for $Seconds s -> $Out" -ForegroundColor Cyan
 for ($i = $Countdown; $i -gt 0; $i--) { Write-Host "  $i"; Start-Sleep -Seconds 1 }

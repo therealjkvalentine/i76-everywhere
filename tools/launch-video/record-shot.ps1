@@ -14,11 +14,16 @@
       I76_U32X_MENU_ASPECT 1920:1080 for every preset except stock: the stock game has no aspect key) + I76_START_POS;
       Patch20 = the GOG 20 fps limiter I76PATCH.DLL is put in place for this boot only (stock as GOG ships it);
    3. holds the window at 0,0 1920x1080 (lv-keeper.ps1), logs telemetry with the host clock (tel-udp.py), starts ffmpeg ddagrab on
-      the window rect (60 fps, h264 via Media Foundation hardware), and drives: handbrake + S for Still s, then W for Drive s;
+      the window rect (60 fps, h264 via Media Foundation hardware), and drives: handbrake + S for Still s, then W for Drive s
+      (-Drive analog, the default: the throttle and the A / D windows from the proxy's analog pad, eased; -Drive keys: key holds);
    4. writes captures\launch-video\raw\<shot>\<stamp>\ : video.mp4, tel.csv, capture.json (capture start host time, rect, env),
       boot.txt, mciproxy-run.log, summary.txt (render fps from the log windows and from telemetry, distance driven).
 #>
-param([Parameter(Mandatory)][string]$Shot, [switch]$DryRun, [int]$MaxWaitMin = 240, [int]$TelPort = 27760, [switch]$HaveLock)
+param([Parameter(Mandatory)][string]$Shot, [switch]$DryRun, [int]$MaxWaitMin = 240, [int]$TelPort = 27760, [switch]$HaveLock,
+      # analog (default since 2026-10-25, docs/records/ANALOG-DRIVER-2026-10-25.md): throttle and the shot's A / D steer windows go through
+      # the proxy's I76_DRIVE_INJECT pad (lab tools\rc-draw\pad_inject.py, 100 Hz: throttle eased in over 0.3 s, each steer window a
+      # pulse with 0.35 s raised-cosine edges applying the steer the held key applied on average) instead of held keys; the glance keys stay keys. keys = the old W / A / D key holds.
+      [ValidateSet('analog', 'keys')] [string]$Drive = 'analog')
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'lv-lib.ps1')
 $S = (Import-PowerShellDataFile (Join-Path $PSScriptRoot 'shots.psd1'))[$Shot]
@@ -39,11 +44,18 @@ foreach ($k in @($S.Strip)) { if ($k) { $E.Remove($k) } }
 if ($S.Keys) { foreach ($k in $S.Keys.Keys) { $E[$k] = "$($S.Keys[$k])" } }
 $E['I76_TELEMETRY'] = "$TelPort"; $E['I76_FPS_LOG'] = '2'; $E['I76_NO_MINIMIZE'] = '1'
 if ($S.Start) { $E['I76_START_POS'] = $S.Start }
+$analog = $Drive -eq 'analog' -and -not $S.Opening -and [int]$S.Drive -gt 0
+if ($analog -and -not ([Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes((Join-Path $T 'STRLKUP.DLL'))).Contains('I76_DRIVE_INJECT'))) {
+    Write-Host "[record-shot] the twin's STRLKUP.DLL has no I76_DRIVE_INJECT (proxy older than the analog-driver lane): keys this run" -ForegroundColor Yellow
+    $analog = $false
+}
+if ($analog) { $E['I76_DRIVE_INJECT'] = '1' }   # joystick1 = the harness pad (input.map steer / throttle = joystick1 X / Y)
+$padSteer = (@($S.Steer) | Where-Object { $_ -and $_.Count -eq 3 -and "$($_[2])" -match '^(A|D)$' } | ForEach-Object { '{0},{1},{2}' -f $_[0], $_[1], $_[2] }) -join ';'
 $dur = [int]$S.Still + [int]$S.Drive + 1
 $WW = if ($S.W) { [int]$S.W } else { 1920 }; $WH = if ($S.H) { [int]$S.H } else { 1080 }
 $Conf = if ($S.Conf) { $S.Conf } else { 'dgVoodoo.lv1080.conf' }
 if ($DryRun) {
-    "record-shot DRY RUN: shot=$Shot window=${WW}x${WH} conf=$Conf twin=$T mission=$($S.Mission) preset=$($S.Preset) patch20=$([bool]$S.Patch20) capture ${dur}s -> $Out"
+    "record-shot DRY RUN: shot=$Shot window=${WW}x${WH} conf=$Conf twin=$T mission=$($S.Mission) preset=$($S.Preset) patch20=$([bool]$S.Patch20) drive=$(if ($analog) { "analog pad (steer windows: $(if ($padSteer) { $padSteer } else { 'none' }))" } else { 'keys' }) capture ${dur}s -> $Out"
     $E.Keys | ForEach-Object { "  $_=$($E[$_])" }
     "ffmpeg: $($FF.ffmpeg)"; exit 0
 }
@@ -85,14 +97,20 @@ public struct RECT { public int L, T, R, B; }
         $vf = "ddagrab=output_idx=0:framerate=60:draw_mouse=0:offset_x=$($rect.L):offset_y=$($rect.T):video_size=${w}x${h},hwdownload,format=bgra,format=nv12"
         $ffArgs = "-hide_banner -loglevel warning -y -f lavfi -i `"$vf`" -t $dur -c:v h264_mf -hw_encoding 1 -b:v 40M -maxrate 60M `"$Out\video.mp4`""
         $t0 = [DateTimeOffset]::Now.ToUnixTimeMilliseconds() / 1000.0
+        $pad = $null
+        if ($analog) {   # the pad writer: centred for Still s, then the eased throttle / steer script for Drive s (same clock origin as the keys below)
+            $pa = "-I `"$Lab\tools\rc-draw\pad_inject.py`" --still $($S.Still) --drive $($S.Drive) --out `"$Out\pad.csv`" --stop-file `"$Out\stop`""
+            if ($padSteer) { $pa += " --steer `"$padSteer`"" }
+            $pad = Start-Process python -ArgumentList $pa -WindowStyle Hidden -PassThru -RedirectStandardOutput "$Out\pad.out.txt"
+        }
         $ff = Start-Process $FF.ffmpeg -ArgumentList $ffArgs -WindowStyle Hidden -PassThru -RedirectStandardError "$Out\ffmpeg.err.txt"
         @{ shot = $Shot; capture_start_host_t = $t0; rect = @($rect.L, $rect.T, $w, $h); still = $S.Still; drive = $S.Drive; preset = $S.Preset
-           strip = @($S.Strip); keys = $S.Keys; patch20 = [bool]$S.Patch20; mission = $S.Mission; start = $S.Start } | ConvertTo-Json -Depth 4 | Set-Content "$Out\capture.json"
+           strip = @($S.Strip); keys = $S.Keys; patch20 = [bool]$S.Patch20; mission = $S.Mission; start = $S.Start; drive_input = $(if ($analog) { 'analog' } else { 'keys' }) } | ConvertTo-Json -Depth 4 | Set-Content "$Out\capture.json"
         $sw = [Diagnostics.Stopwatch]::StartNew(); $rel = $false
         while ($sw.Elapsed.TotalSeconds -lt ($S.Still + $S.Drive) -and -not $g.HasExited) {
             $t = $sw.Elapsed.TotalSeconds
-            if (-not $rel -and $t -ge $S.Still) { Key-Up $VK.SPACE; Key-Up $VK.S; if ($S.Drive -gt 0) { Fg; Key-Down $VK.W }; $rel = $true }
-            foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3) {
+            if (-not $rel -and $t -ge $S.Still) { Key-Up $VK.SPACE; Key-Up $VK.S; if ($S.Drive -gt 0) { Fg; if (-not $analog) { Key-Down $VK.W } }; $rel = $true }
+            foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3 -and -not ($analog -and "$($st[2])" -match '^(A|D)$')) {
                 $k = $VK[[string]$st[2]]
                 $td = $t - $S.Still
                 if ($td -ge $st[0] -and $td -lt $st[1]) { Key-Down $k } elseif ($td -ge $st[1] -and $td -lt $st[1] + 0.2) { Key-Up $k } } }
@@ -100,6 +118,7 @@ public struct RECT { public int L, T, R, B; }
         }
         Key-Up $VK.W; Key-Up $VK.SPACE; Key-Up $VK.S; foreach ($st in @($S.Steer)) { if ($st -and $st.Count -eq 3) { Key-Up $VK[[string]$st[2]] } }
         [void]$ff.WaitForExit(15000)
+        if ($pad) { [void]$pad.WaitForExit(5000) }
     }
     if ($S.Opening) {
         # the mission's scripted opening (fly-in) must play: no proxy-run (it presses Esc to skip it); launch, size, capture Still s, stop
@@ -161,5 +180,5 @@ $aspect = ([regex]::Match($new, '(?m)^.*aspect.*$')).Value.Trim()
 $tick = ([regex]::Match($new, 'sim-tick: ON - whole sim every [0-9.]+ ms')).Value
 $sum = & python -I "$PSScriptRoot\shot-stats.py" "$Out" 2>&1 | Out-String
 $vid = if (Test-Path "$Out\video.mp4") { & $FF.ffprobe -v error -count_frames -show_entries stream=width,height,nb_read_frames,duration -of compact "$Out\video.mp4" } else { 'NO VIDEO' }
-@("shot $Shot ($stamp) preset $($S.Preset) strip $(@($S.Strip) -join ',') keys $(if ($S.Keys) { ($S.Keys.Keys | % { "$_=$($S.Keys[$_])" }) -join ',' }) patch20 $([bool]$S.Patch20)",
-  "video: $vid", "proxy fps windows: $($w -join ' ')", "aspect line: $aspect", "tick: $tick", $sum.Trim()) | Tee-Object -FilePath "$Out\summary.txt"
+@("shot $Shot ($stamp) drive $(if ($analog) { 'analog pad' } else { 'keys' }) preset $($S.Preset) strip $(@($S.Strip) -join ',') keys $(if ($S.Keys) { ($S.Keys.Keys | % { "$_=$($S.Keys[$_])" }) -join ',' }) patch20 $([bool]$S.Patch20)",
+  "video: $vid", "pad: $(if (Test-Path "$Out\pad.out.txt") { (Get-Content "$Out\pad.out.txt" -Raw).Trim() } else { '-' })", "proxy fps windows: $($w -join ' ')", "aspect line: $aspect", "tick: $tick", $sum.Trim()) | Tee-Object -FilePath "$Out\summary.txt"
