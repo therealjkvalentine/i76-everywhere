@@ -112,32 +112,93 @@ from the installed one in exactly 2 lines (`Resolution = 3440x1440`, `Antialiasi
 `tests/test_render_keys.py` (4 tests, same checks on the repo template with `_i76e\display.txt` = 3440x1440, so it does not depend on
 the monitor) + `tests/test_presets.py`: 32 passed.
 
-### Live boots (dev-gold, desktop console)
+### Live boots (laptop bench, 2026-10-25 07:29-07:31)
 
-PENDING - see the addendum below.
+The desktop console was queued behind seven lanes from 05:51 to 07:27; the coordinator moved the correctness boots to the laptop
+(LAPTOP-HPK11OMS, 1920x1080 panel). Bench copy `C:\i76-bench\rk\Interstate 76` = a copy of the bench's clean kit install with main
+f3e51a7's PLAY-i76.ps1 (07244591), `_tools\Make-Wide-Conf.ps1` (eb53635b), the tier presets and the proxy built from f3e51a7
+(b53d1271, built twice byte-identical; it carries 93bc6ec's FOV keys). Runner lab `laptop-bench\bench\rk-job.ps1` via
+`laptop-run.ps1` (setup `rk-setup.ps1`): `C:\i76-bench\.fps-lock`, the wide conf copied to dgVoodoo.conf as PLAY.bat does, then
+PLAY-i76.ps1 -Preset tick19-42 (I76_ASPECT 1920x1080) -Mission t05 -SkipMovies -NoFfb -NoHeadTrack with I76_SKIP_CUTSCENES=1,
+I76_MUTE=1, own shm suffix; screenshot 6 s after the player entity exists; only its own i76.exe stopped. n 1 per row. Captures
+and logs: lab `captures\render-keys-20261025\`.
+
+| row | local.psd1 | play-i76.log | proxy log (mciproxy.log) | conf [Glide] | game client | in mission / alive / CRASH |
+|---|---|---|---|---|---|---|
+| base | none | `render: 2x (3840x2160), AA 4x (default: ... as installed; display 1920x1080 from _i76e\display.txt)`; `field of view: 90 deg at 4:3 -> 106.3 deg horizontal on this 1.778:1 picture (hood view 120 -> 133.2)` | `aspect: D 1.778, 20/20 sites; fov 90 -> 106.3 deg (cockpit 106.3), hood 120 -> 133.2 deg, clamp 137.8 deg` | 3840x2160 / 4x (c16c8150, untouched) | 3840x2160 | 3.7 s / yes / 0 |
+| wm | RENDER_SCALE 1, AA 0 + 3DfxWatermark probe | `render: 1x (1920x1080), AA off (from local; ... unchanged)` (the -RenderOnly just before it: `... rewritten (installed copy kept as dgVoodoo.wide.conf.pre-render-keys)`) | as base | 1920x1080 / off / watermark true | **1920x1080** | 2.7 s / yes / 0 |
+| r1aa0 | RENDER_SCALE 1, AA 0 | `render: 1x (1920x1080), AA off (from local; ... unchanged)` | as base | 1920x1080 / off (2e64f4a2) | (not read) | 2.7 s / yes / 0 |
+| f80 | I76_FOV 80 | `render: 2x ... (from default; ... the installed dgVoodoo.wide.conf put back)`; `field of view: 80 deg at 4:3 -> 96.4 deg ...` | `fov 80 -> 96.4 deg (cockpit 96.4), hood 120 -> 133.2 deg, clamp 137.8`; `fov: base I76_FOV 80 deg, I76_FOV_HOOD 120 deg (4:3 values; stock 90 / 120) -> cockpit 96.4, hood 133.2 deg on this panel` | back to c16c8150 (byte for byte) | 3840x2160 | 3.2 s / yes / 0 |
+| f100 | I76_FOV 100 | `field of view: 100 deg at 4:3 -> 115.6 deg ...` | `fov 100 -> 115.6 deg (cockpit 115.6)`; `fov: base I76_FOV 100 ...` | c16c8150 | 3840x2160 | 3.3 s / yes / 0 |
+
+Expected from 2 atan(0.75 D tan(f/2)) at D 1.778: 80 -> 96.4, 90 -> 106.3, 100 -> 115.6, hood 120 -> 133.2. All four match.
+"CRASH 0" counts real CRASH records; every boot of this exe also logs the handled 1997 CPU-speed probe (`pit-probe: handled probe
+(not a crash)`, 0xC0000096 at exe+0x99997).
+
+Not stretched: every capture fills the 1920x1080 panel at its own 16:9 shape; the bushes are round and the car keeps its proportions
+(`rk-base`, `rk-f80`, `rk-wm` .png). The t05 start is a moving camera, so the captures are different frames and do not compare the
+FOVs by eye; the FOV value is proven by the proxy's own read-back line.
+
+**Does dgVoodoo read the rewritten conf? Yes, by the window, not by the watermark.** The game's client area followed the conf's
+`[Glide] Resolution` (3840x2160 with the 2x conf, 1920x1080 with the 1x one), and the laptop has no global
+`%APPDATA%\dgVoodoo\dgVoodoo.conf` to fall back to (a rejected conf there means dgVoodoo's defaults: a 640x480 window). The
+watermark probe (`3DfxWatermark = true` in both confs, read back) showed **no logo** in the corner of the in-mission capture
+(`wm-corner.png`); the 2026-10-03 note (lab DGVOODOO-CONF-REJECTED.md) says a probe in a mission did show it on 2.87.3, so 2.87.5
+or this borderless fake-fullscreen path does not draw it. Not chased: the window size already proves the file is read. AA off vs 4x
+was not judged by eye (no matched frame); the value is read back in the conf.
+
+Not measured here: the fps cost of each key. The supersample-cost lane measures 1x vs 2x on the desktop
+(docs/records/SUPERSAMPLE-COST-2026-10-25.md, not yet in the repo when this was written); graphics-mid's values wait on it.
+
+## 6b. Field of view keys (owner, 2026-10-25: "README/launch should mention FOV alongside monitor size to make it clear it's showing you more, and FOV should be configurable in the graphics config too")
+
+- Proxy (music-fix/strlkproxy.c `apply_aspect`, 93bc6ec): `I76_FOV=<deg>` = the 4:3 base of the 17 main-view fov pushes (stock 90,
+  60..120), `I76_FOV_HOOD=<deg>` = the hood view's base (stock 120, 80..150). The existing Hor+ maths widens each for the panel;
+  `I76_ASPECT_COCKPIT_FOV`'s floor is now the chosen base; the fov clamp rises to 4.6 deg above the wider of the two. Without
+  `I76_ASPECT` the keys apply at 4:3 (no aspect constant, no HUD squeeze). Neither key set = the exact old patch bytes. The aspect
+  log line prints the bases; a `fov: base ...` line when a key is set.
+- PLAY-i76.ps1 logs `field of view: 90 deg at 4:3 -> 121.7 deg horizontal on this 2.389:1 picture (hood view 120 -> 144.3);
+  widescreen shows more of the world, nothing is stretched (I76_FOV / I76_FOV_HOOD change the base)`.
+- Presets: graphics-balanced / -mid / -high carry `I76_FOV = '90'`, `I76_FOV_HOOD = '120'` (= stock); the Mac tiers mention them.
+- README-PATCH-KIT.md "Your monitor": *Widescreen shows you MORE of the world (horizontal field of view 90° on 4:3 -> about 122° on
+  a 21:9 panel, 106° on 16:9), nothing is stretched; `I76_FOV` changes the base.* The same sentence leads the VERSION.md section;
+  the graphics-settings table has an `I76_FOV` / `I76_FOV_HOOD` row.
+
+**The FOV keys need the new proxy, and it is NOT installed in Gold (release-candidate), test-gold or the RC stage.** Main's proxy
+(f3e51a7 -> b53d1271) also carries other lanes' ungated changes since the RC's 5d6f9828 (I76_SKIP_CUTSCENES, I76_FFB_OFF, Nitro
+lobby, ...), and the RC's rule is that every machine in a LAN game runs the same proxy md5; the three Macs were just updated to the
+RC's proxy (LAN-FIXES s.12). Swapping the PC's proxy alone would split PC <-> Mac LAN, so that is a promotion decision (proxy and
+Macs together), not this lane's. In those three folders the FOV keys in the presets do nothing until then (their VERSION.md says
+so); the launcher's FOV log line is computed by PLAY-i76.ps1 and is right regardless. dev-gold runs b53d1271 (its previous proxy
+kept as `STRLKUP.DLL.5d6f9828-pre-fov`).
 
 ## 7. Deployed (md5 first 8; every replaced file kept beside itself as `<name>.<md5>-pre-render-keys`, state in `_rollback\render-keys-20261025\state.txt`; lab `builds\render-keys-20261025\deploy.ps1 -Target <dir> [-Rollback]`)
 
-No game ran from any target while deploying (checked by the script). Read back by a second run ("already").
+No game ran from a target while it was written (checked by the script; test-gold was skipped once for a running game and done
+later). Read back by a second run ("already"). Intermediate versions of this lane's own files were removed again, so each backup is
+the pre-lane original.
 
 | file (in `Interstate 76\`) | Gold (= release-candidate) / test-gold / RC stage before | dev-gold before | after (all four) |
 |---|---|---|---|
-| PLAY-i76.ps1 | 6abf5833 | 15b9862e | 5d9f9143 |
+| PLAY-i76.ps1 | 6abf5833 | 15b9862e | 07244591 (= main f3e51a7; also carries 4ec088e's portable-opentrack fallback and f24df9f's -FfbOff, both inert unless used) |
 | _tools\Make-Wide-Conf.ps1 | - | - | eb53635b |
-| presets\graphics-balanced.psd1 | 76f115d8 | - | a67d3aec |
-| presets\graphics-high.psd1 | 10a4ee18 | - | 6dc7c7c9 |
-| presets\graphics-mac.psd1 | 95b9a1af | - | 8be5c9fc |
-| presets\graphics-mac-fast.psd1 | a31824f9 | - | b74428e0 |
-| presets\graphics-mid.psd1 | - | - | 6d7fd271 |
-| VERSION.md (top level; "Graphics settings" section) | 83634a5d | dbbbcb7b | 4ce0deca (dev-gold df13a1d1) |
+| presets\graphics-balanced.psd1 | 76f115d8 | - | 662ebb60 |
+| presets\graphics-high.psd1 | 10a4ee18 | - | 5e483fb4 |
+| presets\graphics-mac.psd1 | 95b9a1af | - | 135731f2 |
+| presets\graphics-mac-fast.psd1 | a31824f9 | - | d18d5690 |
+| presets\graphics-mid.psd1 | - | - | ba43e6bf |
+| VERSION.md (top level; "Graphics settings" section + the FOV sentence) | 83634a5d | dbbbcb7b | a01e51f4 (dev-gold bc6f9494) |
+| STRLKUP.DLL | 5d6f9828, unchanged (6b) | 5d6f9828 | dev-gold only: b53d1271 |
 
-The confs were not changed anywhere (dgVoodoo.wide.conf / dgVoodoo.conf dccd379a in Gold, test-gold, dev-gold). The RC stage: the
-replaced files' originals are in lab `builds\rc-20261024\_renderkeys-stage-pre-20261025\` (not in the stage, so install-rc.ps1 does not
-copy them), MD5SUMS refreshed (backup `MD5SUMS.pre-renderkeys-20261025`), 67 entries 0 bad. PLAY-i76.ps1 5d9f9143 = repo main
-(working copy, CRLF) after commit 2; it also carries the kit's portable-opentrack fallback (4ec088e) that the RC's 6abf5833 lacked
-(inert without `_tools\opentrack\`).
+The confs were not changed anywhere (dgVoodoo.wide.conf / dgVoodoo.conf dccd379a in Gold, test-gold, dev-gold). RC stage: the
+replaced files' originals are in lab `builds\rc-20261024\_renderkeys-stage-pre-20261025\` (outside the stage, so install-rc.ps1 does
+not copy them); MD5SUMS refreshed (backup `MD5SUMS.pre-renderkeys-20261025`), 67 entries for 67 files. Kit: the next
+package-patch-kit.ps1 build picks it all up (PLAY-i76.ps1, Make-Wide-Conf.ps1, presets, README, the proxy from main); the
+published zip was not rebuilt.
 
 ## 8. Commits
 
-- 4447685 the keys, Make-Wide-Conf -Antialiasing, presets, kit, setup-windows, tests (and a Mac stub function, taken out again in 2).
-- commit 2: this record, the Mac stub function removed (section 3), the Mac tier comments, the README row.
+- 4447685 the keys, Make-Wide-Conf -Antialiasing, presets, kit, setup-windows, tests (and a Mac stub function, taken out again in a1c910f).
+- a1c910f this record (first version), the Mac stub function removed (section 3), the Mac tier comments, the README row.
+- 93bc6ec proxy I76_FOV / I76_FOV_HOOD, the launcher's field-of-view line, preset keys, README monitor paragraph.
+- the commit carrying this version: the laptop boots, section 6b, the deployment table.
