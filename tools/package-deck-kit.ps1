@@ -102,6 +102,7 @@ $sums = $files | ForEach-Object { "$(Md5 $_.FullName)  $($_.FullName.Substring($
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $zip = Join-Path $OutDir "Interstate76-Deck-Kit-i76-everywhere-v$Version-$sha.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
-Compress-Archive -Path $top -DestinationPath $zip
+& python -I (Join-Path $kit 'tools\make-zip.py') $Stage 'Interstate76-Deck-Kit' $zip | Out-Null   # forward slashes + Unix modes
+if (-not (Test-Path -LiteralPath $zip)) { Die 'zip not written' }
 "$(Md5 $zip)  $(Split-Path -Leaf $zip)" | Set-Content -LiteralPath "$zip.MD5SUMS" -Encoding ascii
 Say "=== $zip ($([math]::Round((Get-Item $zip).Length / 1MB, 2)) MB, md5 $(Md5 $zip)) ===" 'Green'
