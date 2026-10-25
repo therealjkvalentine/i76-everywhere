@@ -302,13 +302,14 @@ static MMRESULT WINAPI hook_auxGetDevCapsA(UINT_PTR id, LPAUXCAPSA caps, UINT si
     return real_auxGetDevCapsA ? real_auxGetDevCapsA(id, caps, size) : MMSYSERR_NODRIVER;
 }
 
+static DWORD sm_music_volume(DWORD peak);   /* soundmix.c: I76_MUSIC_GAIN / I76_MUSIC_CURVE (unset = stock peak x 1000 / 0xFFFF) */
 static MMRESULT WINAPI hook_auxSetVolume(UINT id, DWORD vol) {
     /* aux volume is two 16-bit channels; MCI wants 0..1000. Take the louder. */
     DWORD lo = LOWORD(vol), hi = HIWORD(vol);
     DWORD peak = (hi > lo) ? hi : lo;
     UINT n;
     ensure_real();
-    g_volume = (peak * 1000UL) / 0xFFFFUL;
+    g_volume = sm_music_volume(peak);
     if (g_open) {
         char cmd[96];
         _snprintf(cmd, sizeof(cmd), "setaudio %s volume to %lu", g_alias, (unsigned long)g_volume);
@@ -7290,6 +7291,7 @@ static void tex_census_attach(HMODULE m) {
 #include "simtick.c"     /* I76_SIM_TICK_MS: whole-sim fixed tick, render interpolated (lab experiment) */
 #include "skymirror.c"   /* I76_SKY_MIRROR=0: the rear-view mirror's pass does not scroll the sky (opt-in; NITRO-PORT s.11) */
 #include "mirrordetail.c" /* I76_MIRROR_DUMP (lab instrument), I76_MIRROR_TERRAIN_MODE: the mirror pass's terrain draw mode (rear-mirror lane 2026-10-23) */
+#include "soundmix.c"    /* I76_SFX_GAIN / I76_VOICE_GAIN / I76_MUSIC_GAIN / _CURVE, I76_NITRO_3D_VOLUME, I76_SOUND_VOL_LOG (nitro-polish lane 2026-10-24; after simtick.c: st_call_site) */
 #include "jumpnose.c"    /* I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate scaled once at take-off (jump-pitch lane 2026-10-23, TICK-FINISH s.22.6) */
 #include "mutesess.c"    /* I76_MUTE=1: the process mutes its own Windows audio session (lab harness; off by default) */
 #define NMP_IN_PROXY
@@ -9881,6 +9883,8 @@ static void nitro_dllmain(void) {
     apply_far_edge();         /* I76_GLIDE_FOG (+ _ALPHA), I76_HAZE; I76_EDGE_FADE refused (after the morph: chains its emit wrap) */
     apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1> (one site inside 0x43a5d0, in the site map) */
     apply_sign_sound_restart(); /* I76_SIGN_SOUND_RESTART (polish.c; the stop / name through NA) */
+    apply_sound_mix();        /* default on (Nitro): I76_NITRO_3D_VOLUME (the SFX / voice volume on the 3D path); I76_SFX_GAIN / I76_VOICE_GAIN (soundmix.c) */
+    apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (simtick.c; its two sites and reads are in the site map) */
     apply_fade_no_flip();     /* I76_FADE_NO_FLIP (polish.c) */
     apply_menu_keys();        /* default on: I76_MENU_KEYS (after the tick: chains its input gate) */
     apply_menu_draw();        /* default on: I76_MENU_DRAW (WndProc 0x404a7d -> 0x433bed, manual_sites.txt) */
@@ -10018,6 +10022,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */
         apply_judder_census();    /* lab: I76_JUDDER_CENSUS=1 (without the tick: counts drawn-pose stalls in render_wrap) */
         apply_av_log();           /* lab: I76_AV_LOG=<path> (camera / sky / tracer / sign-sound / music cue log, any frame loop; simtick.c s.17) */
+        apply_sound_mix();        /* opt-in: I76_SFX_GAIN / I76_VOICE_GAIN=<dB>, I76_SOUND_VOL_LOG=1 (soundmix.c) */
         apply_sign_sound_restart(); /* opt-in: I76_SIGN_SOUND_RESTART=1 (a new sign / barricade hit restarts vnvco3; after apply_av_log: chains its site) */
         apply_fade_no_flip();     /* opt-in: I76_FADE_NO_FLIP=1 (the palette fade presents nothing under Glide: no two-frame flicker on exit) */
         apply_menu_keys();        /* default on: I76_MENU_KEYS (the Esc menu's keys never reach the car; after apply_simtick: chains its input gate) */
