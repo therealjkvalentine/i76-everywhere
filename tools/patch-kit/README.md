@@ -61,6 +61,7 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 | `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat` | The same two, but they boot **straight into mission 5** (the long ridge road down to the barn) with a stock car, skipping the menus and movies. The quickest way to look at the terrain. |
 | `PLAY-16x10.bat`, `PLAY-balanced.bat`, `PLAY-stock.bat`, `PLAY-i76.bat` | Written by the setup. `PLAY-16x10.bat` = the older tested 16:10 picture (a fallback if the widescreen one looks wrong); `PLAY-stock.bat` = the game with none of our engine changes (a control); the other two are variants of the stable set. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
+| `INSTALL-EXTRAS.bat` | **Optional extras** (below): community maps, head look, Python for the debug tool, German voices, your own extra music. |
 
 Options you can add after the launcher name (open a command window in the folder, or edit a shortcut):
 
@@ -69,6 +70,24 @@ Options you can add after the launcher name (open a command window in the folder
 - `PLAY.bat --display 1920x1080` - size the picture for this monitor size instead of the one Windows reports
   (for example when the game opens on the wrong monitor).
 - `PLAY.bat --setup` - run the setup / display step only, without starting the game.
+- `PLAY.bat --voices de` / `--voices en` - German / English voice lines for this launch (needs the German voices extra).
+- `PLAY.bat --music-extra off` - this launch without your extra music (needs the extra music option).
+
+## Optional extras (`INSTALL-EXTRAS.bat`)
+
+Nothing here is needed to play. Double-click `INSTALL-EXTRAS.bat`: it explains each option and asks before it
+downloads or writes anything. Every download comes from the site that hosts it (nothing is rehosted by this kit) and is
+checked against a pinned SHA-256 (`_i76e\extras.json`); everything it installs stays in the game folder and is listed by
+`INSTALL-EXTRAS.bat --list`; `UNINSTALL-i76e.bat` removes it with the rest.
+
+| option | what it enables | from where |
+|---|---|---|
+| **Community maps** | Ten of the best-loved player-made maps from 1997-2002. **Gold:** Rage County (General Rage), 76th Precinct (Stingray), Leathertown (Skull N. Bones), Biggsville (Lt. Stinger), Drug Bust (Captain Gram) - in MELEE's arena list by name. **Nitro Pack** (if you also have it: give its folder): Gumball Rally (Stingray), Intercept and Pursuit (Debacle), BorderTown, TX (Debacle), Offroad Gold (General Rage), RepoTown USA (Debacle) - in HOST > COMBAT. The 1997 Gold files are converted to the layout Gold reads (one 13-byte field added, as the official 1998 editor does); the authors' readmes go beside the maps and the credits into `COMMUNITY-MAPS.txt`. For a LAN game every player needs the same maps. | Local Ditch (localditch.com) and Lightfoot's Stolen Maps (interstate76.com/lsm) |
+| **opentrack (head look)** | Turn your head and the in-car view turns with it. opentrack reads a webcam (its neural-net face tracker needs nothing else), a phone app or an IR clip; the kit's head-look layer turns that into the game's glance keys. After installing: `OPENTRACK.bat`, choose the tracker, Output = *freetrack 2.0 Enhanced*, Start, then `PLAY.bat` (it attaches to a running opentrack). `Ctrl+Alt+H` cycles ANALOG / DIGITAL / OFF. 190 MB. | opentrack's GitHub release 2026.1.0 (portable), unpacked with 7-Zip's `7zr.exe` from its GitHub release |
+| **AutoHotkey** | Already in the kit: it runs the gamepad / wheel / stick layer and the head-look layer. Nothing to download. | bundled (GPL) |
+| **Python** | `DEBUG.bat` / `TRAINER.bat`: the debug dashboard in your browser (frame rate, physics, telemetry, repair / ammo / teleport, car-state store and restore). The game never needs it. 11 MB, no installer. | python.org's embeddable package 3.12.10 |
+| **German voices** | The 1997 German dub of every voice line, from **your own German retail disc** (CD 1 or its install folder): `PLAY.bat --voices de`. `PLAY.bat` alone stays English. | your disc |
+| **Extra music (private)** | A folder of **your own** songs shuffled in with the game's tracks (one song start in three, by default). Nothing is downloaded or copied; only use music you may play. `PLAY.bat --music-extra off` for one launch without. | your folder |
 
 ## Your monitor
 
@@ -189,7 +208,7 @@ step (42 ms) behind a key press. Both are expected; we would still like to hear 
 
 ## Uninstall
 
-Run `UNINSTALL-i76e.bat` (close the game first). It restores the original `i76.exe`, `i76shell.dll`, `Strlkup.dll`,
+Run `UNINSTALL-i76e.bat` (close the game first). It removes what `INSTALL-EXTRAS.bat` installed, restores the original `i76.exe`, `i76shell.dll`, `Strlkup.dll`,
 `input.map`, `I76PLYR.DEF` (the options) and GOG's Glide files from the copies the setup kept, and removes what the setup added (tested: after it,
 every one of the GOG install's 371 files is byte-identical to a fresh install). Then delete the `PLAY*.bat` files,
 `README-PATCH-KIT.md` and the `_i76e` folder yourself. The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
