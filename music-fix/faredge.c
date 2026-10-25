@@ -293,6 +293,7 @@ static void fe_fog_update(float fz) {
     }
 }
 static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) {   /* the probe: w = 1 / oow of vertex a (GrVertex +32) */
+    unsigned __int64 pt0 = g_pt_on ? pt_now() : 0, pt1;     /* I76_PASS_TIMERS (passtimers.c): own time / glide2x's synchronous time */
     float oow = *(const float *)((const BYTE *)a + 32); double w = oow > 0.0f ? 1.0 / oow : -1.0;
     int fw = 0;
     if (g_fe_alpha && g_fe_in_flush && g_fe_opaque) {       /* fade to transparent: the vertex alpha from its own w */
@@ -311,6 +312,8 @@ static void __stdcall fe_DrawTri(const void *a, const void *b, const void *c) { 
     }
     if (g_fe_in_flush) { g_fe_pt_in++; if (w > 0) { if (w < g_fe_pw_in_min) g_fe_pw_in_min = w; if (w > g_fe_pw_in_max) g_fe_pw_in_max = w; if (w > 0.9 * g_fe_fog_far_built) g_fe_pt_in_far++; } }
     else { g_fe_pt_out++; if (w > 0) { if (w < g_fe_pw_out_min) g_fe_pw_out_min = w; if (w > g_fe_pw_out_max) g_fe_pw_out_max = w; } }
+    if (g_pd_on && g_fe_in_flush) pd_drawtri(a, b, c);      /* I76_PASS_DUMP: what glide2x receives */
+    if (g_pt_on) { pt1 = pt_now(); p_fe_DrawTri(a, b, c); pt_drawtri_add(g_fe_in_flush, pt1 - pt0, pt_now() - pt1); return; }
     p_fe_DrawTri(a, b, c);
 }
 static void __stdcall fe_Blend(int rsf, int rdf, int asf, int adf) {      /* ZGLIDE's grAlphaBlendFunction, in the bracket */
@@ -389,7 +392,10 @@ static void __cdecl fe_flush_wrap(void *cam, int flag) {      /* 0x48fac0(cam, 1
             g_fe_in_flush = 1;
         }
     }
-    ((void (__cdecl *)(void *, int))(DWORD_PTR)g_fe_next_flush)(cam, flag);
+    {   int pt_ph = g_pt_phase; if (on) g_pt_phase = 3;        /* I76_PASS_TIMERS: the hardware flush */
+        ((void (__cdecl *)(void *, int))(DWORD_PTR)g_fe_next_flush)(cam, flag);
+        g_pt_phase = pt_ph; }
+    if (on && g_pd_on) pd_frame_end();                       /* I76_PASS_DUMP: this frame's draw / record hashes */
     if (on) {
         g_fe_in_flush = 0;
         if (g_fe_alpha && p_fe_Blend && p_fe_DrawTri) {

@@ -376,6 +376,7 @@ static void __cdecl tm_emit_wrap(DWORD a, DWORD b) {
     }
     QueryPerformanceCounter(&q1); g_tm_ticks += q1.QuadPart - q0.QuadPart;
     if (g_fe_chain_tm) fe_haze_apply();                    /* faredge.c I76_HAZE: after the morph's shade blend, before the emit */
+    if (g_pd_on && g_tm_pass_main) pd_terrain_pass();      /* passtimers.c I76_PASS_DUMP: V / U as the emit reads them */
     ((void (__cdecl *)(DWORD, DWORD))(DWORD_PTR)g_tm_ret_emit)(a, b);
 }
 

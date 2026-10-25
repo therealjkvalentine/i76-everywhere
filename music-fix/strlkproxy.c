@@ -1605,6 +1605,7 @@ static void frame_log_line(void) {
             *(volatile float *)(DWORD_PTR)NA(0x004fe428) * 1000.0f, step * 1000.0f, cnt, fg, g_frlog_inact);
     if ((++g_frlog_n & 31) == 0) fflush(g_frlog);
 }
+static void pass_timers_frame(void);                         /* passtimers.c */
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now, fl_in = {0}, fl_cap = {0};
     if (g_fl_period) QueryPerformanceCounter(&fl_in);
@@ -1641,6 +1642,7 @@ clock:
     if (g_rpl_on) rpl_pre();                                /* I76_REPLAY: log the frame just done; place the car at the start */
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_cdmg_log) coop_dmg_frame();                       /* I76_COOP_DMG_LOG (lab): mission cars' damage words / drawn rows */
+    pass_timers_frame();                                    /* passtimers.c: I76_PASS_TIMERS 600-frame report, registry hooks at frame 300 / 1500 */
     terrain_pops_frame();                                   /* terrainpops.c: I76_SHADE_SMOOTH table rebuild; the lab instruments' 600-frame report */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
     if (g_rh_on) retail_handling_frame();                   /* I76_RETAIL_HANDLING: the player's car keeps the arcade bit */
@@ -7813,6 +7815,7 @@ static void tex_census_attach(HMODULE m) {
  * would read that folder's dgVoodoo.conf, was removed 2026-10-10: the menus followed the same conf, so it did not keep
  * them 4:3 (lab docs/WIDESCREEN-2D.md, "Live result, route (a)"; docs/records/PROXY-CLEANUP-2026-10-10.md).) */
 static int g_zg_tmufix;                     /* I76_ZGLIDE_TMUFIX=1 */
+static int g_pt_on; static void pt_glide_attach(HMODULE z);   /* passtimers.c: I76_PASS_TIMERS (terrain-pass-opt lane 2026-10-25) */
 static volatile LONG g_nsw_shell, g_nsw_zglide;   /* Nitro: nitshell / ZGLIDE attach done (hook or nitro_shell_watch) */
 static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
     HMODULE m;
@@ -7840,6 +7843,7 @@ static HMODULE WINAPI hook_LoadLibraryA(LPCSTR name) {
             } else mlog("  zglide-tmufix: ZGLIDE+0x%lx = %02x %02x, not the stock 75 %02x - not applied", (unsigned long)zo, p[0], p[1], zj);
         }
         if (_strnicmp(b, "zglide", 6) == 0 && (g_tc_on || g_sc_on) && g_exe != EXE_NITRO) tex_census_attach(m);
+        if (_strnicmp(b, "zglide", 6) == 0 && g_pt_on && g_exe != EXE_NITRO) pt_glide_attach(m);   /* I76_PASS_TIMERS: the state-call counters, below faredge.c's hooks */
         if (_strnicmp(b, "zglide", 6) == 0 && g_gm_mode && g_exe != EXE_NITRO) glide_mipmap_attach(m);   /* I76_GLIDE_MIPMAP (terrainpops.c) */   /* census offsets: Gold's ZGLIDE; g_sc_on: I76_SHADE_CENSUS hooks grDrawTriangle there too */
         /* (the census and TMUFIX hook LoadLibraryA too: the refresh wrapper is only for I76_GLIDE_REFRESH / I76_GLIDE_GAMMA) */
         if (_strnicmp(b, "zglide", 6) == 0 && !p_grSstWinOpen && (g_glide_refresh_code != 0xffffffff || g_glide_gamma > 0.0f)) {
@@ -9462,6 +9466,7 @@ static void apply_terrain_hyst(void) {
     if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep their first decision until they come within it (snapshot of new nodes every %.0f m)", ff, fm);
 }
 
+#include "passtimers.c"    /* lab: I76_PASS_TIMERS / I76_PASS_DUMP: per-pass timers, call counts, equivalence hashes (terrain-pass-opt lane 2026-10-25; before faredge.c: fe_DrawTri reads it) */
 #include "faredge.c"       /* I76_HAZE / I76_GLIDE_FOG / I76_EDGE_FADE: far-edge fade (far-edge lane 2026-10-23; before terrainmorph.c: its emit wrap chains fe_haze_apply) */
 #include "terrainmorph.c"  /* I76_TERRAIN_MORPH / _MORPH_LOG / I76_TERRAIN_FLAT_SPLIT: geomorph + flat-tile split (TERRAIN-MORPH-2026-10-21) */
 #include "terrainpops.c"   /* lab: I76_TEX_LEVEL_LOG (texture level switches per pass), I76_SHADE_CENSUS (ZGLIDE vertex colour levels) (terrain-pop lane 2026-10-23) */
@@ -9731,6 +9736,7 @@ static void __cdecl clutter_build(BYTE *cam, double ground) {
     float cx = *(float *)(DWORD_PTR)NA(0x004f7180), cz = *(float *)(DWORD_PTR)NA(0x004f7188), v[3];
     int k, n = 0, ix0 = (int)floor(cx / 100.0 + 0.5), iz0 = (int)floor(cz / 100.0 + 0.5);
     double camx = *(double *)(cam + 0x160), camz = *(double *)(cam + 0x170);
+    unsigned __int64 pt0 = g_pt_on ? pt_now() : 0;
     for (k = 0; k < g_cl_ncand; k++) {
         int i = g_cl_cand[k][0], j = g_cl_cand[k][1];
         float *p = ((float *(__cdecl *)(float *, void *, double, double, double))(DWORD_PTR)NA(0x00472d30))
@@ -9751,10 +9757,12 @@ static void __cdecl clutter_build(BYTE *cam, double ground) {
     g_cl_ntab = n;
     g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tab[1] + 8 * n;
     g_cl_cells += n; if ((DWORD)n > g_cl_cells_max) g_cl_cells_max = n;
+    if (g_pt_on) g_pt_cl_build += pt_net(pt_now() - pt0);
 }
 static void __cdecl clutter_template_table(void) {           /* I76_CLUTTER_FADE: this template's share of the cell table */
     int c, m = 0;
     DWORD kk = (DWORD)g_cl_k * 83492791u;
+    unsigned __int64 pt0 = g_pt_on ? pt_now() : 0;
     for (c = 0; c < g_cl_ntab; c++) {
         DWORD h = 0;
         if (g_cl_thr[c] != 65535 || g_cl_afade > 0.0f) {
@@ -9774,6 +9782,7 @@ static void __cdecl clutter_template_table(void) {           /* I76_CLUTTER_FADE
     g_cl_pairs += g_cl_ntab; g_cl_kept += m;
     g_cl_end = (DWORD)(DWORD_PTR)&g_cl_tabT[1] + 8 * m;
     g_cl_k++;
+    if (g_pt_on) g_pt_cl_tab += pt_net(pt_now() - pt0);
 }
 static __declspec(naked) void clutter_build_fade_stub(void) {   /* replaces `mov eax, 0x4f7194` at 0x45c4fa (fade on) */
     __asm {
@@ -9839,6 +9848,8 @@ static __declspec(naked) void clutter_cull_stub(void) {        /* the call at 0x
 }
 static void *__cdecl clutter_draw_wrap(void *cam, void *v, int n, DWORD tex, DWORD mode) {   /* the hardware flush's polygon draw at 0x48fb7e */
     const BYTE *rec = *(const BYTE * volatile *)(DWORD_PTR)NA(0x0065439c); DWORD r = (DWORD)(DWORD_PTR)rec; float a = 1.0f; void *res; int held = 0;
+    unsigned __int64 pt0 = g_pt_on ? pt_now() : 0, pt1 = 0, pt2 = 0;
+    if (g_pd_on) pd_clutter_rec(rec, n, tex);               /* I76_PASS_DUMP: the flush's record sequence */
     if (!g_cl_hookfr) { fe_probe_attach(); fe_alpha_attach(); g_cl_hookfr = g_frame + 1; }   /* hooked a frame before the first fade: ZGLIDE's later requests are seen */
     if (g_cl_afr == g_frame && g_frame > g_cl_hookfr && g_cla_n && r >= g_cla_p[0] && r < g_cl_pend && *(const int *)(rec + 0xc) == 4) {
         DWORD lo = 0, hi = g_cla_n - 1;
@@ -9847,17 +9858,22 @@ static void *__cdecl clutter_draw_wrap(void *cam, void *v, int n, DWORD tex, DWO
         if (a < 0.996f) held = fe_cl_begin(255.0f * a);
         if (held) g_cl_arec_faded++;
     }
+    if (g_pt_on) pt1 = pt_now();
     res = ((void *(__cdecl *)(void *, void *, int, DWORD, DWORD))(DWORD_PTR)g_cl_next_draw)(cam, v, n, tex, mode);
+    if (g_pt_on) pt2 = pt_now();
     if (held) fe_cl_end();
+    if (g_pt_on) { g_pt_cl_draw += pt_net(pt1 - pt0) + pt_net(pt_now() - pt2); g_pt_cl_draw_n++; }   /* own time: the next draw excluded */
     return res;
 }
 static char g_cl_fadetxt[128];
 static void terrain_vguard_report(void);
 static void __cdecl clutter_frame_wrap(void *cam) {               /* the calls at 0x401e47 / 0x402111 */
-    LARGE_INTEGER a, b; DWORD used;
+    LARGE_INTEGER a, b; DWORD used; int pt_ph = g_pt_phase;
     QueryPerformanceCounter(&a);
     if (g_cl_afade > 0.0f && cam != (void *)(DWORD_PTR)NA(0x00608c80)) { g_cla_n = 0; g_cl_amain = 1; g_cl_ebp = 0; }
+    if (cam != (void *)(DWORD_PTR)NA(0x00608c80)) g_pt_phase = 1;      /* I76_PASS_TIMERS: the main clutter call */
     ((void (__cdecl *)(void *))(DWORD_PTR)NA(0x0045c380))(cam);
+    g_pt_phase = pt_ph;
     if (g_cl_amain) { g_cl_amain = 0; g_cl_pend = *(DWORD *)(DWORD_PTR)NA(0x006543c0); g_cl_afr = g_frame; }
     QueryPerformanceCounter(&b);
     used = *(DWORD *)(DWORD_PTR)NA(0x006543c0) - *(DWORD *)(DWORD_PTR)NA(0x00654398);
@@ -10552,6 +10568,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_mirror_detail();    /* lab: I76_MIRROR_DUMP=<N> (mirror bitmap + census), I76_MIRROR_TERRAIN_MODE=<hex> (after apply_terrain_lod: chains the main QueueTerrain call) */
         apply_terrain_pops();     /* lab: I76_TEX_LEVEL_LOG=<csv>, I76_SHADE_CENSUS=1 (after mirror-detail: shares its picker site; terrainpops.c) */
         apply_far_edge();         /* opt-in: I76_HAZE=<start>[,<strength>], I76_GLIDE_FOG=<start>[,<colour>], I76_EDGE_FADE=1 (after the morph: chains its emit wrap; after road-pool: chains its flush wrap; faredge.c) */
+        apply_pass_timers();      /* lab: I76_PASS_TIMERS=1, I76_PASS_DUMP=<file>[,first,count] (passtimers.c; Gold; after far-edge and the clutter block) */
         apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate x f once on the first airborne step (jumpnose.c) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
         apply_sound_census();     /* lab: I76_SOUND_CENSUS=1 (voice starts per sim second, any frame loop; simtick.c) */

@@ -279,3 +279,62 @@ where the 31 % translation and the 15 % terrain code both disappear.
 - This record; FRAME-PROFILE-2026-10-25.md carries a correction header pointing here.
 - Lab `tools\frame-profile\fp_analyse.py` (`--verts-min`), `fp_remine.py` (PeekMessage runs, system-call callers, kernel split when the
   column exists), `fp_hotblock.py` (names a Strlkup hot block by its constants). Raw data unchanged in `captures\frame-profile-20261025\`.
+
+## Results (implementation lane, 2026-10-25; issue #92)
+
+Bench: the laptop (i7-1165G7, GTX 1650 Ti, 1920x1080 window, dgVoodoo.lv1080.conf), the lane's own twin `C:\i76-bench\tpo\Interstate 76`
+(a copy of the analog-driver lane's launch-video twin), preset OWNER-2300-ALL (no morph log), T05 via the player route (Esc on the
+briefing movie, Esc on the scripted opening; I76_SKIP_MOVIES=1, I76_SKIP_CUTSCENES=0, I76_FFB_OFF=1, muted, own shm suffix), the owner's
+route **pad-driven** (`rcd_drive_bench.py --mode route --input pad`, ridge leg then the 2.7 km hill leg). Every measurement DLL = the unit's
+source + the analog-driver lane's `I76_DRIVE_INJECT` harness patch (lab `builds\analog-driver-20261025\drive-inject.patch`, off unless
+set, the same in every variant, not committed here): the key-driven route is not usable on the laptop (30.0 fps pinned, the hill leg
+stops after ~0.1 km, both this lane's and the analog lane's key runs). Timer values are the means of the 600-frame windows after the
+first (the boot); n = boots. Lab scripts: `builds\terrain-opt-20261025\scripts\` (tpo-job.ps1 / tpo-batch.ps1 on the laptop,
+tpo_tab.py, build-variant.ps1); raw runs `C:\i76-bench\runs\tpo-*` and copies in `builds\terrain-opt-20261025\runs\`.
+
+**The equivalence route as specified is not available, and what replaces it.** `I76_REPLAY` replays per-frame dt; the owner's preset runs
+the whole-sim tick (I76_SIM_TICK_MS 41.667, drawn interpolated at the display rate), so the drawn pose per frame is wall-clock
+dependent. The static fallback was measured: with the car parked (I76_START_POS without speed) every main pass's V / U hash still
+differs frame to frame and run to run (2 boots x ~3,260 passes: 0 repeats; raw V between consecutive frames moves by up to 0.28 raw units
+in y, the U shade by 8e-5: the idle camera sway). So the hash streams of `I76_PASS_DUMP` are recorded (T / D / C lines, raw V / U for a
+window) but cannot be compared across builds. Each unit's bit-exactness is tested **inside one run** instead: the new path and the
+stock path are both evaluated on the same inputs every frame and compared bit for bit (U2 `I76_FADE_VERIFY`, U3 `I76_M16_MEMO=2`,
+U7 `I76_SHADE_TABLE_VERIFY`). That is a stronger test than a cross-build hash (every vertex of every frame of a real route, no
+replay drift), and it is the one used below.
+
+### U1 instrument build (`I76_PASS_TIMERS=1`, `I76_PASS_DUMP=<file>[,first,count]`; music-fix/passtimers.c)
+
+| per frame (inside the hardware flush unless said) | u1 boot 1 | boot 2 | boot 3 |
+|---|---|---|---|
+| fe_DrawTri calls | 6,684 | 6,696 | 6,610 |
+| fe_DrawTri own | 54.2 ns/call = 363 us | 53.2 = 357 us | 54.0 = 357 us |
+| glide2x grDrawTriangle synchronous | **133.1 ns/call** = 889 us | 127.3 = 852 us | 128.0 = 847 us |
+| outside the flush | 179 calls, own 9.6 us, sync 85 us | 179, 9.5, 83 | 179, 9.7, 84 |
+| clutter_draw_wrap own (3,670-3,730 records) | 1,156 us | 1,146 us | 1,133 us |
+| clutter_build / template tables | 89 / 47 us | 87 / 45 us | 86 / 45 us |
+| GetFaceTexture at the clutter call 0x45c7eb (inclusive) | 618 calls, 656 us | 622, 630 us | 618, 629 us |
+| of it image_LoadM16Variant | 257 pak loads + 361 cached, 509 us | 255 + 368, 488 us | 255 + 363, 487 us |
+| ReleaseM16Texture in the clutter call | 921 (257 with a slot set), 296 us | 907 (255), 286 us | 915 (255), 285 us |
+| face textures, rest (objects 0x45d9a9 / 0x45de23, flush, mirror) | 176 us | 170 us | 170 us |
+| exe _stricmp (0x44a303 = GetFaceTexture's name chain: ~1,000 of them) | 1,276, 220 us | 1,269, 211 us | 1,274, 212 us |
+| msvcrt MultiByteToWideChar (the locale compares under it) | 3,200, 151 us | 3,164, 143 us | 3,172, 145 us |
+| registry calls (every module's IAT, by caller) | 0.6 | 35 (episodes of 21.7 / frame from Strlkup.dll+41f5b and DSOUND+64da8) | 0.6 |
+| Glide state calls: texsource (all a new address) / blend / acombine / chroma / ccombine / download | 2,038 / 1,559 / 1,239 / 833 / 75 / 1.7 | 2,043 / 1,564 / 1,242 / 834 / 75 / 1.7 | 1,998 / 1,538 / 1,223 / 818 / 74 / 1.7 |
+| morph own (its timer) / whole clutter call | 101 / 1,589 us | 99 / 1,530 us | 98 / 1,531 us |
+| hill / ridge median fps (timers on) | 48.2 / 51.4 | 48.4 / 53.0 | 48.8 / 51.6 |
+| CRASH lines | 0 | 0 | 0 |
+
+Baseline (origin/main source + the harness patch, base-99248470, timers absent): hill 48.2 / 48.2 / 48.6 fps, ridge 51.0 / 51.2 / 51.7,
+1 % low 14.1-14.8, 0 CRASH (n 3). The instrument costs no measurable fps (48.2-48.8 vs 48.2-48.6).
+
+Where the release / reload churn is: the hot release site is `image_UnloadObjectFaceTextures` 0x44a128 (209-223 live releases per
+frame, plus ~540 of already-empty slots), i.e. every bush object's face textures are unloaded after the frame and reloaded by
+GetFaceTexture -> LoadM16Variant (vfs_GetFileSize + vfs_AcquireFile by name) on the next. The registry episodes (one boot) are U4's lane;
+a new caller is named: the proxy itself (Strlkup.dll+0x41f5b) alongside DSOUND.
+
+**U1 line:** "U1: fe_DrawTri 357-363 us (+ 9.6 us outside the flush), clutter hooks 1,264-1,292 us (draw wrap 1,133-1,156, build 86-89,
+tables 45-47), m16 variant 618-623 calls / 487-509 us per frame in the clutter call (255-257 of them pak loads; mirror 0), registry opens
+0.6 per frame (episodes to 35) from DSOUND / Strlkup / combase, grDrawTriangle sync cost 127-133 ns, state calls ~5,750 per frame
+(texsource ~2,000), polygon entry points present (grDrawPolygonVertexList, grDrawPlanarPolygonVertexList, grDrawPolygon)." **PASS**
+on the line; the plan's "dump hashes stable run to run on the replay" **FAIL** (no deterministic route under the tick; above), replaced
+by the in-run verifiers.
