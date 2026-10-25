@@ -6,14 +6,14 @@
       $I76GameDirInUse = $G                     # BEFORE dot-sourcing focuslib / memlib / maplib
 
   Resolve-LabGameDir returns the full path of a game folder (one that holds i76.exe) or throws. It accepts only a
-  folder INSIDE the lab (C:\Users\james\i76-uncap-lab): the sandbox `game`, `game-alt`, and twins such as
+  folder INSIDE the lab (<lab>): the sandbox `game`, `game-alt`, and twins such as
   `game-dd-20261003\Interstate 76` (the lab ignores game-*/). It refuses, by name, the playable installs
   (AGENTS.md "NEVER TEST ON THE PLAYABLE INSTALL"), anything else outside the lab, and a path that reaches the lab
   through a junction or symlink (a link inside the lab could point at the playable folder).
 
   $I76GameDirInUse: Get-GamePid (focuslib), Mem-Open (memlib) and Init-CursorMap (maplib) read this variable from
   the caller's scope. When it is set and several lab game processes exist they take the one whose exe is in that
-  folder; when it is not set they behave as before (first process whose path contains 'i76-uncap-lab').
+  folder; when it is not set they behave as before (first process whose path contains '<lab>').
 #>
 $script:LabRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path.TrimEnd('\')
 

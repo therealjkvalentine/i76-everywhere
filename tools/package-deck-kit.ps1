@@ -14,7 +14,7 @@
                      Gold set without its u32x step (with u32x the proxy's pad menu / cursor map cannot hook: no Deck menu pointer)
 
     tools\package-deck-kit.ps1 -Proxy <STRLKUP.DLL> -Shim <I7_SFRCE.DLL> -PatchesDir <make-patches.py out> -AhkDir <AutoHotkey dir>
-                               [-GogGold C:\Users\james\i76-map\sandbox-gog\main\app] [-OutDir ...\downloads\deck-kit] [-Version 0.1.0]
+                               [-GogGold <re-archive>\sandbox-gog\main\app] [-OutDir ...\downloads\deck-kit] [-Version 0.1.0]
   Shell scripts and text are written with LF line endings (a CRLF .sh fails on the Deck with "\r: command not found").
 #>
 param(

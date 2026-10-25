@@ -8,7 +8,7 @@
                                 -DgVoodooConf <the conf that parses> [-U32xDll <gated build>] [-Plan]
 
   -Source is the PORTABLE ROOT (the folder that contains "Interstate 76\"), e.g.
-      C:\Users\james\Downloads\Interstate76-i76-everywhere-portable-20260801
+      <downloads>\Interstate76-i76-everywhere-portable-20260801
 
   Rules this script keeps:
     * COPIES ONLY. Nothing under -Source is written, renamed or deleted. A fingerprint of the

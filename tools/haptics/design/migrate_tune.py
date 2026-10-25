@@ -233,7 +233,7 @@ SKELETONS = {
 
 RIG_SKELETON = {
     "name": DEFAULT_RIG,
-    "description": "James's desk: Thrustmaster T300RS (belt), Audient EVO 4 -> Aura AST-2B shaker, an XInput pad. "
+    "description": "the developer's desk: Thrustmaster T300RS (belt), Audient EVO 4 -> Aura AST-2B shaker, an XInput pad. "
                    "Every output names the renderer that serves it; the host instantiates exactly the outputs listed here.",
     "outputs": {
         "wheel": {"renderer": "Wheel.DirectInput", "device_match": "T300", "min_force": None, "min_force_gate": None,

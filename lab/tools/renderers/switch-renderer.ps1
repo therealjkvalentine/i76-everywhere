@@ -9,8 +9,8 @@
     .\switch-renderer.ps1 -Renderer dgvoodoo                    # back to the copy's baseline (as copied from game\)
     .\switch-renderer.ps1 -Renderer dgvoodoo -Source C:\dl\dgVoodoo2_87_5     # another dgVoodoo version
     .\switch-renderer.ps1 -Renderer nglide -Source C:\dl\nglide210            # folder with nGlide's glide2x.dll
-    .\switch-renderer.ps1 -Renderer openglide-gog               # GOG's bundled OpenGLide (i76-map\sandbox-gog)
-    .\switch-renderer.ps1 -Renderer openglide -Source C:\Users\james\openglide-hd
+    .\switch-renderer.ps1 -Renderer openglide-gog               # GOG's bundled OpenGLide (<re-archive>\sandbox-gog)
+    .\switch-renderer.ps1 -Renderer openglide -Source <work>/openglide-hd
     .\switch-renderer.ps1 -Renderer custom -Source <folder>     # copies every file whose name is a slot name
     .\switch-renderer.ps1 -Renderer dgvoodoo -Overlay dxvk -OverlaySource C:\dl\dxvk-2.7.1\x32
     .\switch-renderer.ps1 -Renderer dgvoodoo -Overlay reshade -OverlaySource C:\dl\reshade    # ReShade32.dll -> dxgi.dll

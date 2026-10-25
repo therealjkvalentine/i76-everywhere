@@ -58,7 +58,7 @@ try {
         Add-Type -Name V -Namespace MR -MemberDefinition '[DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h); [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h); [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();' -ErrorAction SilentlyContinue
         "[$Tag] hwnd 0x{0:x} visible {1} minimized {2} foreground {3}" -f [int64]$p.MainWindowHandle, [MR.V]::IsWindowVisible($p.MainWindowHandle), [MR.V]::IsIconic($p.MainWindowHandle), ([MR.V]::GetForegroundWindow() -eq $p.MainWindowHandle)
         if ($rc -ne 0) { "[$Tag] FAILED - stacks:"; python "$Here\..\tools\instruments\stackscan.py" 2>&1 | Where-Object { $_ -match "i76|I76SHELL|ZGLIDE|u32x|Strlkup|glide2x|DDRAW|first" } | Select-Object -First 12 | ForEach-Object { "    " + $_.Substring(0, [Math]::Min(900, $_.Length)) } }
-        "[$Tag] shell: " +((& powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-map\shell\tools\shellstate.ps1 -Once 2>$null | Select-Object -Skip 1 -First 1) -replace "\s+", " ")
+        "[$Tag] shell: " +((& powershell -ExecutionPolicy Bypass -File (Join-Path $env:USERPROFILE "i76-map\shell\tools\shellstate.ps1") -Once 2>$null | Select-Object -Skip 1 -First 1) -replace "\s+", " ")
     } else { "[$Tag] enter-melee exit $rc | the game is NOT running (crashed or exited)" }
     ($out -split "`n" | Select-Object -Last 3) | ForEach-Object { "    $_".TrimEnd() }
     $b = if (Test-Path $log) { [IO.File]::ReadAllBytes($log) } else { [byte[]]@() }; if ($len -gt $b.Length) { $len = 0 }; $new = [Text.Encoding]::GetEncoding(28591).GetString($b, $len, $b.Length - $len)

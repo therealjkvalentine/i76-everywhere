@@ -23,7 +23,7 @@
     tools\framerate\rate-ab.ps1 -Measure cactus -Switch I76_AI_FIXES -Conditions fixed60,fixed60+sw,fixed120,fixed120+sw
 
   CONDITIONS  (-Conditions, comma separated; '+sw' adds the switch under test, -Switch)
-    stock20      -Set stock  I76_FPS_CAP=20                 the reference James plays (no fixes, 20 fps cap)
+    stock20      -Set stock  I76_FPS_CAP=20                 the reference the developer plays (no fixes, 20 fps cap)
     stock60      -Set stock                                 no fixes, Glide's 60 Hz pacing
     fixed20      -Set fixed  I76_FPS_CAP=20                 the fixed set at a 20 fps cap (dodge: the stock-20 stand-in)
     fixed60      -Set fixed                                 hires clock, fixed step 24, framerate fixes, engine dt, interp

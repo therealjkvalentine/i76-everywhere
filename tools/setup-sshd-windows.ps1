@@ -6,8 +6,9 @@
 # (C:\ProgramData\ssh\administrators_authorized_keys, ACL Administrators + SYSTEM only), and limits the firewall rule
 # to the home LAN (<LAN subnet>). Undo: Stop-Service sshd; Set-Service sshd -StartupType Disabled;
 # Remove-NetFirewallRule -Name OpenSSH-Server-In-TCP-LAN.
-param([string]$PubKeyFile = "", [string]$Subnet = "192.168.1.0/24")
+param([string]$PubKeyFile = "", [string]$Subnet = "")
 $ErrorActionPreference = 'Stop'
+if (-not $Subnet) { Write-Host 'Pass -Subnet <your home LAN in CIDR form>, e.g. -Subnet <lan-prefix>/24' -ForegroundColor Red; exit 1 }
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Host "Run this from an elevated PowerShell (right-click > Run as administrator)." -ForegroundColor Red; exit 1 }
 

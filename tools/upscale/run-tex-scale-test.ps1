@@ -3,20 +3,20 @@
   replaces?" (lab docs\TEXTURE-DELIVERY.md section 5). Drives the lab copy game-tex only.
 
   Prepare once (writes 2x marker packs of every Piranha paint scheme into game-tex\ADDON; never touches I76.ZFS):
-    python m16_scale_marker.py --game C:\Users\james\i76-uncap-lab\game-tex --out C:\Users\james\i76-uncap-lab\game-tex\ADDON `
+    python m16_scale_marker.py --game <lab>\game-tex --out <lab>\game-tex\ADDON `
         --pak pirana16 --pak pirana26 --pak pirana36 --pak pirana46 --scale 2
 
   Run (physical console, nothing else running the game):
     .\run-tex-scale-test.ps1                    # 2x marker packs as installed
     .\run-tex-scale-test.ps1 -Control           # same run with the pirana*6 overrides moved aside (stock paint)
-    .\run-tex-scale-test.ps1 -Tag tmu16 -Conf C:\Users\james\i76-uncap-lab\game-tex\dgVoodoo.tmu16.conf -ZglideFix
+    .\run-tex-scale-test.ps1 -Tag tmu16 -Conf <lab>\game-tex\dgVoodoo.tmu16.conf -ZglideFix
                                                 # 16 MB TMU conf + the 1-byte allocator fix, this run only
 
-  Follows i76-uncap-lab\CONSOLE-LOCK.md: exclusive create of .console-owner, no i76 process, no .console-test.lock in
+  Follows <lab>\CONSOLE-LOCK.md: exclusive create of .console-owner, no i76 process, no .console-test.lock in
   game / game-alt / game-dd-20261003; the owner file is removed in finally. One run takes about a minute.
   Boots t01 through autotest\proxy-run.ps1 -Dll $ProxyDll (a pinned proxy copy, so a rebuild in
   progress elsewhere cannot leak in), then captures the presented frame in the start view, after F3 and after F4
-  (preset views 3 and 12; one of them is the chase view). Captures: i76-uncap-lab\captures\texscale\<stamp>-<tag>-*.png
+  (preset views 3 and 12; one of them is the chase view). Captures: <lab>\captures\texscale\<stamp>-<tag>-*.png
   (captures\ is gitignored: decoded game art, never commit).
 #>
 param(

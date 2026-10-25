@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Build "Option 2 (Racing)" - NFS/GTA-convention Steam Deck config for Interstate 76.
 import re
-SRC="/private/tmp/claude-501/-Users-jamesvalentine-Documents-Repositories-mac-gaming-ports/934651c4-e77e-4320-9ab3-d662e6a50483/scratchpad/ref_neptune_wasd.vdf"
-OUT="/private/tmp/claude-501/-Users-jamesvalentine-Documents-Repositories-mac-gaming-ports/934651c4-e77e-4320-9ab3-d662e6a50483/scratchpad/controller_neptune_i76_opt2.vdf"
+SRC=__import__("os").path.join(__import__("os").environ.get("I76_DECK_WORK", "work"), "ref_neptune_wasd.vdf")
+OUT=__import__("os").path.join(__import__("os").environ.get("I76_DECK_WORK", "work"), "controller_neptune_i76_opt2.vdf")
 
 tok=re.compile(r'"((?:[^"\\]|\\.)*)"|(\{)|(\})')
 def parse(s):

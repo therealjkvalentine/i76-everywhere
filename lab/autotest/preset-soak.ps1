@@ -10,7 +10,7 @@
 
   -Conf (default the sandbox's dgVoodoo.aspect-wide.conf) is copied over game\dgVoodoo.conf for the batch and the
   original is put back (hash-checked) in a finally; -Conf '' leaves the folder's conf alone.
-  Console: takes C:\Users\james\i76-uncap-lab\.console-owner by exclusive create (CONSOLE-LOCK.md), polling every 60 s
+  Console: takes <lab>\.console-owner by exclusive create (CONSOLE-LOCK.md), polling every 60 s
   while it is held, releases in the finally, and stops starting new missions after -BudgetMin minutes.
   Output: runs\preset-soak\<ts>-<preset>.md (+ .txt with the raw phase lines), captures\soak\<ts>\<preset>-<m>.png.
 #>

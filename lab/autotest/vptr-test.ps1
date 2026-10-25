@@ -1,7 +1,7 @@
 <#
   vptr-test.ps1 - the pass criteria of milestone A1 "one pointer" (i76-everywhere docs\records\MENU-REBUILD-DESIGN.md section 7;
   docs\MOUSE-ESC-MENU-AND-SAVE-SCREEN.md section 9) for a u32x build with the vptr block, run on the SANDBOX
-  (C:\Users\james\i76-uncap-lab\game) from the physical console with nobody playing. It takes the mouse, the keyboard
+  (<lab>\game) from the physical console with nobody playing. It takes the mouse, the keyboard
   and the screen for 10-15 minutes (-Stage all).
 
     powershell -ExecutionPolicy Bypass -File vptr-test.ps1                      # everything, src\u32x_new.dll

@@ -9,7 +9,7 @@ covered when its basename is cited in foldin\FOLDIN-REPORT.md or foldin\round2\R
 """
 import glob, json, os, re, sys
 
-HOME = os.path.join("C:" + os.sep, "Users", "james")
+HOME = os.path.expanduser("~")
 REPORTS = [os.path.join(HOME, "i76-map", "foldin", "FOLDIN-REPORT.md"), os.path.join(HOME, "i76-map", "foldin", "round2", "REPORT.md")]
 ROOTS = [os.path.join(HOME, "i76-everywhere"), os.path.join(HOME, "i76-uncap-lab")]
 SKIP = ("node_modules", os.sep + ".git" + os.sep, "research-full", "recon-", os.sep + "game" + os.sep + "tools" + os.sep)

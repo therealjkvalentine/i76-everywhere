@@ -7,7 +7,7 @@
   Mode type  : A1..A9, A10b (type AUTOSAVE1 by three escalating methods, the name buffer at i76shell+0x57f3c read
                after each), Enter, A12, quit.
 
-  Hard rules (the brief): sandbox only (C:\Users\james\i76-uncap-lab\game); refuses if an i76* process runs or the
+  Hard rules (the brief): sandbox only (<lab>\game); refuses if an i76* process runs or the
   .console-test.lock exists; backs the save set up to save-backup-<ts>\ with md5s before the first launch; installs
   music-fix\Strlkup.dll over STRLKUP.DLL after copying the original to STRLKUP.DLL.pretest and restores it in finally
   (TEST-FRAMERATE.ps1 convention); I76MUSIC_LOG=1 and no other I76_* variable; the game is killed at the end

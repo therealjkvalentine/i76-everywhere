@@ -7,7 +7,7 @@
   searches inside that one group down to the address. Small groups = the game survives.
 
   RUN:
-      powershell -ExecutionPolicy Bypass -File C:\Users\james\i76-uncap-lab\tools\framerate\sky-bisect.ps1
+      powershell -ExecutionPolicy Bypass -File <lab>\tools\framerate\sky-bisect.ps1
 
   EACH HOLD (default 3 s): watch ONLY the clouds, then press ONE key (no Enter):
       y = clouds stopped / slowed      n = clouds kept drifting      r = repeat this hold

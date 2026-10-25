@@ -5,7 +5,7 @@
 
 .PARAMETER Execute      Really do it. Without it nothing is moved, deleted or linked.
 .PARAMETER Phase        Archive | Rename | Cruft | All (default All). Order inside All: Archive, Rename, Cruft.
-.PARAMETER Only         Restrict to plan rows whose Name matches this wildcard (e.g. 'game-scott*'); Cruft: matches the role name.
+.PARAMETER Only         Restrict to plan rows whose Name matches this wildcard (e.g. 'game-tester*'); Cruft: matches the role name.
 .PARAMETER QuietMinutes A folder with a file written in the last N minutes (default 30) counts as held by a lane.
 .PARAMETER HeldOk       Names (wildcards) you have personally confirmed idle; skips the quiet-time test only (never the process test).
 .PARAMETER Release      Plan rows marked WaitFor (a lane was using them on 2026-10-24) are skipped unless named here (wildcards; '*' = all).
@@ -26,8 +26,8 @@ param(
   [string[]]$HeldOk = @(),
   [string[]]$Release = @(),
   [switch]$IncludeRcLaunchers,
-  [string]$ArchiveRoot = 'D:\i76-archive\consolidated-20261025',
-  [string]$CruftRoot = 'D:\i76-archive\cruft-20261025'
+  [string]$ArchiveRoot = (Join-Path $(if ($env:I76_ARCHIVE_ROOT) { $env:I76_ARCHIVE_ROOT } else { 'D:\archive' }) 'consolidated-20261025'),
+  [string]$CruftRoot = (Join-Path $(if ($env:I76_ARCHIVE_ROOT) { $env:I76_ARCHIVE_ROOT } else { 'D:\archive' }) 'cruft-20261025')
 )
 $ErrorActionPreference = 'Stop'
 $Lab = (Join-Path $env:USERPROFILE 'i76-uncap-lab'); $Games = (Join-Path $env:USERPROFILE 'Games\I76')
@@ -40,7 +40,7 @@ Write-Host "== consolidate-copies ($mode) phase=$Phase only=$Only quiet=${QuietM
 $Plan = @(
   # --- OWNER RULING 2026-10-24: three tiers per game (dev / test / main); main copies are "Interstate 76 Gold" / "Interstate 76 Nitro". No golden copy.
   # main Gold = the release candidate content; the old daily driver is archived as the rollback.
-  @{Name='daily-driver';      Root=$Games; Action='Archive'; Junction=$false; To='D:\i76-archive\daily-driver-pre-20261025'; Alt='daily-driver'},
+  @{Name='daily-driver';      Root=$Games; Action='Archive'; Junction=$false; To=(Join-Path (Split-Path $ArchiveRoot -Parent) 'daily-driver-pre-20261025'); Alt='daily-driver'},
   @{Name='release-candidate'; Root=$Games; Action='Rename'; To="$Games\Interstate 76 Gold"; Junction=$true; After='daily-driver'},
   @{Name='exp-polish2';       Root=$Lab; Action='Rename'; To="$Lab\dev-gold";   Junction=$true},
   @{Name='rc-twin-20261024';  Root=$Lab; Action='Rename'; To="$Lab\test-gold";  Junction=$true},

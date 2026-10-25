@@ -3,7 +3,7 @@
   folder inside the lab (the daily-driver twin game-dd-<date>\Interstate 76, or the sandbox as the control run).
   Physical console, nobody playing: it takes the mouse, the keyboard and the screen for about 10 minutes.
 
-    powershell -ExecutionPolicy Bypass -File gate-folder.ps1 -GameDir C:\Users\james\i76-uncap-lab\game-dd-20261003
+    powershell -ExecutionPolicy Bypass -File gate-folder.ps1 -GameDir <lab>\game-dd-20261003
     powershell -ExecutionPolicy Bypass -File gate-folder.ps1 -GameDir ..\game                      # control: the sandbox
     powershell -ExecutionPolicy Bypass -File gate-folder.ps1 -GameDir <dir> -Only 2,4              # only these rows
     powershell -ExecutionPolicy Bypass -File gate-folder.ps1 -GameDir <dir> -DryRun                # no game: paths, plan, read-only checks

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Blind pairwise A/B viewer (plan section 9, method a - image-viewer stand-in until the Godot bench exists).
 
-  python ab_viewer.py RUN_A RUN_B [--classes ..] [--names ..] [--zoom 3] [--rater james] [--seed N]
+  python ab_viewer.py RUN_A RUN_B [--classes ..] [--names ..] [--zoom 3] [--rater NAME] [--seed N]
   python ab_viewer.py --left IMG --right IMG [--label TILE]       # two arbitrary images
 
 One tile at a time; which run is on the left is randomised per tile and hidden.

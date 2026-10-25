@@ -260,7 +260,7 @@ Already collected, 33 sources (WHAT-IS-STOCK s.Development hardware and targets;
   `<re-archive>\data\out\mw2db\083_0x53_credits.txt` (Gold era), lines 16-65, checked this session:
   - **Vehicle Dynamics Programmer: Dan Stanfill.** The physics owner was the lead programmer.
   - 3D Programmer: Julio Jerez. He was the renderer programmer, not the physics one.
-  - Engine Programmers: Kurt Arnlund, the tester T. Etherton, Marshall Robin, Henry Yu.
+  - Engine Programmers: Kurt Arnlund, Scott T. Etherton, Marshall Robin, Henry Yu.
   - Engine Optimizations: Jean-Marc Morel.
   - AI Programmer: Karl Meissner.
 

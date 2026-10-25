@@ -17,7 +17,7 @@ Wraps upscale_run.py (its CLI is unchanged) and score.py; adds what a many-model
   python bakeoff.py abprep --pairs CLASS:RUN_A:RUN_B [...] [--session NAME]
         builds runs/<NAME>-A and runs/<NAME>-B whose final/<class>/ hold the per-class picks, plus
         runs/<NAME>.json (which real run sits behind A/B per class). Then one command judges every class:
-        python ab_viewer.py <NAME>-A <NAME>-B --rater james
+        python ab_viewer.py <NAME>-A <NAME>-B --rater NAME
 """
 import argparse, csv, glob, json, os, re, shutil, subprocess, sys
 
@@ -280,7 +280,7 @@ def cmd_abprep(a):
     p = os.path.join(a.work, "runs", a.session + ".json")
     json.dump(sess, open(p, "w"), indent=2)
     print("wrote", p)
-    print(f"judge with:  {PY} {os.path.join(HERE, 'ab_viewer.py')} {a.session}-A {a.session}-B --rater james")
+    print(f"judge with:  {PY} {os.path.join(HERE, 'ab_viewer.py')} {a.session}-A {a.session}-B --rater NAME")
 
 
 def main():

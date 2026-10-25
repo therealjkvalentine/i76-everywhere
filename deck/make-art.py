@@ -5,7 +5,7 @@
 import os, math
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-OUT = "/private/tmp/claude-501/-Users-jamesvalentine-Documents-Repositories-mac-gaming-ports/b50977da-e002-449c-b723-ede354c6d910/scratchpad/i76-deck-bundle/artwork"
+OUT = __import__("os").path.join(__import__("os").environ.get("I76_DECK_WORK", "work"), "i76-deck-bundle/artwork")
 os.makedirs(OUT, exist_ok=True)
 FONT = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
 FONT_B = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"

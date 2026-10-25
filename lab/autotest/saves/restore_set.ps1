@@ -1,7 +1,7 @@
 <#
   restore_set.ps1 - put the lab save set back to the state in a save-backup-<ts>\ folder (made by leg-a.ps1 / leg-b.ps1).
 
-    powershell -ExecutionPolicy Bypass -File restore_set.ps1 -Backup C:\Users\james\i76-uncap-lab\game\save-backup-20261001-HHMMSS [-WhatIf]
+    powershell -ExecutionPolicy Bypass -File restore_set.ps1 -Backup <lab>\game\save-backup-20261001-HHMMSS [-WhatIf]
 
   Copies every backed-up file over the game copy (names with "__" are ADDON\ files), deletes files the backup lists as
   ABSENT if they now exist (user.rpr, ADDON\vehscn.vsf) and any save*.cmp / save-*.cmp the backup does not hold, then

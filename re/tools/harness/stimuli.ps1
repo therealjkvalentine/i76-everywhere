@@ -1,6 +1,6 @@
 <#
   stimuli.ps1 - Task 10 stimuli that carry their own proof of firing (gate G-STIM), for the console sitting.
-  Task p3-harness-pause. Dot-source from a PowerShell 5.1 window in C:\Users\james\i76-map:
+  Task p3-harness-pause. Dot-source from a PowerShell 5.1 window in <re-archive>:
 
       . .\tools\harness\stimuli.ps1
       $s = Open-Stim -CaptureId 005-stimuli          # attach read-only to i76_pristine_fix (never spawns, H10); -Write for the positive control

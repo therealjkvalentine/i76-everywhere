@@ -4,8 +4,8 @@
 # AND inserting bindings into empty back-button blocks. Structure preserved.
 import re
 
-SRC = "/private/tmp/claude-501/-Users-jamesvalentine-Documents-Repositories-mac-gaming-ports/b50977da-e002-449c-b723-ede354c6d910/scratchpad/ref_neptune_wasd.vdf"
-OUT = "/private/tmp/claude-501/-Users-jamesvalentine-Documents-Repositories-mac-gaming-ports/b50977da-e002-449c-b723-ede354c6d910/scratchpad/i76-deck-bundle/config/controller_neptune_i76.vdf"
+SRC = __import__("os").path.join(__import__("os").environ.get("I76_DECK_WORK", "work"), "ref_neptune_wasd.vdf")
+OUT = __import__("os").path.join(__import__("os").environ.get("I76_DECK_WORK", "work"), "i76-deck-bundle/config/controller_neptune_i76.vdf")
 
 # (group_id, input_name) -> (key_token, label)
 MAP = {
