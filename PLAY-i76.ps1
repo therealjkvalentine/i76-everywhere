@@ -1019,7 +1019,7 @@ if ($Windowed) {
         $glRx = New-Object regex '(?ms)(^\[Glide\]\s.*?^Resolution\s*= )\d+x\d+'
         if ($DryRun) {
             Write-Host ("windowed {0}x{1}: DRY RUN - dgVoodoo.conf not changed" -f $ww, $wh) -ForegroundColor Yellow
-        } elseif ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*= false') {
+        } elseif ($glRx.IsMatch($ct) -and $ct -match '(?m)^FullScreenMode\s*=\s*(false|true)') {
             $winConfBak = "$confPath.pre-windowed"
             Copy-Item $confPath $winConfBak -Force
             # AppControlledScreenMode = false: with the conf's own 'true' the game's exclusive full-screen request wins and dgVoodoo
@@ -1027,7 +1027,7 @@ if ($Windowed) {
             # stayed 3440x1440); with 'false' it is a real window ([DirectX] Resolution sized, centred) that the keeper can size.
             # CenterAppWindow = false: with 'true' dgVoodoo moved the sized window to the screen centre ~7 s in, when the 3D
             # window opened (desktop, 1280x720 -> (1080,360)); the window stays where the launcher put it (top left).
-            $ct2 = $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1) -replace '(?m)^(AppControlledScreenMode\s*=\s*)true', '${1}false' -replace '(?m)^(CenterAppWindow\s*=\s*)true', '${1}false'
+            $ct2 = $glRx.Replace($ct, ('${1}' + "${gw}x${gh}"), 1) -replace '(?m)^(AppControlledScreenMode\s*=\s*)true', '${1}false' -replace '(?m)^(CenterAppWindow\s*=\s*)true', '${1}false' -replace '(?m)^(FullScreenMode\s*=\s*)true', '${1}false'
             [IO.File]::WriteAllText($confPath, $ct2, [Text.Encoding]::ASCII)
             Write-LaunchLog ("windowed {0}x{1} at the top left; dgVoodoo.conf [Glide] Resolution {2}x{3} for this launch (the previous conf is back when the game exits)" -f $ww, $wh, $gw, $gh) 'Cyan'
         } else {
@@ -1040,6 +1040,29 @@ if ($Windowed) {
     # still pauses while it is not the active window, as it always has.
     if (-not $gameEnv.Contains('I76_NO_MINIMIZE')) { $gameEnv['I76_NO_MINIMIZE'] = '1' }
     if ($gameEnv.Contains('I76_U32X_MENU_ASPECT')) { $gameEnv['I76_U32X_MENU_ASPECT'] = "${ww}:${wh}" }
+} else {
+    # ---- full screen: a render target larger than the display needs dgVoodoo's own full-screen present (issue 125,
+    # records/WINDOWED-ALIGNMENT-2026-10-25.md s.4). With FullScreenMode = false dgVoodoo sizes its window to the [Glide]
+    # Resolution: the 2x supersample (3840x2160 on 1920x1080, 6880x2880 on 3440x1440) became a window twice the screen and the
+    # screen showed its top-left quarter - on every laptop boot, and on the desktop whenever the mission's briefing movie is
+    # skipped (with the movie the game's own mode switch happened to leave the window at the screen size). FullScreenMode = true
+    # (FullscreenAttributes = fake kept) presents the same render target scaled into a screen-sized window. For this launch
+    # only: dgVoodoo.conf is put back when the game exits, so the installed confs and the render-scale writer stay as they are.
+    $confPath = Join-Path $GameDir 'dgVoodoo.conf'
+    if (-not $DryRun -and (Test-Path $confPath)) {
+        $ct = [IO.File]::ReadAllText($confPath, [Text.Encoding]::ASCII)
+        $mg = [regex]::Match($ct, '(?ms)^\[Glide\]\s(?:(?!^\[).)*?^Resolution\s*=\s*(\d+)x(\d+)')
+        $fW = 0; $fH = 0
+        $kitDisp2 = Join-Path $GameDir '_i76e\display.txt'
+        if ((Test-Path -LiteralPath $kitDisp2) -and ((Get-Content -LiteralPath $kitDisp2 -TotalCount 1) -match '^\s*(\d+)x(\d+)')) { $fW = [int]$Matches[1]; $fH = [int]$Matches[2] }
+        else { try { Add-Type -AssemblyName System.Windows.Forms; $b1 = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $fW = $b1.Width; $fH = $b1.Height } catch { } }
+        if ($mg.Success -and $fW -gt 0 -and ([int]$mg.Groups[1].Value -gt $fW -or [int]$mg.Groups[2].Value -gt $fH) -and $ct -match '(?m)^FullScreenMode\s*=\s*false') {
+            $winConfBak = "$confPath.pre-fit"
+            Copy-Item $confPath $winConfBak -Force
+            [IO.File]::WriteAllText($confPath, ($ct -replace '(?m)^(FullScreenMode\s*=\s*)false', '${1}true'), [Text.Encoding]::ASCII)
+            Write-LaunchLog ("full screen: render target {0}x{1} is larger than the display {2}x{3} - dgVoodoo FullScreenMode = true for this launch (a window would be the render target's size; issue 125)" -f $mg.Groups[1].Value, $mg.Groups[2].Value, $fW, $fH) 'DarkGray'
+        }
+    }
 }
 
 # ---- AI skill (-AiSkill / PLAY-LAN.bat --ai-skill N) --------------------------
@@ -1741,7 +1764,7 @@ if ($winKeeper -and -not $winKeeper.HasExited) { Stop-Process -Id $winKeeper.Id 
 if ($panelProc -and -not $panelProc.HasExited) { Stop-Process -Id $panelProc.Id -Force }
 if ($winConfBak -and (Test-Path $winConfBak)) {
     Copy-Item $winConfBak (Join-Path $GameDir 'dgVoodoo.conf') -Force; Remove-Item $winConfBak -Force
-    Write-LaunchLog 'windowed: dgVoodoo.conf put back' 'DarkGray'
+    Write-LaunchLog ('{0}: dgVoodoo.conf put back' -f $(if ($winRect) { 'windowed' } else { 'full screen' })) 'DarkGray'
 }
 if ($ffbProc -and -not $ffbProc.HasExited) {
     Stop-Process -Id $ffbProc.Id -Force
