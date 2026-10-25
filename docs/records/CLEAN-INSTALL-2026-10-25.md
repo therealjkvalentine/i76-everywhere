@@ -97,3 +97,39 @@ know**: `Build-From-GOG.ps1` has a download bug, needs MSVC and a repo clone, an
 4. **Print the frame-0 probe as one handled line** so "CRASH" greps do not show 4 lines (B4); Nitro's wording already does this.
 5. **Look at the Nitro P01 start frame at 1920x1080** (B9) and click the Nitro menu through to a mission and a drive; then make the laptop stay unlocked and
    replace the LogonUI test in the lane scripts (B1, B3).
+
+## Fixes run, 2026-10-25 morning (lane: clean-install fixes, Opus) - Patch Kit v0.8.0 draft
+
+Evidence: lab `clean-install\fixes\` (scripts `fix-step.ps1` / `ftask.ps1` / `frun.ps1`, task `i76fix`, own folder `C:\i76-bench\clean2`;
+results and screenshots in `fixes\out\`). Laptop LAPTOP-HPK11OMS, 1920x1080, console. Kit: **`Interstate76-Patch-Kit-i76-everywhere-v0.8.0-935f897.zip`**,
+6,030,218 B, sha256 `639e1e859f2e2973f8a3dd59d828fe24d1eb8c7dd068417e3e4b4403b1ff417e` (= the draft asset's GitHub digest), proxy
+`c54210f8` (build of 788554a). Draft release renamed v0.7.4 -> **v0.8.0** (not published), also carrying the Mac Kit repacked as
+`Interstate76-Mac-Kit-i76-everywhere-v0.8.0-9cb3a44.zip` (the tested 9cb3a44 content; only VERSION.txt and THIRD-PARTY.md's date differ).
+
+| item | fix | proof (laptop unless said) |
+|---|---|---|
+| 1 Nitro without a compiler | the kit carries PLAY-Nitro.bat, dgVoodoo 2.87.5 D3D8 / D3D9 (md5-pinned), `nitshell-keys-patch.json` (GOG f804f50d -> a32ffba6, regenerated from the python patchers, 407 B in 27 runs); `i76e-prepare.ps1` detects nitro.exe and installs the Nitro set (preset nitro-tick42, GOG's keys + minimal patch, `setup-windows -NoLauncher`); the Gold PLAY*.bat hand over in a Nitro folder; Build-From-GOG uses `-Proxy`, else MSVC, else the commit's prebuilt proxy, and runs the kit route for Nitro (also B7: System32 tar; B8: the monitor is read at play time) | fresh GOG Nitro + zip: `PLAY.bat` (handed over) and `PLAY-Nitro.bat` set up in ~4 s, summary window, title screen; 0 CRASH; uninstall: 519 of 520 GOG files identical, `nitplyr.def` = the game's own options write (as Lee.fot on Gold) |
+| 2 first-run window | every setup line -> `_i76e\setup.log`; the window: what was installed, monitor + FOV, how to play / undo, "Press any key to start the game"; no pause when output is redirected / `-NoPause` / `I76E_NO_PAUSE`; failure shows the log tail; the 9a232dcc / 28b8ae27 MD5 lines are plain informational lines (in the log) | `fixes\out\v080-gold-first.window.png`, `v080-nitro-first.contact.png` (left half) |
+| 3 README | Press any key, seconds not ten, no PLEASE STAND BY promise, Nitro Pack section, UNINSTALL-i76e.bat + Lee.fot in the undo text, Issues link, v0.8.0 | `tools/patch-kit/README.md` |
+| 4 frame-0 probe | one `pit-probe: handled probe (not a crash)` line, no `CRASH:` lines; the probe no longer uses up the crash log's one shot (Gold had the same flaw as Nitro) | every run: CRASH 0, pit-probe 1 (Gold and Nitro) |
+| found: Nitro Alt-Tab crash | `ffbfocus.c` keep-on-blur computed its call against NA(0x404afb); patch_bytes re-aims a leading E8 for Nitro again, so the call landed 0x2F170 below the handler: **every focus loss in a Nitro mission crashed** (exe 0x433C6B -> 0x68E16240; 5 of 5 focus losses). Fixed in 788554a (read-back decodes the call). Since 2c1ed7c (01:05 today); main Nitro / Mac Kit proxy 3f27c797 has the older `-> nop` variant (logs say so) and is not affected | after: 3 Alt-Tabs, 3 `focus lost` lines, alive, 0 CRASH |
+| owner add-on: Gold-only / Nitro-only / both | the launcher in the wrong folder (or no game) says what to do and changes nothing (exit 3, no log dump); INSTALL-EXTRAS: maps per game present, a note for the absent half, Gold-only extras (opentrack, Python, German voices) skipped with a note in a Nitro folder, `-NitroDir` checked; extra music for both; Build-From-GOG takes a game folder or a folder of game folders and names the missing game | laptop: PLAY-Nitro.bat in a Gold folder, PLAY.bat / UNINSTALL in a folder without a game: plain message; extras gold-only 5 maps + Nitro note, nitro-only 5 maps + 3 skip notes, both 10 maps; uninstall of all four folders: every GOG file back but the game-written Lee.fot (Gold) / nitplyr.def (Nitro); PC: Build-From-GOG gold-only, nitro-only, both (2 copies), none (clear refusal) |
+
+**B9 / P01 verdict: not the HUD scale / aspect.** Reproduced at 1920x1080 (n 9 direct boots). The same picture comes with `-Preset stock`
+(no I76_ASPECT, no HUD squeeze, a 4:3 picture stretched), so neither key is involved. What the frames show: the mission's in-engine
+opening (flyover, then a camera near a dark pillar), then the normal cockpit (dash panel at the top of the screen, as in every I'76
+cockpit) with **sky below it: the camera or the car is upside down**, from ~45 s to the end; F1 / F3 / F6 do not change it. Gold shows the
+identical inverted start in T05 **only when the harness sets `I76_SKIP_CUTSCENES=1`** (3 of 3; the lab rule for test boots); started as a
+user starts it (no skip) T05 opens correctly (1 of 1, `fixes\out\t05-userenv.contact.png`). Nitro has no skip-cutscene sites, yet inverts.
+Open, escalated to the Nitro lane: is P01 inverted when started from SCENARIOS (the user's route) or only via the direct boot
+(`I76_MISSION`), and does the skip-cutscenes path leave Gold's start camera inverted (the lab's skip rule then mis-frames every T05 start
+picture)? The menu route on the laptop was blocked: two Windows Firewall prompts ("I76", Activision, PickerHost, from another lane's
+networking run, not ours: our nitro.exe held no socket) sat in front all morning and took focus; not answered (a firewall change on a
+machine that is not ours). Screenshots: `fixes\out\p01-kit.contact.png`, `p01-stock.contact.png`, `v080-p01.contact.png`,
+`t05-early.contact.png`.
+
+What a Nitro user does now: unzip the same kit into the Nitro Pack folder, double-click `PLAY-Nitro.bat` (or PLAY.bat), press a key at the
+summary; `INSTALL-EXTRAS.bat` there for the Nitro maps; `UNINSTALL-i76e.bat` to undo.
+
+Commits: f3e51a7 (pit-probe line, System32 tar), fac576b (Nitro kit, summary window, README, Build-From-GOG), 788554a (ffbfocus Alt-Tab),
+f099f47 (window tidy), 935f897 (Gold-only / Nitro-only / both, v0.8.0), fd88cbe (Build-From-GOG message).
