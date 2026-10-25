@@ -1222,3 +1222,28 @@ Open items from this session:
 - Terrain: "a little more movement than I'd like" on the RC's ALL set; menus fine. (Same preset as exp-polish2; compare
   against PLAY-STABLE; candidates: the morph band 0.25 between 100 and 300 m, NEAR 100.)
 - Owner: consolidate the game copies to four: dev, test, rc, daily driver.
+
+## 2026-10-25 morning (main summary; everything below is installed)
+
+**Layout now:** C:\Users\james\Games\I76\Interstate 76 Gold (main; desktop shortcut "Interstate 76 Gold"; proxy 5d6f9828; full
+stage 65/65 md5s) and ...\Interstate 76 Nitro (main; shortcut "Interstate 76 Nitro"; proxy 3f27c797, nitshell a32ffba6, LAN
+files). dev-gold / test-gold / dev-nitro / test-nitro in the lab. daily-driver, lan, nitro-lan, golden archived on D:.
+All three Macs: Gold apps on 5d6f9828 + the six auto*.lvl (rollback _rollback-final-20261025); Nitro apps on 3f27c797.
+
+**Test this morning**
+1. Gold PLAY.bat: start opentrack first if you want head look (the launcher attaches, never starts it: 17 fps otherwise);
+   FFB program comes on with the wheel. Alt-Tab: forces stay on. Replay / next mission: no crash.
+2. Gold LAN with the boys from PLAY.bat (no PLAY-LAN): AI respawn continuous; co-op enemies scaled; joiner spawns 20-40 m
+   behind the host; CANCEL ~1.5 s; host death no crash; co-op names in the list (fix unproven live). FIRST PC<->Mac join on
+   the new proxy = the mixed-tick test (PC 24-tick vs Mac fixed-step): if positions look wrong, say so.
+3. Nitro: sound balance (set all three sliders equal first); rename-variant popup (Enter works); Esc-menu pointer mid-screen;
+   wheel after Alt-Tab / Replay; MP with the boys (Michael's Mac still needs the Local Network Allow).
+4. FFB tuning page: PLAY.bat --windowed --panel -> http://127.0.0.1:17691/ ; decide keep-active (game runs while on the page).
+5. Content decisions: top-10 maps into the pack now or after contacting authors; Great Oval vs RepoTown; Bullmark private use;
+   German voices pack.
+
+**Open from the night:** the stale "PLAY-WITH-FFB felt good" question (interposer never ran until 9f6e04f); the T300 refuses one
+stock weapon effect type; Mac graphics: distances/LOD are the Mac cost - per-Mac local.psd1 recommended values in
+records/MAC-GRAPHICS-TUNE-2026-10-24.md (Michael's Mac unmeasured, Minecraft open); font-cache lock: 10 empty stubs +
+exp-nitro-owner need a reboot then tools\consolidate-retry-locked.ps1; the Esc-menu shimmer question; the "more terrain
+movement" note (two variants to make).
