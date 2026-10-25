@@ -386,10 +386,20 @@ static void ffr_config(void) {
          * slots. Skipped: the device (DISCL_EXCLUSIVE | DISCL_BACKGROUND) and its effects stay with the game while it is in the
          * background or paused; the activation's ffb_ForcesOn (0x404aa7) then finds the forces on already. */
         static const BYTE call_off[5] = { 0xE8, 0x60, 0x10, 0x04, 0x00 }; BYTE w[5] = { 0xE8 };
-        LONG rel = (LONG)((DWORD_PTR)ffr_on_blur - ((DWORD_PTR)NA(0x00404afb) + 5)); memcpy(w + 1, &rel, 4);
+        /* rel32 relative to the GOLD site: on Nitro patch_bytes re-aims a leading E8 from the Gold address to the Nitro one
+         * (nitro.c nitro_reloc). Computed against NA(0x404afb) it was re-aimed twice and the call landed 0x2F170 below
+         * ffr_on_blur, outside the dll: every Alt-Tab / focus loss in a Nitro mission crashed (exe+0x433C6B ->
+         * 0x68E16240 read, clean-install fixes 2026-10-25). The read-back decodes the call actually in memory. */
+        LONG rel = (LONG)((DWORD_PTR)ffr_on_blur - (0x00404afb + 5)), got = 0; const BYTE *at; memcpy(w + 1, &rel, 4);
         g_ffr_keep_blur = patch_bytes(0x00404afb, call_off, w, 5, "ffb-keep-on-blur");
+        at = (const BYTE *)(DWORD_PTR)NA(0x00404afb);
+        if (g_ffr_keep_blur && at && at[0] == 0xE8) memcpy(&got, at + 1, 4);
+        if (g_ffr_keep_blur && !(at && at[0] == 0xE8 && (DWORD_PTR)at + 5 + got == (DWORD_PTR)ffr_on_blur)) {
+            g_ffr_keep_blur = 0; mlog("  ffb-focus: keep-on-blur: the call in memory does not reach ffr_on_blur - put back");
+            patch_bytes(0x00404afb, w, call_off, 5, "ffb-keep-on-blur undo");
+        }
         mlog("  ffb-focus: keep-on-blur: WM_ACTIVATEAPP 0 no longer turns the forces off (0x404afb call 0x445b60 -> call ffr_on_blur, which only logs): %s",
-             g_ffr_keep_blur && memcmp((const void *)(DWORD_PTR)NA(0x00404afb), w, 5) == 0 ? "read back ok" : "NOT applied");
+             g_ffr_keep_blur ? "read back ok (the call reaches ffr_on_blur)" : "NOT applied");
     }
     mlog("  ffb-focus: armed (re-acquire %s, NULL-slot guard %s, keep-on-blur %s, trace %s); hooks go in at the first ffb_PlayEffect once I7_SFRCE.DLL is loaded",
          g_ffr_on ? "on" : "off", g_ffr_on ? "on" : "off", g_ffr_keep_blur ? "on" : "off", g_ffr_trace ? "on" : "off");
