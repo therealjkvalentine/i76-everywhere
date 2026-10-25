@@ -49,7 +49,7 @@ $cache = Join-Path $env:LOCALAPPDATA 'i76e-cache'
 # dgVoodoo: Dege's official GitHub release zips, sha256-pinned (the release assets' digests, read 2026-10-25); package-patch-kit.ps1
 # then checks every shipped component's md5 against the release.
 function Get-DgVoodoo([string]$ver, [string]$sha256) {
-    $u = $ver.Replace('.', '_'); $dir = Join-Path $cache "dgVoodoo2_$u"
+    $u = $ver.Substring(2).Replace('.', '_'); $dir = Join-Path $cache "dgVoodoo2_$u"
     if (Test-Path -LiteralPath "$dir\3Dfx\x86\Glide2x.dll") { return $dir }
     New-Item -ItemType Directory -Force $cache | Out-Null
     $z = Join-Path $cache "dgVoodoo2_$u.zip"
