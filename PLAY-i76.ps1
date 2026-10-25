@@ -41,7 +41,10 @@ param(
     [switch]$DryRun,
     # Frame generation. Pass "" to skip it. Steam does NOT need to be running.
     [string]$LosslessScaling = "C:\Program Files (x86)\Steam\steamapps\common\Lossless Scaling\LosslessScaling.exe",
-    # Head tracking, OPT-OUT and NON-BLOCKING since 2026-10-24 (owner: "no dependency on opentrack: if it's not
+    # Head tracking, ATTACH-ONLY by default since 2026-10-25: if opentrack is ALREADY RUNNING when the game launches the head-look
+    # layer attaches to it (no wait); if it is not running, head look is skipped at once and opentrack is NOT started (a started
+    # opentrack cost ~17 fps in the gate). -HeadTrack: start opentrack too (the 2026-10-24 behaviour below); -NoHeadTrack: off.
+    # Earlier text, OPT-OUT and NON-BLOCKING since 2026-10-24 (owner: "no dependency on opentrack: if it's not
     # set up or running, just skip it every time instead of the current wait"). If opentrack is installed
     # ($OpenTrack exists) it is started (unless already running), told to begin tracking when the game starts
     # (game detection + i76-opentrack-autostart.ps1, both in the background) and the head-look layer runs; the
@@ -415,7 +418,7 @@ if ($DryRun) {
     foreach ($k in $gameEnv.Keys) { Write-Host ("    {0}={1}" -f $k, $gameEnv[$k]) }
     $skipped = @()
     if ($LosslessScaling -and (Test-Path $LosslessScaling)) { $skipped += 'Lossless Scaling' }
-    if (-not $NoHeadTrack -and $OpenTrack -and (Test-Path $OpenTrack) -and (Test-Path (Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk'))) { $skipped += 'opentrack + head look' }
+    if (-not $NoHeadTrack -and $OpenTrack -and (Test-Path $OpenTrack) -and (Test-Path (Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk')) -and ($HeadTrack -or (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue))) { $skipped += 'opentrack + head look' }
     if (Test-Path (Join-Path $GameDir '_ahk\AutoHotkeyU32.exe')) { $skipped += 'AHK layers' }
     if ($Ffb -and -not $NoFfb) { $skipped += 'FFB interposer' } elseif (-not $NoFfb) { $skipped += 'FFB interposer if a wheel is found' }
     if ($skipped) { Write-Host ("  helpers that a real run would also start: {0}" -f ($skipped -join ', ')) -ForegroundColor DarkGray }
@@ -519,6 +522,10 @@ if ($NoHeadTrack) {
 } elseif (-not ((Test-Path $ahkExe) -and (Test-Path (Join-Path $GameDir '_ahk\i76-opentrack-headlook.ahk')))) {
     # e.g. the patch kit: no head-look layer in this folder, so starting opentrack would do nothing for the game
     $headStatus = 'head look: skipped - this folder has no head-look layer (_ahk\i76-opentrack-headlook.ahk)'
+} elseif (-not $HeadTrack -and -not (Get-Process -Name 'opentrack' -ErrorAction SilentlyContinue)) {
+    # 2026-10-25 (owner: "if it's not set up or running, just skip it"): the default only ATTACHES to an opentrack that is already
+    # running; it never starts one (a launched opentrack cost ~17 fps at 120 fps in the gate). -HeadTrack starts it as before.
+    $headStatus = 'head look: skipped - opentrack is not running (start opentrack first if you want head look; the launcher attaches to it; -HeadTrack starts it)'
 } else {
     $headOn = $true
 }
