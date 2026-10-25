@@ -1198,3 +1198,4 @@ Open items from this session:
 - Host restarts the mission: after loading it freezes "somewhere in the southwest" (camera at a map corner?) for a long time,
   then eventually loads (maybe when the joiner left, maybe just slow) - looks like the host waiting on the joiner's
   reconcile / handshake with the player entity not yet placed.
+- Host DIED in a co-op scene -> the host's game crashed with an exception at the death (owner, ~19:20; which machine hosted? Mac). Get the crash line from that machine's mciproxy.log.
