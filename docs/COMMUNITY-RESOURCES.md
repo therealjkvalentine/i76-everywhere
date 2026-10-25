@@ -180,6 +180,7 @@ solved it long ago. Full write-up:
 | Screenshots | https://www.localditch.com/interstate-76/screenshots.html |
 | Pre-release pictures | https://www.localditch.com/interstate-76/pre-release.html |
 | Articles / dev interviews (5) | https://www.localditch.com/interstate-76/articles/ |
+| **Development history, 1996-98 press previews, cut content** (swept 2026-10-24) | [research/content-2026-10-24/development-and-press.md](research/content-2026-10-24/development-and-press.md): team names, MW2 → I'76 → Battlezone lineage, NG/CGW/PC Zone scans with archive.org ids and leaf numbers, the Interstate '77 plan, Bullmark soundtrack, the 1998 Fox/Davis film rights, and ranked expansion ideas |
 
 Local Ditch also covers **Nitro Pack** (8 pages) and **Interstate '82** (6 pages) with their own
 walkthroughs, vehicles, weapons and codes.

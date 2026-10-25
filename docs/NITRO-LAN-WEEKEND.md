@@ -95,3 +95,9 @@ tries this every 10 minutes until 09:00 on 2026-10-24, once his Mac has been idl
 log, `C:\Users\james\i76-uncap-lab\builds\nitro-weekend-20261023\andrew-poll.out`, says whether it ran.)
 
 The PC's `Games\I76\nitro-lan` is a new folder, and deleting it undoes it. The PC's other installs were not changed.
+
+## Gold apps on the Macs (2026-10-25)
+
+Deployed to all Macs (untested PC<->Mac join - the morning family game is the first test; rollback = `_rollback-final-20261025` inside each
+Gold app's game folder): proxy 5d6f9828 + the six new `auto*.lvl`, `ai_hs2/4/6` removed, on the MacBook, Michael's and Andrew's Gold apps.
+Details: [records/LAN-FIXES-2026-10-24.md](records/LAN-FIXES-2026-10-24.md) s.12.
