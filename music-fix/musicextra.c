@@ -12,7 +12,8 @@
  *                                  the game folder); unset, empty, "0" or "off" = off
  *   I76_MUSIC_EXTRA_EVERY=<n>      1..20, default 3: one song start in n plays an extra
  * The shuffle is a bag: every extra file plays once before any repeats, re-shuffled each round (seeded from the clock).
- * Log: "music-extra: ..." once at the first song start (folder, count, n), then "music-extra: track T -> <file>" per extra. */
+ * Log: "music-extra: ..." once at the first song start (folder, count, n), then "music-extra: track T -> extra song #k" per extra
+ * (the number, never the file name: the log goes with public bug reports; the MCI open line says "<your own song>"). */
 
 static int  mx_state = -1;           /* -1 not read yet, 0 off, 1 on */
 static char (*mx_files)[MAX_PATH];
@@ -85,6 +86,14 @@ static const char *mx_pick(int track) {
     if (mx_starts % mx_every) return NULL;
     if (mx_pos >= mx_n) mx_shuffle();
     f = mx_files[mx_bag[mx_pos++]];
-    mlog("music-extra: track %d -> %s (song start %d, extra %d of %d this round)", track, f, mx_starts, mx_pos, mx_n);
+    /* the song's number in the folder's list, not its name: the log is attached to public bug reports (strlkproxy.c cmd_for_log) */
+    mlog("music-extra: track %d -> extra song #%d (song start %d, extra %d of %d this round)", track, mx_bag[mx_pos - 1] + 1, mx_starts, mx_pos, mx_n);
     return f;
+}
+
+/* strlkproxy.c's log filter: is this path one of the extra songs? */
+static int mx_is_extra(const char *path) {
+    int i;
+    for (i = 0; i < mx_n; i++) if (!_stricmp(mx_files[i], path)) return 1;
+    return 0;
 }

@@ -141,6 +141,20 @@ static void mlog(const char *fmt, ...) {
     if (!g_logging) return;
     va_start(ap, fmt); vmlog(fmt, ap); va_end(ap);
 }
+/* The log names no file of the player's own (2026-10-25, settings-file lane, docs/records/SETTINGS-FILE-2026-10-25.md): the kit
+ * asks players to attach mciproxy.log to a public GitHub issue, so an MCI `open "<path>" ...` whose file is one of the
+ * I76_MUSIC_EXTRA songs (musicextra.c) or lies outside the game folder is logged as `open "<your own song>" ...`. */
+static int mx_is_extra(const char *path);   /* musicextra.c */
+static const char *cmd_for_log(const char *cmd, char *buf, size_t n) {
+    const char *q, *e; char path[MAX_PATH]; size_t L = strlen(g_dir), k;
+    if (_strnicmp(cmd, "open \"", 6)) return cmd;
+    q = cmd + 6; e = strchr(q, '"');
+    if (!e || (k = (size_t)(e - q)) >= sizeof path) return cmd;
+    memcpy(path, q, k); path[k] = 0;
+    if (L && !_strnicmp(path, g_dir, L) && (path[L] == '\\' || path[L] == '/') && !mx_is_extra(path)) return cmd;
+    _snprintf(buf, n, "open \"<your own song>\"%s", e + 1); buf[n - 1] = 0;
+    return buf;
+}
 /* flog: written whether or not I76MUSIC_LOG is set. For rare, high-value events only (a CD prompt is one: it shows
  * up on a handful of launches and the whole point of catching it is not to need the run again). */
 static void flog(const char *fmt, ...) {
@@ -222,7 +236,7 @@ static MCIERROR mci_call(const char *cmd, char *ret, UINT retlen) {
     if (!music_thread_on()) return real_mciSendStringA(cmd, ret, retlen, NULL);
     busy = g_mq_busy_since;
     if (busy && GetTickCount() - (DWORD)busy > 1000) {
-        if (GetTickCount() - warned > 5000) { mlog("  music-thread: stuck for %lu ms - '%s' skipped", GetTickCount() - (DWORD)busy, cmd); warned = GetTickCount(); }
+        if (GetTickCount() - warned > 5000) { char lb[300]; mlog("  music-thread: stuck for %lu ms - '%s' skipped", GetTickCount() - (DWORD)busy, cmd_for_log(cmd, lb, sizeof lb)); warned = GetTickCount(); }
         return MCIERR_DEVICE_NOT_READY;
     }
     r = (mreq *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof *r);
@@ -236,7 +250,7 @@ static MCIERROR mci_call(const char *cmd, char *ret, UINT retlen) {
     LeaveCriticalSection(&g_mq_cs);
     ReleaseSemaphore(g_mq_sem, 1, NULL);
     if (WaitForSingleObject(r->done, 300) != WAIT_OBJECT_0 && InterlockedCompareExchange(&r->state, 2, 0) == 0) {
-        mlog("  music-thread: '%s' did not answer in 300 ms - the game goes on", cmd);
+        { char lb[300]; mlog("  music-thread: '%s' did not answer in 300 ms - the game goes on", cmd_for_log(cmd, lb, sizeof lb)); }
         return MCIERR_DEVICE_NOT_READY;                         /* the worker frees r when the call returns */
     }
     WaitForSingleObject(r->done, INFINITE);                     /* done (possibly just after the timeout) */
@@ -555,8 +569,9 @@ static void mci_str(const char *cmd) {
      * only %s - that %s consumed `e` (zero) and every successful command logged
      * as "str ok: (null)". The commands that matter most were the ones we could
      * not read. */
-    if (e) mlog("  str FAIL(%lu): %s", (unsigned long)e, cmd);
-    else   mlog("  str ok: %s", cmd);
+    char lb[300];
+    if (e) mlog("  str FAIL(%lu): %s", (unsigned long)e, cmd_for_log(cmd, lb, sizeof lb));
+    else   mlog("  str ok: %s", cmd_for_log(cmd, lb, sizeof lb));
 }
 
 static void stop_track(void) {
