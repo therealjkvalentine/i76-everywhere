@@ -359,3 +359,40 @@ us." Bit-exact **PASS**; the expected 0.05-0.15 ms saving **did not appear** (th
 the per-vertex divides were overlapped with the rest of the call (out-of-order), and the hook's ~150 cycles per call are the call,
 the stores and the timer pair, not the arithmetic. Landed anyway (exact, smaller code path, the probe off the hot path); fps unchanged
 within noise (46.6-48.9 vs 48.2-48.6).
+
+### U3 texture-variant memo (`I76_M16_MEMO=1`, opt-in; `=2` lab verify; music-fix/m16memo.c)
+
+U1 confirmed the clutter side at ~0.9 ms on the laptop (>= the 0.3 ms condition), so the unit ran. U1 also placed the call site: the
+churn is not a per-template lookup but every bush object's face textures being unloaded after the frame (`image_UnloadObjectFaceTextures`
+0x44a128, ~220-260 live releases / frame) and re-acquired by `renderer_GetFaceTexture` -> `image_LoadM16Variant` 0x471980 (at 0x44a5f0:
+vfs_GetFileSize + vfs_AcquireFile by name, the msvcrt locale compares). The memo keys on the face entry's texture name and keeps the
+pointer the first acquire returned (holding that one file-cache reference until `image_ShutdownFaceTextures`, its call 0x40463f,
+gives it back; dropped at `image_InitFaceTextures` 0x4033bc if no shutdown came); a load into an empty slot takes the memo pointer, a
+release of a memo pointer only empties the slot (all five release sites). An animated face (SetFaceTextureFrame renames the entry)
+keys on the new name, so the frame's own texture is used.
+
+The TMU-eviction invalidation the plan asked for is not needed and was not built: the memo is upstream of ZGLIDE (it hands back the
+CPU-side .m16 buffer, not a TMU handle), and the verify run shows it is **the same pointer the stock acquire returns** - ZGLIDE sees the
+same texture source, so its own cache / eviction is untouched (downloads stay ~1.7 / frame, tex-census NO-SLOT not involved).
+
+| | U2 state (U1 boots, n 3) | U3 (n 3) |
+|---|---|---|
+| equivalence (u3v, `I76_M16_MEMO=2`: stock path, memo pointer compared on every load it would have answered) | - | **0 different pointers** in ~1.1 M loads (7 windows of 135-185 k), 180-309 names |
+| GetFaceTexture at the clutter call (inclusive) | 629-656 us | 154-167 us |
+| of it LoadM16Variant | 487-509 us | 12.5-13.3 us (245-319 loads / frame answered by the memo) |
+| ReleaseM16Texture in the clutter call | 285-296 us | 9.2-9.7 us (the same count skipped) |
+| msvcrt MultiByteToWideChar | 3,164-3,200 / frame, 143-151 us | 85-90, 7 us |
+| exe _stricmp (GetFaceTexture's own name chain stays) | 211-220 us | 209-229 us |
+| whole clutter call (its 600-frame timer) | 1,530-1,589 us | **762-816 us** |
+| hill / ridge median fps, timers off | base 48.2 48.2 48.6 / 51.0 51.2 51.7 | 49.8 49.7 (third boot: harness exit at start, no row) / 51.6 50.2 |
+| CRASH | 0 | 0 (10 boots incl. the slow first build) |
+
+A first build (fd6f34e1) checked "is this a memo pointer" by scanning all 4,096 memo slots per release: release time went UP to
+609-668 us (u3t1-3); the shipped form keeps the pointers in a hash set (dca5140d, the rows above).
+
+**U3 line:** "U3: 245-319 variant resolutions / frame -> 0 (memo answers them; first acquires 55-99 per 600 frames); clutter call -0.73 to
+-0.77 ms (1,530-1,589 -> 762-816 us); handles identical (the stock acquire's own pointer, 0 differences)." **PASS** on the line and the
+equivalence. Not done from the plan's test list: the screenshot pair (no deterministic pose, above; the pointer identity is the
+stronger form) and the hood / binocular crash checks (no harness for them on the laptop route); a mission change (shutdown -> init)
+was not exercised. Therefore **opt-in** (`I76_M16_MEMO=1`, Gold), not a default: the next step is a promotion gate with a mission
+change and the crash views.

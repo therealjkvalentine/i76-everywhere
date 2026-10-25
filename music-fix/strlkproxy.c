@@ -1606,6 +1606,7 @@ static void frame_log_line(void) {
     if ((++g_frlog_n & 31) == 0) fflush(g_frlog);
 }
 static void pass_timers_frame(void);                         /* passtimers.c */
+static void m16_memo_frame(void);                            /* m16memo.c */
 static void __cdecl frame_cap_then_clock(void) {
     LARGE_INTEGER now, fl_in = {0}, fl_cap = {0};
     if (g_fl_period) QueryPerformanceCounter(&fl_in);
@@ -1642,6 +1643,7 @@ clock:
     if (g_rpl_on) rpl_pre();                                /* I76_REPLAY: log the frame just done; place the car at the start */
     if (g_trn) trn_frame();                                 /* trainer control block: hold / one-shots, before the tick */
     if (g_cdmg_log) coop_dmg_frame();                       /* I76_COOP_DMG_LOG (lab): mission cars' damage words / drawn rows */
+    m16_memo_frame();                                       /* m16memo.c: I76_M16_MEMO 600-frame line */
     pass_timers_frame();                                    /* passtimers.c: I76_PASS_TIMERS 600-frame report, registry hooks at frame 300 / 1500 */
     terrain_pops_frame();                                   /* terrainpops.c: I76_SHADE_SMOOTH table rebuild; the lab instruments' 600-frame report */
     if (g_start_on) start_pos_frame();                      /* I76_START_POS: one placement after the mission starts */
@@ -9466,6 +9468,7 @@ static void apply_terrain_hyst(void) {
     if (ok && ff > 0.0f) mlog("  terrain-hyst: freeze: nodes beyond %.0f m keep their first decision until they come within it (snapshot of new nodes every %.0f m)", ff, fm);
 }
 
+#include "m16memo.c"       /* I76_M16_MEMO: face textures' .m16 variants resolved once per mission (terrain-pass-opt U3; before passtimers.c: its wraps chain onto these) */
 #include "passtimers.c"    /* lab: I76_PASS_TIMERS / I76_PASS_DUMP: per-pass timers, call counts, equivalence hashes (terrain-pass-opt lane 2026-10-25; before faredge.c: fe_DrawTri reads it) */
 #include "faredge.c"       /* I76_HAZE / I76_GLIDE_FOG / I76_EDGE_FADE: far-edge fade (far-edge lane 2026-10-23; before terrainmorph.c: its emit wrap chains fe_haze_apply) */
 #include "terrainmorph.c"  /* I76_TERRAIN_MORPH / _MORPH_LOG / I76_TERRAIN_FLAT_SPLIT: geomorph + flat-tile split (TERRAIN-MORPH-2026-10-21) */
@@ -10612,6 +10615,7 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
         apply_mirror_detail();    /* lab: I76_MIRROR_DUMP=<N> (mirror bitmap + census), I76_MIRROR_TERRAIN_MODE=<hex> (after apply_terrain_lod: chains the main QueueTerrain call) */
         apply_terrain_pops();     /* lab: I76_TEX_LEVEL_LOG=<csv>, I76_SHADE_CENSUS=1 (after mirror-detail: shares its picker site; terrainpops.c) */
         apply_far_edge();         /* opt-in: I76_HAZE=<start>[,<strength>], I76_GLIDE_FOG=<start>[,<colour>], I76_EDGE_FADE=1 (after the morph: chains its emit wrap; after road-pool: chains its flush wrap; faredge.c) */
+        apply_m16_memo();         /* I76_M16_MEMO=1 (=2 verify): .m16 variants once per mission (m16memo.c; before apply_pass_timers: its wraps chain onto these) */
         apply_pass_timers();      /* lab: I76_PASS_TIMERS=1, I76_PASS_DUMP=<file>[,first,count] (passtimers.c; Gold; after far-edge and the clutter block) */
         apply_jump_nose();        /* opt-in: I76_JUMP_NOSE=<0.5..1>: the held nose-down pitch rate x f once on the first airborne step (jumpnose.c) */
         apply_factor_census();    /* lab: I76_FACTOR_CENSUS=1 without the tick (the tick-factors wrappers counting only; simtick.c) */
