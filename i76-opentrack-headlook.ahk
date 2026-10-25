@@ -476,6 +476,13 @@ NextMode(m) {
 ; ---- game process (analog mode only) ----------------------------------------
 OpenGame() {
     global hProc, gPid, GAME_EXE, gInPatched, gInSites, gAnalogOk, gPatched
+    ; headlook-cost 2026-10-25: Process,Exist builds a toolhelp snapshot of every process on EACH call (OpenGame runs once or twice per 8 ms tick
+    ; in ANALOG = ~33 % of a core). While we hold a handle to the game and it is still running, nothing changed: skip the snapshot.
+    if (hProc && gPid) {
+        ec := 0
+        if (DllCall("GetExitCodeProcess", "Ptr", hProc, "UInt*", ec) && ec = 259)
+            return true
+    }
     Process, Exist, %GAME_EXE%
     pid := ErrorLevel
     if (!pid) {
