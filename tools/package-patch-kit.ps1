@@ -76,7 +76,7 @@ $files = @(
     'tools\driver\DEBUG.bat', 'tools\driver\TRAINER.bat',
     'tools\debug\i76debug.py', 'tools\debug\debug_core.py', 'tools\debug\debug_trainer.py', 'tools\debug\debug_logger.py', 'tools\debug\debug_haptics.py', 'tools\debug\README.md',
     'tools\debug\static\index.html', 'tools\debug\static\app.js', 'tools\debug\static\app.css', 'tools\debug\static\charts.js',
-    'tools\trainer\i76trainer_gui.py', 'tools\trainer\i76trainer.py', 'tools\trainer\i76trn.h', 'tools\trainer\README-GUI.md', 'tools\trainer\waypoints.json',
+    'tools\trainer\i76trainer_gui.py', 'tools\trainer\i76trainer.py', 'tools\trainer\i76trn.h', 'tools\trainer\README-GUI.md',
     'tools\telemetry\i76tel.py', 'tools\telemetry\i76tel.h', 'tools\telemetry\i76tel_v2.h',
     'docs\Interstate76-Controls-Quick-Reference.pdf', 'docs\CONTROLS.md',
     'presets\tick19-42.psd1', 'presets\preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
@@ -101,6 +101,9 @@ foreach ($rel in $files) {
     New-Item -ItemType Directory -Force (Split-Path -Parent $to) | Out-Null
     Copy-Item -LiteralPath $from -Destination $to -Force
 }
+# the trainer GUI's waypoint slots: shipped empty (tools\trainer\waypoints.json is gitignored runtime state, never the developer's)
+New-Item -ItemType Directory -Force (Join-Path $sr 'tools\trainer') | Out-Null
+Set-Content -LiteralPath (Join-Path $sr 'tools\trainer\waypoints.json') -Value '[null, null, null]' -Encoding ascii
 New-Item -ItemType Directory -Force (Join-Path $sr 'music-fix') | Out-Null
 Copy-Item -LiteralPath $Proxy -Destination (Join-Path $sr 'music-fix\Strlkup.dll') -Force
 Copy-Item -LiteralPath (Join-Path $repo 'tools\patch-kit\i76e-prepare.ps1') -Destination (Join-Path $i76e 'i76e-prepare.ps1') -Force
