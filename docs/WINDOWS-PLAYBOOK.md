@@ -12,10 +12,10 @@ found and they're experiments, not guarantees.*
 >
 > **Scripted:** [`windows/setup-windows.ps1`](../windows/setup-windows.ps1) automates §1 plus the input.map
 > fixes (§4): retires GOG's OpenGLide, deploys dgVoodoo2 x86 Glide DLLs, installs
-> [`windows/dgVoodoo.windows.conf`](../windows/dgVoodoo.windows.conf) (20 FPS cap, Voodoo1 2MB/1TMU, 3x res,
+> [`windows/dgVoodoo.windows.conf`](../shared/renderer/dgVoodoo.windows.conf) (20 FPS cap, Voodoo1 2MB/1TMU, 3x res,
 > 8x MSAA, windowed), installs the control map, writes `PLAY-i76.bat` +
 > desktop shortcut. *2026-10-03:* the control map is now this project's own WASD-style map
-> ([`controls/input.map`](../controls/input.map)); `-Controls stock` keeps GOG's keys with the
+> ([`controls/input.map`](../shared/controls/input.map)); `-Controls stock` keeps GOG's keys with the
 > joystick5→joystick1 patch ([CONTROLS.md](CONTROLS.md)). Mouse steering is no longer offered. Force
 > feedback needs no step on the Gold exe: [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) is not
 > needed per the disassembly in WHEEL-T300.md (harmless; not re-tested without it).

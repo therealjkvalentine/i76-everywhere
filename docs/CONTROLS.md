@@ -3,7 +3,7 @@
 > **This project installs its own control map (WASD-style), not the 1997 layout.**
 > `W` `A` `S` `D` drive, the arrow keys look around, `Enter` or the left mouse button fires, `Space` is the
 > handbrake. It is the owner's daily-driver map plus three fire keys (`1`, `J`, `L`), shipped as
-> [`controls/input.map`](../controls/input.map) (decision of 2026-10-03). The table in section 1 lists every key beside the original one.
+> [`shared/controls/input.map`](../shared/controls/input.map) (decision of 2026-10-03). The table in section 1 lists every key beside the original one.
 >
 > **To keep the original keys:**
 >
@@ -30,7 +30,7 @@ Deep docs are linked, not repeated.
 Two facts first. The engine reads **`input.map`** in the game folder and nothing else ([AGENTS.md](../AGENTS.md)).
 And a Windows install made by `INSTALL.bat` has, as of 2026-10-03, **never been started** by anyone on this project
 ([INSTALL.md, Evidence](../INSTALL.md#evidence-what-was-tested)): the map is the one the owner plays on plus
-three keys added 2026-10-03 ([controls/README.md](../controls/README.md)), and the installer's copy of it was
+three keys added 2026-10-03 ([shared/controls/README.md](../shared/controls/README.md)), and the installer's copy of it was
 checked by md5 and lint, not by play.
 
 ## 0. Thirty seconds
@@ -101,7 +101,7 @@ Shift move the outside camera and the map instead of glancing.
 | Player scores (multiplayer) | `' (quote)` | `' (quote)` |  |
 | Team scores (multiplayer) | `; (semicolon)` | `Shift + ' (quote)` | changed |
 
-Generated from `controls/input.map` (md5 `a66a37f764633aba1cfd9e3fa280c31a`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
+Generated from `shared/controls/input.map` (md5 `a66a37f764633aba1cfd9e3fa280c31a`) and `tools/controls-sheet/stock-2.1.0.17.json` (GOG's map, md5 `74d2da3734b1c304e88b7ceb88050f1d`). "plain set" = the engine's `UpArrow` / `DownArrow` / `LeftArrow` / `RightArrow` tokens, as opposed to the `Grey*` set that the dedicated arrow keys send.
 
 <!-- END generated: stock-vs-ours -->
 
@@ -166,7 +166,7 @@ that on a Windows keyboard**, nor whether NumLock matters.
 
 ## 3. Keyboard and mouse
 
-From [`controls/input.map`](../controls/input.map) and the launcher:
+From [`shared/controls/input.map`](../shared/controls/input.map) and the launcher:
 
 - **Left button**: fire the selected weapon (also the handgun on foot). **Right button**: hardpoint 2.
   **Middle button**: look left.
@@ -350,7 +350,7 @@ When it does act it takes `input.map.as-installed` first and never one of the mo
 
 A binding you added does nothing: two `+` lines in one block are a chord (both at once); alternatives go in
 separate blocks ([I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)). The device name is `joystick1`; bare
-`Joystick` parses and binds nothing. Edit `controls/input.map` in the repo, run `tools\controls-sheet\build.ps1`
+`Joystick` parses and binds nothing. Edit `shared/controls/input.map` in the repo, run `tools\controls-sheet\build.ps1`
 (lint, consistency check, new sheet), then install; or edit the game folder's file after a backup
 (`input.map.pre-<change>`) and restart.
 
@@ -358,7 +358,7 @@ separate blocks ([I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)). The de
 
 The Mac build may have grown a different two-handed keyboard layout. It has not been examined against this page:
 the Mac installer copies [`input.map.reference`](input.map.reference) (2026-09-06), which differs from
-`controls/input.map` (gears on `-` / `=`, which the pad layer no longer types since 2026-10-03; home-row hardpoints `L` `O` `[` `]`, weapon link on Shift + left
+`shared/controls/input.map` (gears on `-` / `=`, which the pad layer no longer types since 2026-10-03; home-row hardpoints `L` `O` `[` `]`, weapon link on Shift + left
 click, bare `Joystick` hat blocks), and `mac/setup-mouse-and-pad.sh` still writes mouse steering there. Converging
 the two maps is open work; until then this page and the PDF describe Windows.
 

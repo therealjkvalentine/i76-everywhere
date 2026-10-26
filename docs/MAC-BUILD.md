@@ -28,7 +28,7 @@ Built/installed by [`mac/build-launchers.sh`](../mac/build-launchers.sh) into `~
 > Glide path lives happily on the **[Steam Deck](STEAMDECK.md)** (native Vulkan, no MoltenVK).
 
 One-time setup: [`mac/setup-dxwnd.sh`](../mac/setup-dxwnd.sh) (installs DxWnd + our
-[profile](../mac/interstate-76.dxw)), [`mac/setup-music.sh`](../mac/setup-music.sh) (in-mission music, see below),
+[profile](../shared/renderer/interstate-76.dxw)), [`mac/setup-music.sh`](../mac/setup-music.sh) (in-mission music, see below),
 [`mac/fix-arrows-for-mac.sh`](../mac/fix-arrows-for-mac.sh) (steering on Mac arrow keys).
 
 First launch, macOS asks for **microphone** access — that's Wine's CoreAudio driver opening the
@@ -73,7 +73,7 @@ blit - added/fixed by the AiO patch). No DirectX 11 anywhere - D3DMetal is irrel
 DxWnd wraps the game's DirectDraw output so the software render (set the in-game resolution to
 its 1024x768 max — that IS the engine ceiling, see VERIFIED-FIXES) is scaled into a big window.
 Setup once with [`mac/setup-dxwnd.sh`](../mac/setup-dxwnd.sh) (downloads DxWnd, installs our profile). The
-profile ([interstate-76.dxw](../mac/interstate-76.dxw)) is frozen at:
+profile ([interstate-76.dxw](../shared/renderer/interstate-76.dxw)) is frozen at:
 
 - **Main tab:** Run in Window, Early hook, `Terminate on window close` (closing the window = quit;
   the stub then reaps everything), **Position = Desktop** (`coord0=3`) + **Keep aspect ratio** →
@@ -219,7 +219,7 @@ Full handoff brief: [docs/records/MAC-SETUP.md](records/MAC-SETUP.md). Deep rese
 ## Controls: mouse driving + Xbox controller (native!)
 
 *Note 2026-10-03.* This section describes the Mac. On Windows the installer now writes the owner's WASD map
-([`controls/input.map`](../controls/input.map)) and mouse steering is no longer offered. The Mac map and
+([`controls/input.map`](../shared/controls/input.map)) and mouse steering is no longer offered. The Mac map and
 scripts were not changed and have not been compared with the Windows map: "Mac: converge later" in
 [CONTROLS.md](CONTROLS.md#mac-converge-later).
 
@@ -274,7 +274,7 @@ Steam Deck with a docked wheel — Linux has the evdev backend.)
 
 The Deck may be the **best** way to play this: native Vulkan means the dgVoodoo→DXVK chain runs
 without MoltenVK, so the shader-warmup stutter largely disappears — and force feedback works. Our
-[`dgVoodoo.conf`](../mac/dgVoodoo.conf) and input bindings transfer directly. Full recipe (Heroic + Proton
+[`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf) and input bindings transfer directly. Full recipe (Heroic + Proton
 + dgVoodoo, controls, 20 FPS cap, FFB, open items): [docs/STEAMDECK.md](STEAMDECK.md) +
 [`deck/setup-steamdeck.sh`](../deck/setup-steamdeck.sh).
 

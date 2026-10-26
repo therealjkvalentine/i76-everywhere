@@ -31,7 +31,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot   # windows\ : the scripts and .ahk sources
-$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }   # presets\, u32x\, the save editor page
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }   # shared\presets\, u32x\, the save editor page
 function Say($m,$c='Cyan'){ Write-Host $m -ForegroundColor $c }
 
 Say "`n=== Make a portable Interstate '76 zip ===`n" 'Green'
@@ -124,9 +124,10 @@ Copy-Item (Join-Path $repoRoot 'i76-save-editor.html') $staging -Force -ErrorAct
 # with no -LosslessScaling support), and the bundle should carry the current one.
 Copy-Item (Join-Path $repo 'PLAY-i76.ps1') $gameOut -Force -ErrorAction SilentlyContinue
 # ... and the frame-rate presets it reads (presets\*.psd1; -Preset stock, the default, uses none).
-if (Test-Path (Join-Path $repoRoot 'presets')) {
+$presetSrc = if (Test-Path (Join-Path $repoRoot 'shared\presets')) { Join-Path $repoRoot 'shared\presets' } else { Join-Path $repoRoot 'presets' }   # shared\presets\ in a clone
+if (Test-Path $presetSrc) {
     New-Item -ItemType Directory -Force (Join-Path $gameOut 'presets') | Out-Null
-    Copy-Item (Join-Path $repoRoot 'presets\*.psd1') (Join-Path $gameOut 'presets') -Force -ErrorAction SilentlyContinue
+    Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $gameOut 'presets') -Force -ErrorAction SilentlyContinue
 }
 
 # --- USER32 proxy (u32x.dll) in the bundle -----------------------------------

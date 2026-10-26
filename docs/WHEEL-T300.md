@@ -481,7 +481,7 @@ appears **only** on `steer` and `throttle`, which is the wheel doctrine.
 **Re-running `windows/setup-windows.ps1` does not put them back** (corrected 2026-10-03; this said it
 "appends the gamepad baseline unconditionally"). The code is the truth: the stock patch skips a
 map that carries its marker line, and since 2026-10-03 the default mode (`-Controls i76e`) writes
-[`controls/input.map`](../controls/input.map), the daily-driver map, which has no native buttons.
+[`controls/input.map`](../shared/controls/input.map), the daily-driver map, which has no native buttons.
 Only `-Controls stock` on GOG's own map adds the native pad buttons, and in that mode the wheel
 layer is not installed. To check a map:
 

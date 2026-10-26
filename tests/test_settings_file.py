@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 LAUNCHER = os.path.join(REPO, "windows", "PLAY-i76.ps1")
 TEMPLATE = os.path.join(REPO, "tools", "conf", "dgVoodoo.daily-wide-ss2x-2026-10-12.conf")
-PRESET = os.path.join(REPO, "presets", "tick19-42.psd1")
+PRESET = os.path.join(REPO, "shared", "presets", "tick19-42.psd1")
 POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
 pytestmark = pytest.mark.skipif(not POWERSHELL, reason="needs Windows PowerShell")
 BANNER = "If something went wrong, attach this file to a GitHub issue: https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose"

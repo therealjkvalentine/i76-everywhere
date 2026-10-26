@@ -136,7 +136,7 @@ tools/haptics/replays/synth-*
 tools/haptics/motion/__pycache__/
 
 # per-machine launcher override (PLAY-i76.ps1; never shipped)
-presets/local.psd1
+shared/presets/local.psd1
 
 # private LAN hosts for tools/lan-test
 tools/lan-test/hosts.local.sh

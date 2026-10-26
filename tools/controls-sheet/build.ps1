@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $repo = Split-Path (Split-Path $here -Parent) -Parent
-$map  = Join-Path $repo 'controls\input.map'
+$map  = Join-Path $repo 'shared\controls\input.map'
 $html = Join-Path $here 'controls-sheet.html'
 $pdf  = Join-Path $repo 'docs\Interstate76-Controls-Quick-Reference.pdf'
 
@@ -43,7 +43,7 @@ if (-not $Exe) {
 }
 if ($Exe -and (Test-Path $Exe)) {
     & $py @pyPre (Join-Path $repo 'tools\lint-input-map.py') $map $Exe
-    if ($LASTEXITCODE -ne 0) { Write-Host "lint: findings in controls\input.map (above). Nothing built." -ForegroundColor Red; exit 1 }
+    if ($LASTEXITCODE -ne 0) { Write-Host "lint: findings in shared\controls\input.map (above). Nothing built." -ForegroundColor Red; exit 1 }
 } else {
     Write-Host "lint SKIPPED: no i76.exe found (pass -Exe <path>, or set I76_EXE). The consistency check still runs." -ForegroundColor Yellow
 }

@@ -4,7 +4,7 @@
 # The whole set moves together: savegame.dir indexes the .cmp files by slot, so a partial
 # copy leaves the index describing saves that are not there.
 #
-#   ./saves/install-saves.sh [path-to-game-folder]
+#   ./shared/saves/install-saves.sh [path-to-game-folder]
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 GAME=${1:-"$HOME/Applications/Sikarugir/Interstate 76 Gold.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"}

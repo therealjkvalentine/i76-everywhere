@@ -17,7 +17,7 @@ layout, rumble or force feedback must reach the Deck by the same files.** No Dec
 scheme going forward. Concretely, the target Deck stack is the baseline tier below:
 
 - Steam Input on Valve's **"Gamepad" template**: a plain XInput pad, no keyboard emulation;
-- the shared [`controls/input.map`](../controls/input.map) with **analog** `steer` and `throttle`
+- the shared [`shared/controls/input.map`](../shared/controls/input.map) with **analog** `steer` and `throttle`
   on `joystick1` (required: digital A/D steering and W/S throttle are not acceptable as the
   Deck default);
 - the shared AutoHotkey layer [`windows/i76-remap.ahk`](../windows/i76-remap.ahk) inside the Proton prefix
@@ -29,7 +29,7 @@ scheme going forward. Concretely, the target Deck stack is the baseline tier bel
 **Done 2026-10-08 (owner: "match the gamepad layout exactly, the only difference being the pad quick
 select ... no L4 L5").** The Deck has one library entry and one layout: Steam Input
 `deck/controller_neptune_i76_pad.vdf` ("gamepad (v10)": Valve's Deck gamepad template, grips unbound) +
-the shared `windows/i76-remap.ahk` in the prefix + the shared `controls/input.map`, which `deck/i76-deck-launch.sh`
+the shared `windows/i76-remap.ahk` in the prefix + the shared `shared/controls/input.map`, which `deck/i76-deck-launch.sh`
 copies into place on every launch. The only Deck additions: the left trackpad quick-select menu and the right
 trackpad as the menu pointer (press = click; a Deck has no mouse). Layout v8.1 (keys) and the temporary second
 entry are retired; `deck/use-pad-layout.py` converts a Deck. Change pad controls in the shared files only.
@@ -61,7 +61,7 @@ handbrake, one active-special (nitrous), and camera glance. All of these are in 
 [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md).
 
 *Note 2026-10-03, Windows.* The map the Windows installer now writes by default
-([`controls/input.map`](../controls/input.map), the owner's daily-driver map) carries only the two analog
+([`shared/controls/input.map`](../shared/controls/input.map), the owner's daily-driver map) carries only the two analog
 `joystick1` axes natively; every pad button comes from the AutoHotkey layer, because a native button beside the
 layer fires twice (WHEEL-T300.md). The native button tier described here is what `windows/setup-windows.ps1 -Controls stock`
 installs, and what the Mac map has. On the default Windows map a pad without the layer can steer and

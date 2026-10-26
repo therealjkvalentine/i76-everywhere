@@ -3,7 +3,7 @@
   so they can give feedback; the zips go on GitHub, so nothing of GOG's may be inside).
 
   ONE zip, unzipped INTO a GOG Interstate '76 folder (PLAY.bat lands beside i76.exe). It carries only what we may ship:
-    _i76e\repo\      the pieces of this repo the installer needs (setup-windows.ps1, PLAY-i76.ps1, presets, controls\input.map,
+    _i76e\repo\      the pieces of this repo the installer needs (setup-windows.ps1, PLAY-i76.ps1, presets, controls\input.map from shared\,
                      u32x, the clean-built proxy as music-fix\Strlkup.dll, Make-Wide-Conf + its conf template, the shell patch
                      DATA (our bytes only, tools\patch-kit\shell-keys-patch.json) and patchers, i76wheel.exe, the debug tool, the
                      controls sheet, the repo's bookmark saves, LICENSE / THIRD-PARTY)
@@ -54,7 +54,7 @@ function Die([string]$m) { Write-Host "package-patch-kit: $m" -ForegroundColor R
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- windows presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 tools/debug tools/driver)
+$dirty = @(git -C $repo status --porcelain -- windows shared/presets shared/controls shared/renderer u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 tools/debug tools/driver)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files (commit first so VERSION.txt names what shipped):`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not (Test-Path -LiteralPath $Proxy)) { Die "proxy not found: $Proxy" }
 $proxyMd5 = Md5 $Proxy
@@ -85,12 +85,15 @@ $files = @(
     'tools\relay\pyrelay.py', 'tools\relay\relay.ini', 'tools\relay\relay-tool.ps1', 'tools\relay\RUN-RELAY.bat', 'tools\relay\RELAY-FIREWALL.bat',
     'tools\relay\README.md', 'tools\relay\JOIN-RELAY.md'
 )
-$files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
-# In the repo these live in windows\; the kit keeps them flat in _i76e\repo\ (setup-windows.ps1 and PLAY-i76.ps1 look for them beside themselves).
-$winFlat = @('setup-windows.ps1', 'PLAY-i76.ps1', 'dgVoodoo.daily-driver-2026-10-03.conf', 'dgVoodoo.windows.conf', 'i76-remap.ahk', 'i76-ch-fighterstick.ahk',
+$files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'shared\saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
+# In the repo these live in windows\ (the two confs in shared\renderer\); the kit keeps them flat in _i76e\repo\ (setup-windows.ps1 and
+# PLAY-i76.ps1 look for them beside themselves). presets\, controls\, saves\ are under shared\ in the repo and at the top of _i76e\repo\.
+$winFlat = @('setup-windows.ps1', 'PLAY-i76.ps1', 'i76-remap.ahk', 'i76-ch-fighterstick.ahk',
              'i76-opentrack-headlook.ahk', 'i76-opentrack-autostart.ahk', 'i76-opentrack-autostart.ps1')
+$confFlat = @('dgVoodoo.daily-driver-2026-10-03.conf', 'dgVoodoo.windows.conf')
 foreach ($rel in $files) {
-    $srcRel = if ($winFlat -contains $rel) { "windows\$rel" } else { $rel }
+    $srcRel = if ($winFlat -contains $rel) { "windows\$rel" } elseif ($confFlat -contains $rel) { "shared\renderer\$rel" }
+              elseif ($rel -match '^(presets|controls|saves)\\') { "shared\$rel" } else { $rel }
     $from = Join-Path $repo $srcRel
     if (-not (Test-Path -LiteralPath $from)) { Die "missing in the repo: $srcRel" }
     $to = Join-Path $sr $rel
@@ -105,10 +108,10 @@ foreach ($n in 'i76e-extras.ps1', 'extras.json', 'i76e-controls.ps1', 'i76e-upda
 # every version of the control files the kit ever shipped (from git history), so setup-windows.ps1 knows an unedited kit file from
 # a player's own in a folder an older kit set up (before i76e-installed.md5 existed); as stored, and with CRLF / LF line ends
 $known = @('# md5 *name: control files shipped by some version of this repo (tools\package-patch-kit.ps1); setup-windows.ps1 replaces these, keeps any other')
-# (the two .ahk files moved to windows/ on 2026-10-26: the history is under the old root path first, the new path after)
+# (the two .ahk files moved to windows/ and the map to shared/controls/ on 2026-10-26: the history is under the old root path first, the new path after)
 foreach ($pair in @(@('controls/input.map', 'input.map'), @('i76-remap.ahk', '_ahk\i76-remap.ahk'), @('i76-ch-fighterstick.ahk', '_ahk\i76-ch-fighterstick.ahk'))) {
     $seen = @{}
-    $histPaths = @(if ($pair[0] -like "*.ahk") { $pair[0]; "windows/$($pair[0])" } else { $pair[0] })
+    $histPaths = @(if ($pair[0] -like "*.ahk") { $pair[0]; "windows/$($pair[0])" } else { $pair[0]; "shared/$($pair[0])" })
     foreach ($c in @(git -C $repo rev-list HEAD -- @histPaths)) {
         $tmp = Join-Path $env:TEMP 'kit-known.bin'
         Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
@@ -124,7 +127,7 @@ foreach ($pair in @(@('controls/input.map', 'input.map'), @('i76-remap.ahk', '_a
             if (-not $seen[$m]) { $seen[$m] = 1; $known += "$m *$($pair[1])" }
         }
     }
-    $cur = if ($pair[0] -like '*.ahk') { Join-Path $repo "windows\$($pair[0])" } else { Join-Path $repo $pair[0] }
+    $cur = if ($pair[0] -like '*.ahk') { Join-Path $repo "windows\$($pair[0])" } else { Join-Path $repo "shared\$($pair[0])" }
     $m = Md5 $cur; if (-not $seen[$m]) { $known += "$m *$($pair[1])" }
 }
 $known | Set-Content -LiteralPath (Join-Path $sr 'tools\patch-kit\known-kit-md5.txt') -Encoding ascii

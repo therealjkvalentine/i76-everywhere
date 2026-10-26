@@ -136,8 +136,8 @@ if (($knownGood -notcontains $u32xMd5) -and -not $AllowUnrecordedU32x) {
     Die "u32x build $u32xMd5 is not in u32x\deploy-u32x.ps1's KnownGood list ($($knownGood -join ', ')). Record it there after its gate, or pass -AllowUnrecordedU32x."
 }
 
-$presetFile = Join-Path $repo "presets\$Preset.psd1"
-if (-not (Test-Path -LiteralPath $presetFile)) { Die "no preset $Preset in $repo\presets" }
+$presetFile = Join-Path $repo "shared\presets\$Preset.psd1"
+if (-not (Test-Path -LiteralPath $presetFile)) { Die "no preset $Preset in $repo\shared\presets" }
 if (-not (Test-Path -LiteralPath (Join-Path $srcGame 'strlkup_orig.dll'))) { Die "the source has no strlkup_orig.dll: the music-fix proxy would have nothing to forward to" }
 
 # The driver's i76.exe and i76shell.dll must already import u32x.dll, because this script only
@@ -223,7 +223,7 @@ Say "Golden      : $(if ($GoldenDest) { $GoldenDest } else { '(none)' })" 'Cyan'
 Say ("Game files  : {0} to 'Interstate 76\', {1} residue files to '_carried-over\'" -f $nGame, $nCarry)
 Say ("Lossless Scaling : {0}" -f $(if ($haveLS) { 'carried' } else { 'not carried' }))
 foreach ($o in $overlays) { Say ("Overlay     : {0,-14} <- {1}  (md5 {2})" -f $o.Name, $o.From, (Md5 $o.From)) }
-Say ("Presets     : {0}\presets\*.psd1 -> 'Interstate 76\presets\'; PLAY.bat uses -Preset {1}" -f $repo, $Preset)
+Say ("Presets     : {0}\shared\presets\*.psd1 -> 'Interstate 76\presets\'; PLAY.bat uses -Preset {1}" -f $repo, $Preset)
 if ($WideConf) { Say "Widescreen  : dgVoodoo.wide.conf + dgVoodoo.16x10.conf; PLAY.bat (wide conf, -Preset $Preset), PLAY-16x10.bat (16:10, best-120), PLAY-balanced.bat (wide, best-wide-balanced)" }
 Say ("I76PATCH.DLL: {0}" -f $(if ($disablePatch) { 'renamed to I76PATCH.DLL.disabled in the NEW folder (20 fps cap off)' } else { 'left active' }))
 if ($KeepSourceConf) { Say "dgVoodoo.conf: the DRIVER'S conf is carried unchanged. If dgVoodoo rejects it, the new folder depends on %APPDATA%\dgVoodoo\dgVoodoo.conf and is not independent." 'Yellow' }
@@ -275,7 +275,7 @@ foreach ($o in $overlays) {
 
 # presets beside the launcher
 $dstPresets = Join-Path $dstGame 'presets'
-foreach ($p in Get-ChildItem -LiteralPath (Join-Path $repo 'presets') -Filter '*.psd1') { CopyVerified $p.FullName (Join-Path $dstPresets $p.Name) 'repo: presets' }
+foreach ($p in Get-ChildItem -LiteralPath (Join-Path $repo 'shared\presets') -Filter '*.psd1') { CopyVerified $p.FullName (Join-Path $dstPresets $p.Name) 'repo: presets' }
 
 # GOG's 20 fps cap: with it loaded a 60/120 preset runs under the cap and looks like it does nothing
 if ($disablePatch) {

@@ -71,7 +71,7 @@ inside records were not.
 
 ## 2. Frame rate and simulation (60 / 120 fps)
 
-Switch-by-switch evidence lives in [`../music-fix/README.md`](../music-fix/README.md); presets in [`../presets/`](../presets/).
+Switch-by-switch evidence lives in [`../music-fix/README.md`](../music-fix/README.md); presets in [`../presets/`](../shared/presets/).
 
 | | Doc | What it is |
 |---|---|---|
@@ -106,7 +106,7 @@ Binding rules are in [`../AGENTS.md`](../AGENTS.md): `input.map` is the only liv
 |---|---|---|
 | living | [CONTROLS.md](CONTROLS.md) | Start here: this project's own control map (WASD-style, not the 1997 layout) and how to keep the original keys; the four control setups on one page; every key beside the stock one; the common faults |
 | living | [Interstate76-Controls-Quick-Reference.pdf](Interstate76-Controls-Quick-Reference.pdf) | The printable quick reference, five US Letter pages. Generated, never hand-edited: [`../tools/controls-sheet`](../tools/controls-sheet/README.md) builds it from the map and the layer scripts and fails when they disagree |
-| living | [`../controls/input.map`](../controls/input.map) | The control map the Windows installer writes (the owner's daily-driver map); notes in [`../controls/README.md`](../controls/README.md) |
+| living | [`../controls/input.map`](../shared/controls/input.map) | The control map the Windows installer writes (the owner's daily-driver map); notes in [`../controls/README.md`](../shared/controls/README.md) |
 | living | [CONTROL-DOCTRINE.md](CONTROL-DOCTRINE.md) | The two-tier control design: critical actions never depend on one platform's layer |
 | living | [GAMEPAD-PC-MAC.md](GAMEPAD-PC-MAC.md) | Xbox pad on PC and Mac through the native joystick path |
 | living | [INPUT-REMAPPER.md](INPUT-REMAPPER.md) | The AutoHotkey layer inside the Wine / Proton prefix (shift layer, mouse buttons, wheel) |
@@ -243,7 +243,7 @@ migration (`I76_LAB_ROOT`, `I76_GAME_DIR`, `I76_MAP_ROOT`) is the next step.
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md), [`../THIRD-PARTY.md`](../THIRD-PARTY.md), and the component READMEs:
 [`../music-fix/`](../music-fix/README.md) (the proxy and every switch), [`../u32x/`](../u32x/README.md),
 [`../smack-music-fix/`](../smack-music-fix/README.md), [`../ffb-shim/`](../ffb-shim/README.md),
-[`../sound-rumble/`](../sound-rumble/README.md), [`../saves/`](../saves/README.md),
+[`../sound-rumble/`](../sound-rumble/README.md), [`../saves/`](../shared/saves/README.md),
 [`../texture-lab/`](../texture-lab/README.md), [`../tools/ffb/`](../tools/ffb/README.md),
 [`../tools/trainer/`](../tools/trainer/README-GUI.md), [`../tools/telemetry/`](../tools/telemetry/README.md),
 [`../tools/bisect/`](../tools/bisect/README.md), [`../tools/openglide-hd/`](../tools/openglide-hd/README.md).

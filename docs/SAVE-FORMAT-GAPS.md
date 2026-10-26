@@ -152,7 +152,7 @@ Captures and the full record of the 2026-10-02 run: `..\..\<lab>\autotest\saves\
   C is the queue; the trains were signature-scan artefacts.
 - all **COLOR CAL / ALL PERFECT / TRUTH / TURRET** conclusions ("colours are render-time", "stored
   colour state not in the file", "salvage re-rolls") - each probe set cond on the record after the
-  one it named. The five saves they produced (`saves/save008.cmp`, rescue `save004/006/007/008`)
+  one it named. The five saves they produced (`shared/saves/save008.cmp`, rescue `save004/006/007/008`)
   are the only files that fail the game invariants; they still round-trip and the editor's
   "Stow spares in van" re-sorts their states.
 - `savegame.dir`: *"0x28 header, name at +0 / scene at +0x18 / name precedes its entry / 36 bytes

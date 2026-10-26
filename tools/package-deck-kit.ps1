@@ -7,7 +7,7 @@
   ONE zip with one folder, Interstate76-Deck-Kit\:
     i76-deck-kit.sh, README.md, pins.txt, VERSION.txt, MD5SUMS, i76-env.sh (the Deck preset), i76-env-mp.sh, i76-env.local.sh.example,
     dgVoodoo.conf (the Deck's 2.78.2 conf), tools\ (bspatch.py, add-to-steam.py, gpw-envelopes.py, zfs_extract.py)
-    payload\gold\    STRLKUP.DLL (the proxy), i7_sfrce.dll (the ffb-shim rumble DLL), input.map (controls\input.map); no u32x (see below)
+    payload\gold\    STRLKUP.DLL (the proxy), i7_sfrce.dll (the ffb-shim rumble DLL), input.map (shared\controls\input.map); no u32x (see below)
     payload\deck\    i76-deck-launch.sh, i76-deck-launch-mp.sh, controller_neptune_i76_pad.vdf
     payload\ahk\     AutoHotkeyU32.exe 1.1.37.02 (GPL v2) + license.txt + i76-remap.ahk
     payload\patches\ deck\kit\tools\make-deck-patches.py's output (BSDIFF40 against GOG 2.1.0.17 files) + patches.txt: the Mac Kit's
@@ -35,7 +35,7 @@ function Die([string]$m) { Write-Host "package-deck-kit: $m" -ForegroundColor Re
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- deck/kit deck/i76-deck-launch.sh deck/i76-deck-launch-mp.sh deck/add-to-steam.py deck/controller_neptune_i76_pad.vdf controls/input.map windows/i76-remap.ahk u32x/u32x_full.dll tools/gpw-envelopes.py tools/zfs_extract.py)
+$dirty = @(git -C $repo status --porcelain -- deck/kit deck/i76-deck-launch.sh deck/i76-deck-launch-mp.sh deck/add-to-steam.py deck/controller_neptune_i76_pad.vdf shared/controls/input.map windows/i76-remap.ahk u32x/u32x_full.dll tools/gpw-envelopes.py tools/zfs_extract.py)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files:`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not $Stage) { $Stage = Join-Path $env:TEMP "deck-kit-stage-$sha" }
 if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -Force }
@@ -63,7 +63,7 @@ PutLf (Join-Path $repo 'deck\i76-deck-launch.sh') 'payload\deck\i76-deck-launch.
 PutLf (Join-Path $repo 'deck\i76-deck-launch-mp.sh') 'payload\deck\i76-deck-launch-mp.sh'
 PutLf (Join-Path $repo 'deck\controller_neptune_i76_pad.vdf') 'payload\deck\controller_neptune_i76_pad.vdf'
 PutLf (Join-Path $repo 'windows\i76-remap.ahk') 'payload\ahk\i76-remap.ahk'
-Put (Join-Path $repo 'controls\input.map') 'payload\gold\input.map'
+Put (Join-Path $repo 'shared\controls\input.map') 'payload\gold\input.map'
 foreach ($n in 'capsule_p.png', 'header.png', 'hero.png', 'logo.png', 'icon.png') { Put (Join-Path $repo "deck\artwork\$n") "artwork\$n" }   # generated art (deck\make-art.py), no game assets
 
 # ---- our binaries, md5-pinned (a different build must be a deliberate edit here) --------------------------------------------

@@ -91,7 +91,7 @@ uploads with `grTexDownloadMipMap`. Vertex UVs are normalised 0..1 in the .geo (
 FORMATS.md §7) and ZGLIDE scales `s = u * [0x1001a030] * oow * 255.0` (0x10002b9b..0x10002bc6). Mipmaps are never
 enabled (`FirstDevice` zeroes the flag; TEXTURE-AND-OBJECT-LOD.md §1), filtering is `grTexFilterMode` per polygon
 (point when the per-call flag and `[0x1001f754]` are set, else bilinear; CLUTTER-AND-MIRROR.md §2) and the conf
-forces `TMUFiltering = bilinear` (`windows/dgVoodoo.windows.conf` line 68). All of this is from lab
+forces `TMUFiltering = bilinear` (`shared/renderer/dgVoodoo.windows.conf` line 68). All of this is from lab
 `docs\TEXTURE-DELIVERY.md` §1 (static) and its 2026-10-03 live run: a 256x128 M16 replacing a 128x64 one rendered
 correctly, "UVs are normalised; nothing on the Glide path assumes a texture's size."
 
@@ -449,7 +449,7 @@ Repo: `texture-lab/README.md`, `texture-lab/{decode_all,reencode_all,dash_varian
 HUD squeeze ~6167-6230, texture census ~4807), `music-fix/README.md` (`I76_HUD_SQUEEZE` row),
 `docs/HD-TEXTURES-RESEARCH.md`, `docs/ENHANCEMENTS.md`, `docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md`
 §4-5, `docs/records/GRAPHICS-ENHANCEMENT.md` (R4), `docs/records/MENU-HD-ART.md`, `THIRD-PARTY.md`,
-`docs/SCOPE-AND-LEGITIMACY.md`, `windows/dgVoodoo.windows.conf`.
+`docs/SCOPE-AND-LEGITIMACY.md`, `shared/renderer/dgVoodoo.windows.conf`.
 Lab (`<lab>\docs`): `TEXTURE-DELIVERY.md`, `TEXTURE-AND-OBJECT-LOD.md`, `CLUTTER-AND-MIRROR.md`,
 `WIDESCREEN-2D.md`, `OPENGLIDE-HD-WINDOWS-2026-10-03.md`; `autotest\proxy-run.ps1`.
 RE (`<re-archive>`): `subsystems/renderer.md` (K1, K1e, K1e4, K1h, L1e), `subsystems/camera.md` "HUD

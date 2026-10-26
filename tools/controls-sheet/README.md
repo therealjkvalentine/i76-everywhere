@@ -10,7 +10,7 @@ five US Letter landscape pages: keyboard and mouse, gamepad, wheel (T300RS), fli
 
    | What | Where |
    |---|---|
-   | A key, a mouse button, an analog axis | [`controls/input.map`](../../controls/input.map) |
+   | A key, a mouse button, an analog axis | [`shared/controls/input.map`](../../shared/controls/input.map) |
    | A wheel button | `gWheelBase` / `gWheelAlt` / `gWheelHat` / `gWheelHatAlt` / `gWheelHoldSet` in [`windows/i76-remap.ahk`](../../windows/i76-remap.ahk) |
    | A gamepad button | the `XIPoll` code and its `@pad` comment line in `windows/i76-remap.ahk`, **and** the matching entry under `gamepad.entries` in `controls-sheet.json` (the pad layer is code, not a table) |
    | Mouse buttons 4 / 5 | the `XButton1::` / `XButton2::` lines in `windows/i76-remap.ahk` |
@@ -53,11 +53,11 @@ AutoHotkey script.
 Known mismatches: none (the list in `controls-sheet.json` is empty). The check found four on 2026-10-03, all in
 the pad layer, and the owner ruled the same day that they be fixed there: LB + D-pad left / right typed `-` / `=`
 and now type `,` / `.` (gear down / up); B typed `C` and now types `Tab` (cycle weapon); LB + RT types `1`, which
-`controls/input.map` now binds to hardpoint 1. RB, which had no function, holds `Space` (handbrake). None of the
+`shared/controls/input.map` now binds to hardpoint 1. RB, which had no function, holds `Space` (handbrake). None of the
 four has been played yet; the daily driver gets the map and the script by promotion after a pad test.
 
 A mismatch that has to stay for a while goes under `known_mismatches` with id `<layer>:<control>:<key sent>`;
-it is then printed on its page with a dagger. To close one, bind the key in `controls/input.map` or change the
+it is then printed on its page with a dagger. To close one, bind the key in `shared/controls/input.map` or change the
 key in `windows/i76-remap.ahk`, remove the entry, and run the build.
 
 ## Files

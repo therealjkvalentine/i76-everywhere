@@ -79,7 +79,7 @@ try {
     if ($Mode -eq "all" -or $Mode -eq "all120") { $env:I76_FIX_HEALTH_PCT = "1"; $env:I76_FIX_LABEL_TABLE = "1"; $env:I76_FAR_CLIP = "1800"; $env:I76_TELEMETRY = "1" }
     if ($Mode -eq "stock20") { $env:I76_FPS_CAP = "20" }
     if ($Preset) {
-        $pf = "$env:USERPROFILE\i76-everywhere\presets\$Preset.psd1"
+        $pf = "$env:USERPROFILE\i76-everywhere\shared\presets\$Preset.psd1"
         if (-not (Test-Path $pf)) { throw "no preset $pf" }
         Get-ChildItem Env: | Where-Object { $_.Name -like "I76_*" -and $_.Name -ne "I76_ASPECT_COCKPIT_FOV" } | ForEach-Object { Remove-Item "Env:$($_.Name)" }   # the .bat's cockpit-width answer survives
         $pd = Import-PowerShellDataFile $pf

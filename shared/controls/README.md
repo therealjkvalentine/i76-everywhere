@@ -1,16 +1,16 @@
-# controls/: the control map this project installs
+# shared/controls/: the control map this project installs
 
 `input.map` here is the map `windows/setup-windows.ps1` writes into a Windows game folder by default
 (`-Controls i76e`). It is the owner's daily-driver map, copied on 2026-10-03 from
 `<games>\Interstate76-2026-10-03\Interstate 76\input.map`, plus the three keys below. It is a
 WASD layout, **not** the 1997 key layout; how to keep the original keys is at the top of
-[docs/CONTROLS.md](../docs/CONTROLS.md).
+[docs/CONTROLS.md](../../docs/CONTROLS.md).
 
 **It is no longer byte-identical to the daily driver's map** (since 2026-10-03, owner ruling the same day):
 
 | File | md5 |
 |---|---|
-| `controls/input.map` (this repo, 2026-10-17) | `a66a37f764633aba1cfd9e3fa280c31a` |
+| `shared/controls/input.map` (this repo, 2026-10-17) | `a66a37f764633aba1cfd9e3fa280c31a` |
 | the daily driver's `input.map` (since promotion 2) | `90122d370333b545d27070f3f94b1265` |
 
 The difference is added bindings and a corrected header comment; nothing was removed or moved:
@@ -35,8 +35,8 @@ Shift). `C` is added as a second `weapon_cycle` key because the Mac pad layer ty
 The 2026-10-03 layout (`J` = hardpoint 1, `L` = hardpoint 2, `K` radar camera) is what the Windows daily driver
 still has; giving it this map is the owner's promotion (with the changed `windows/i76-remap.ahk`).
 
-- **Printable sheet:** [docs/Interstate76-Controls-Quick-Reference.pdf](../docs/Interstate76-Controls-Quick-Reference.pdf),
-  generated from this file by [tools/controls-sheet](../tools/controls-sheet/README.md).
+- **Printable sheet:** [docs/Interstate76-Controls-Quick-Reference.pdf](../../docs/Interstate76-Controls-Quick-Reference.pdf),
+  generated from this file by [tools/controls-sheet](../../tools/controls-sheet/README.md).
 - **To change a binding:** edit `input.map` here, then run `tools\controls-sheet\build.ps1`. It lints the
   map, checks it against the AutoHotkey layers, and regenerates the sheet, or lists what is inconsistent.
 - **The file is stored without line-ending conversion** (`.gitattributes`): it has mixed endings, as in the
@@ -48,7 +48,7 @@ What is specific to the owner's machine, checked 2026-10-03:
   any PC: the wheel on the owner's, an Xbox pad's left stick on a pad-only PC.
 - There are **no native `joystick1` button or hat bindings**. They were removed on 2026-08-08 because the
   AutoHotkey wheel layer types keys for every button and a native binding beside it fires twice
-  ([docs/WHEEL-T300.md](../docs/WHEEL-T300.md)). For a gamepad this means the buttons work only through
+  ([docs/WHEEL-T300.md](../../docs/WHEEL-T300.md)). For a gamepad this means the buttons work only through
   the AutoHotkey layer (`windows/i76-remap.ahk`), which the installer deploys.
 - No paths, device names or other machine data are in the file.
 

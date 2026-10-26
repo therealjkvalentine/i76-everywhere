@@ -38,7 +38,7 @@ suppression ever failed, nothing double-triggers.
 | Mouse button 5 ("forward") | `3` | `hardpoint3_fire` |
 
 Edit the `.ahk`, re-run `./mac/setup-input-remapper.sh`, relaunch the game. Keys on the right are
-engine key names already bound in the installed map: [`../controls/input.map`](../controls/input.map) on Windows,
+engine key names already bound in the installed map: [`../controls/input.map`](../shared/controls/input.map) on Windows,
 [`input.map.reference`](input.map.reference) on the Mac. `tools\controls-sheet\build.ps1` checks every key the
 script sends against the Windows map.
 

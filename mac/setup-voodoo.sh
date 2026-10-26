@@ -23,8 +23,8 @@ else
 fi
 
 # 2. known-good configs (windowed, FPSLimit=20, Resolution=2x, async pipelines)
-cp "$HERE/dgVoodoo.conf" "$GAME/dgVoodoo.conf"
-cp "$HERE/dxvk.conf" "$GAME/dxvk.conf"
+cp "$HERE/../shared/renderer/dgVoodoo.conf" "$GAME/dgVoodoo.conf"
+cp "$HERE/../shared/renderer/dxvk.conf" "$GAME/dxvk.conf"
 echo "dgVoodoo.conf + dxvk.conf installed"
 
 # 3. float-when-inactive (per-app): the -glide shell is exclusive-fullscreen-ish;

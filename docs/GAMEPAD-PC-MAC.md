@@ -6,7 +6,7 @@ emulation. This is the **BASELINE** tier — see [CONTROL-DOCTRINE.md](CONTROL-D
 relates to the Deck's convenience layer.*
 
 > **Windows, 2026-10-03:** the map the Windows installer writes by default
-> ([`controls/input.map`](../controls/input.map)) has the two analog lines below and **no native pad buttons**;
+> ([`controls/input.map`](../shared/controls/input.map)) has the two analog lines below and **no native pad buttons**;
 > the buttons come from the AutoHotkey layer. The native button table on this page applies to
 > `windows/setup-windows.ps1 -Controls stock` and to the Mac. See [CONTROLS.md](CONTROLS.md) section 4.
 

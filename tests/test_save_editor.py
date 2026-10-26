@@ -2,8 +2,8 @@
 
     python -m pytest tests/ -q            (or:  python tests/test_save_editor.py)
 
-Runs over EVERY sample save: the committed sets (saves/, saves/lab-20261002 = today's player saves
-copied read-only from the lab, saves/windows-20260906, saves/rescue-20260718) and, when present, the
+Runs over EVERY sample save: the committed sets (shared/saves/, shared/saves/lab-20261002 = today's player saves
+copied read-only from the lab, shared/saves/windows-20260906, shared/saves/rescue-20260718) and, when present, the
 live lab copy <lab>/game (read-only; set I76_LAB_DIR to point elsewhere or to
 "" to skip).  Rules: parse -> serialise must equal the input for every file, not one; sizes come from
 the writer's formula; a written directory never shrinks; records stay 116 bytes.
@@ -17,8 +17,8 @@ REPO = os.path.dirname(HERE)
 spec = importlib.util.spec_from_file_location("i76_save_editor", os.path.join(REPO, "tools", "save-editor", "i76-save-editor.py"))
 ed = importlib.util.module_from_spec(spec); spec.loader.exec_module(ed)
 
-SAMPLE_DIRS = [os.path.join(REPO, "saves"), os.path.join(REPO, "saves", "lab-20261002"),
-               os.path.join(REPO, "saves", "windows-20260906"), os.path.join(REPO, "saves", "rescue-20260718")]
+SAMPLE_DIRS = [os.path.join(REPO, "shared", "saves"), os.path.join(REPO, "shared", "saves", "lab-20261002"),
+               os.path.join(REPO, "shared", "saves", "windows-20260906"), os.path.join(REPO, "shared", "saves", "rescue-20260718")]
 LAB = os.environ.get("I76_LAB_DIR", (__import__("os").path.expanduser("~") + "/i76-uncap-lab/game"))
 if LAB and os.path.isdir(LAB):
     SAMPLE_DIRS.append(LAB)
@@ -29,9 +29,9 @@ DIR_FILES = sorted(p for d in SAMPLE_DIRS if os.path.isfile(p := os.path.join(d,
 # saves the 2026-07 editor wrote with its records framed 32 bytes late: their states and repair
 # queue are scrambled in a way the game-written invariants do not hold for (documented in
 # docs/records/SAVE-EDITOR-STATUS-2026-10-02.md); they still have to round-trip byte for byte.
-EDITOR_TOUCHED = {"saves/save008.cmp", "saves/rescue-20260718/save004.cmp", "saves/rescue-20260718/save006.cmp",
-                  "saves/rescue-20260718/save007.cmp", "saves/rescue-20260718/save008.cmp"}
-LAB_FIX = os.path.join(REPO, "saves", "lab-20261002")
+EDITOR_TOUCHED = {"shared/saves/save008.cmp", "shared/saves/rescue-20260718/save004.cmp", "shared/saves/rescue-20260718/save006.cmp",
+                  "shared/saves/rescue-20260718/save007.cmp", "shared/saves/rescue-20260718/save008.cmp"}
+LAB_FIX = os.path.join(REPO, "shared", "saves", "lab-20261002")
 NODE = shutil.which("node")
 NODE_TEST = os.path.join(REPO, "tools", "tests", "test-save-editor-cmp.mjs")
 
@@ -181,7 +181,7 @@ def test_lab_dir_known_values():
     assert sd.get("save003").plays() == 5 and sd.get("save000").plays() == 2   # state 8 as-is, state 1 next
 
 def test_dir_edit_preserves_stale_name_bytes():
-    path = os.path.join(REPO, "saves", "savegame.dir")        # carries "\0eppers" after a NUL
+    path = os.path.join(REPO, "shared", "saves", "savegame.dir")        # carries "\0eppers" after a NUL
     data = _read(path); sd = ed.SaveDir(data)
     sd.set_scene("save000", 9)
     out = sd.to_bytes()
@@ -192,7 +192,7 @@ def test_dir_edit_preserves_stale_name_bytes():
 
 def test_dir_add_remove_and_never_shrink(tmp_path):
     dst = tmp_path / "savegame.dir"
-    shutil.copy(os.path.join(REPO, "saves", "savegame.dir"), dst)   # 876 B = 13 records + 92 slack
+    shutil.copy(os.path.join(REPO, "shared", "saves", "savegame.dir"), dst)   # 876 B = 13 records + 92 slack
     size0 = os.path.getsize(dst)
     sd = ed.SaveDir.load(dst)
     sd.remove("save017")

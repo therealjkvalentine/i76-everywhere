@@ -45,7 +45,7 @@ def guard_problems(env):
     return refuse, warn
 
 
-PRESETS = sorted(glob.glob(os.path.join(REPO, "presets", "*.psd1")))
+PRESETS = sorted(glob.glob(os.path.join(REPO, "shared", "presets", "*.psd1")))
 
 
 @pytest.mark.parametrize("path", PRESETS, ids=[os.path.basename(p) for p in PRESETS])

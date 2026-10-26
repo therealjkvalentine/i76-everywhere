@@ -22,7 +22,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 APP="$HOME/Applications/Sikarugir/Interstate 76 Gold.app"
 GAME="$APP/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76"
 DXWINI="$APP/Contents/SharedSupport/prefix/drive_c/dxwnd/dxwnd.ini"
-REPO_DXW="$HERE/interstate-76.dxw"
+REPO_DXW="$HERE/../shared/renderer/interstate-76.dxw"
 
 # Flip bit 0 of flagm0 (VIRTUALCDAUDIO) in every profile file that exists. CRLF-safe.
 set_vcd() {  # $1 = on|off

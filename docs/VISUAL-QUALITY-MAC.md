@@ -5,7 +5,7 @@ dgVoodoo levers. This doc records which ones we pulled back into the Mac **Voodo
 verified. Bottom line: of the five, **three are real wins that work on Apple Silicon (gamma ramp,
 MSAA, 32-bit rendering), one is impossible on any platform (anisotropic for Glide), one was already
 correct (voodoo_graphics / 2 MB / 2048 KB-TMU).** All three wins are now in the shipped
-[`dgVoodoo.conf`](../mac/dgVoodoo.conf).*
+[`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf).*
 
 ## What changed in the Voodoo config
 

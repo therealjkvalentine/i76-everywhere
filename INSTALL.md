@@ -60,7 +60,7 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    **one UAC prompt** for the GOG installer — click **Yes** (that's normal; it's
    the only click in the whole process).
 2. Downloads **dgVoodoo2** 2.87.3 into `C:\Games\_tools` and installs
-   `windows/dgVoodoo.daily-driver-2026-10-03.conf` as the game's `dgVoodoo.conf`: no dgVoodoo frame cap
+   `shared/renderer/dgVoodoo.daily-driver-2026-10-03.conf` as the game's `dgVoodoo.conf`: no dgVoodoo frame cap
    (the preset paces the game), 16:10 picture in a borderless window, 2× internal resolution,
    4× MSAA. On a display 1440 lines tall or taller the file is copied byte for byte; on a
    smaller one only the digits of the two `Resolution` lines change (1080 lines:
@@ -75,7 +75,7 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
 5. Renames GOG's **`I76PATCH.DLL`** (the 20 fps cap, where the build ships one) to
    `I76PATCH.DLL.disabled`.
 6. Installs **this project's own control map** as `input.map`
-   ([`controls/input.map`](controls/input.map), the owner's daily-driver map): `W` `A` `S` `D` drive, the
+   ([`shared/controls/input.map`](shared/controls/input.map), the owner's daily-driver map): `W` `A` `S` `D` drive, the
    arrow keys look around. **It is not the 1997 layout.** GOG's map is kept beside it as
    `input.map.stock-<timestamp>`. `-Controls stock` keeps GOG's keys instead; see
    [Controls](#controls-this-projects-map-or-the-1997-keys) just below.
@@ -92,9 +92,9 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    **desktop shortcut** ("Interstate '76") to `PLAY-i76.bat`. Base game: also **`DEBUG.bat`** /
    **`TRAINER.bat`** and I76 Debug in `_tools\` (the daily driver's, promotion 16; Python 3 needed).
 10. Copies the repo's **mission bookmarks** (`saves\save*.cmp` + `savegame.dir`: 13 bookmarks of a Mac campaign
-   run, [saves/README.md](saves/README.md)) into the game folder, **only if it has no `save*.cmp` yet**.
+   run, [shared/saves/README.md](shared/saves/README.md)) into the game folder, **only if it has no `save*.cmp` yet**.
 
-The Nitro Pack, if installed, gets the earlier recipe unchanged (`windows/dgVoodoo.windows.conf` with the
+The Nitro Pack, if installed, gets the earlier recipe unchanged (`shared/renderer/dgVoodoo.windows.conf` with the
 19.2 fps cap, no proxy, no preset).
 
 ### Play
@@ -106,7 +106,7 @@ Run it at the PC itself, not over Remote Desktop (the game hangs on "PLEASE STAN
 
 | Launcher | Preset | What you get |
 |---|---|---|
-| `PLAY-i76.bat` (and the desktop shortcut) | `best-120` | 120 fps with the physics stepped as at 20 fps, the frame-rate bug fixes, 1800 m draw distance ([presets/best-120.psd1](presets/best-120.psd1) lists every switch) |
+| `PLAY-i76.bat` (and the desktop shortcut) | `best-120` | 120 fps with the physics stepped as at 20 fps, the frame-rate bug fixes, 1800 m draw distance ([shared/presets/best-120.psd1](shared/presets/best-120.psd1) lists every switch) |
 | `PLAY-stock.bat` | `stock` | The same folder with **no** engine switches. This is *not* the 20 fps game: the caps are off in this install, so it runs at whatever dgVoodoo paces and the physics are not corrected for it. It is there for comparing and for troubleshooting |
 
 For the game as it was installed before 2026-10-03 (20 fps: dgVoodoo's 19.2 fps cap, `I76PATCH.DLL`
@@ -123,7 +123,7 @@ no other preset has been tested between two machines.
 
 **Widescreen (opt-in): `-Preset best-wide`.** The owner's daily driver has run this since 2026-10-03: the
 camera widened to the display's shape (Hor+, `I76_ASPECT`), plus terrain, texture, object, shadow, road,
-bush and mirror detail farther out ([presets/best-wide.psd1](presets/best-wide.psd1)). It is not the
+bush and mirror detail farther out ([shared/presets/best-wide.psd1](shared/presets/best-wide.psd1)). It is not the
 default because it has only been played on one display, a 3440x1440 panel. The setup writes
 `dgVoodoo.wide.conf` with [tools/Make-Wide-Conf.ps1](tools/Make-Wide-Conf.ps1): since promotion 16 (2026-10-12)
 that is the daily driver's wide conf, `tools/conf/dgVoodoo.daily-wide-ss2x-2026-10-12.conf` (windowed borderless,
@@ -188,7 +188,7 @@ Tested on 2026-10-03, **without starting the game**:
   and the daily driver, not on a fresh GOG folder, and the whole installer was not re-run with it.
   `windows/setup-windows.ps1 -U32xDll u32x\u32x.dll` installs the minimal build (`a5927cea`) instead.
 - The installed map on a fresh install. It is the daily driver's map (md5 `a937f36d`), which the owner plays
-  on, plus three fire keys added 2026-10-03 (`1`, `J`, `L`; md5 `90122d37`, `controls/README.md`); no game was
+  on, plus three fire keys added 2026-10-03 (`1`, `J`, `L`; md5 `90122d37`, `shared/controls/README.md`); no game was
   started from an installer-made folder, and the three keys have not been played.
 - The Nitro Pack path (unchanged).
 

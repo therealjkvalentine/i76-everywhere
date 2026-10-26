@@ -7,9 +7,9 @@
   ONE zip with one folder, Interstate76-Mac-Kit\:
     BUILD-I76-APPS.command, i76-mac-kit.sh, README.md (= tools\mac-kit\README.md), pins.txt, VERSION.txt, MD5SUMS, LICENSE, THIRD-PARTY.md
     stubs\     the launch stubs (tools\mac-kit\stubs: our Swift sources, fixed Mach-O UUIDs, ad-hoc signed)
-    payload\   env\ + dxwnd-profile.ini (tools\mac-kit\payload), graphics\base.env / fast.env (from presets\graphics-mac*.psd1),
+    payload\   env\ + dxwnd-profile.ini (tools\mac-kit\payload), graphics\base.env / fast.env (from shared\presets\graphics-mac*.psd1),
                patches\ (tools\mac-kit\make-patches.py output: BSDIFF40 patches, our bytes only), gold\ (the Gold proxy as STRLKUP.DLL,
-               u32x.dll, controls\input.map, the cutscene-music proxy SMACKW32.DLL, the rumble proxy i7_sfrce.dll + rumble-envelopes.ini),
+               u32x.dll, shared\controls\input.map, the cutscene-music proxy SMACKW32.DLL, the rumble proxy i7_sfrce.dll + rumble-envelopes.ini),
                nitro\Strlkup.dll, openglide\ (OpenGLide-HD glide2x.dll + OpenGLid.INI), ahk\ (AutoHotkeyU32.exe 1.1 GPL + licence + i76-remap.ahk)
 
     tools\package-mac-kit.ps1 -GoldProxy <Strlkup.dll> -NitroProxy <Strlkup.dll> -MacPayloadDir <dir> -PatchesDir <dir>
@@ -37,7 +37,7 @@ function Die([string]$m) { Write-Host "package-mac-kit: $m" -ForegroundColor Red
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- tools/mac-kit controls/input.map u32x/u32x_full.dll presets/graphics-mac.psd1 presets/graphics-mac-fast.psd1)
+$dirty = @(git -C $repo status --porcelain -- tools/mac-kit shared/controls/input.map u32x/u32x_full.dll shared/presets/graphics-mac.psd1 shared/presets/graphics-mac-fast.psd1)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files:`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not $Stage) { $Stage = Join-Path $env:TEMP "mac-kit-stage-$sha" }
 if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -Force }
@@ -64,7 +64,7 @@ foreach ($l in Get-Content (Join-Path $kit 'stubs\STUBS.md5')) {
 # ---- graphics tiers from the presets (one source): KEY=VALUE, an empty value = the key removed (stock) -----------------
 New-Item -ItemType Directory -Force (Join-Path $pay 'graphics') | Out-Null
 foreach ($pair in @(@('graphics-mac', 'base'), @('graphics-mac-fast', 'fast'))) {
-    $p = Import-PowerShellDataFile (Join-Path $repo "presets\$($pair[0]).psd1")
+    $p = Import-PowerShellDataFile (Join-Path $repo "shared\presets\$($pair[0]).psd1")
     $lines = @("# from presets\$($pair[0]).psd1 (repo $sha): $($p.Summary)") + @($p.Env.Keys | Sort-Object | ForEach-Object { "$_=$($p.Env[$_])" })
     [IO.File]::WriteAllText((Join-Path $pay "graphics\$($pair[1]).env"), (($lines -join "`n") + "`n"))
 }
@@ -75,7 +75,7 @@ if (-not $goldMd5.StartsWith('5d6f9828')) { Say "NOTE: Gold proxy $goldMd5 is no
 if (-not $nitroMd5.StartsWith('3f27c797')) { Say "NOTE: Nitro proxy $nitroMd5 is not the family LAN build 3f27c797" 'Yellow' }
 Put $GoldProxy 'payload\gold\STRLKUP.DLL'; Put $NitroProxy 'payload\nitro\Strlkup.dll'
 Put (Join-Path $repo 'u32x\u32x_full.dll') 'payload\gold\u32x.dll'
-Put (Join-Path $repo 'controls\input.map') 'payload\gold\input.map'
+Put (Join-Path $repo 'shared\controls\input.map') 'payload\gold\input.map'
 $macPins = [ordered]@{
     'Glide2x.dll'          = @('429e6e949a0c06f1f0ce8f7ce4fe54dd', 'payload\openglide\glide2x.dll')   # OpenGLide-HD (tools\openglide-hd patches, LGPL)
     'OpenGLid.INI'         = @('4b9f29cce81dd9edcbf7f907a1d5ded2', 'payload\openglide\OpenGLid.INI')

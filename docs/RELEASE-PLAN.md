@@ -19,7 +19,7 @@ play; **parked** = settled dead end; **research** = documents only.
 >
 > - **There is a new daily driver.** `tools\Make-Daily-Driver.ps1` built `<games>\Interstate76-2026-10-03`
 >   (golden copy `...\Interstate76-golden-2026-10-03`) on 2026-10-03: repo `Strlkup.dll`, u32x lab build `054fb411`,
->   `windows/dgVoodoo.daily-driver-2026-10-03.conf`, preset `best-120`, `I76PATCH.DLL` disabled. "Daily driver" in the rows
+>   `shared/renderer/dgVoodoo.daily-driver-2026-10-03.conf`, preset `best-120`, `I76PATCH.DLL` disabled. "Daily driver" in the rows
 >   below means the old folder in Downloads, which is now the rollback
 >   ([STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) "2026-10-03", [NEW-DAILY-DRIVER-RECIPE.md](records/NEW-DAILY-DRIVER-RECIPE.md)).
 >   So the "60 fps proxy switches", "draw distance" and "sandbox only" statuses no longer hold for the owner's machine.
@@ -58,7 +58,7 @@ play; **parked** = settled dead end; **research** = documents only.
 | Save editor | `i76-save-editor.html` (hosted on GitHub Pages via `index.html`), `tools/save-editor/i76-save-editor.py`, `tools/save-editor/i76-save-editor.command` + `-server.py` (Mac write-back) | verified byte-identical parser; `docs/SAVE-FORMAT-GAPS.md`, `EDITOR-FIELD-TESTS.md` list open in-game checks | |
 | Trainer | `tools/trainer/i76trainer.py` (status / flags / repair / ammo / teleport; refuses non-sandbox without `--any`; every write read back) | sandbox; addresses from <re-archive> `cheats.md` | the older AHK tools (`tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`) are the 2026-07 generation |
 | Shipped bookmark saves | `saves/` (scenes 2-15, `Install-Saves.ps1`) | committed `.cmp` files | user-generated data, not game assets; keep but say so |
-| Mac build | `mac/build-launchers.sh`, `*.swift` stubs, `setup-*.sh`, `mac/interstate-76.dxw`, `mac-install.command` (BETA) | verified (software renderer via DxWnd, 1024x768, ~19.2 fps) | 60 fps and the Strlkup proxy are **untested under Wine** |
+| Mac build | `mac/build-launchers.sh`, `*.swift` stubs, `setup-*.sh`, `shared/renderer/interstate-76.dxw`, `mac-install.command` (BETA) | verified (software renderer via DxWnd, 1024x768, ~19.2 fps) | 60 fps and the Strlkup proxy are **untested under Wine** |
 | Steam Deck | `deck/deck-install.sh` (innoextract + dgVoodoo 2.78.2 from archive.org), controller template, artwork | verified installed 2026-07-11 (Glide path + FFB) | QAM limiter 20 is the documented cap; proxy untested under Proton |
 | HD textures | `texture-lab/`, `tools/i76img.py`, `tools/openglide-hd/` | **retired** (night palette artefacts); M16/VQM format crack kept | |
 | Voodoo (Glide->Metal) on Mac | `docs/VOODOO-PARKED.md` | **parked** (MoltenVK pipeline persistence) | |
@@ -268,7 +268,7 @@ Numbers from `docs/VERIFIED-FIXES.md`, `music-fix/README.md`, `CHANGELOG.md`, un
 | Controller: LB shift layer, independent triggers, look-back rear gun, rumble mixer | verified (Mac, Windows); Deck baseline unverified | ~27 actions from 13 buttons |
 | Head tracking (opentrack) | verified | |
 | Frame generation (Lossless Scaling) | verified, needs a paid app | LSFG 2x on a 20 fps base; artefacts expected |
-| 3 mouse buttons; joystick5 -> joystick1 fix; never use the in-game bind menu (mouse driving is Mac-only since 2026-10-03: not offered on Windows, where the installer writes `controls/input.map`) | verified | lint: `tools/lint-input-map.py` |
+| 3 mouse buttons; joystick5 -> joystick1 fix; never use the in-game bind menu (mouse driving is Mac-only since 2026-10-03: not offered on Windows, where the installer writes `shared/controls/input.map`) | verified | lint: `tools/lint-input-map.py` |
 | Save editor (weapons, armor tenths, parts, condition, scene, slots, DPS/range) | verified byte-identical | 116-byte records |
 | Draw distance 600 m -> up to 5000 m | sandbox-verified, **not deployed** | crash ceiling removed by 16x render pool; 60 fps flat at 1800/5000 m |
 | Trainer: repair, unlimited ammo/armour/chassis without the "cheated" marker, teleport | sandbox | marker `0x535f78` not set |
@@ -312,7 +312,7 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | `swap-renderer.ps1`, `test-drive.ps1`, `tools/grab-screen.ps1`, `tools/slow_t*.png`, `0x501918/`, `drive5.csv` (5.8 MB), `fx.csv`, `lfe-sweep.wav` (1.3 MB), `grep.exe.stackdump`, untracked `<user>` and `tools/rdp-to-console.cmd` | lab residue. 2026-10-03: `swap-renderer.ps1`, `test-drive.ps1`, `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav` moved to `lab-residue/`; `grep.exe.stackdump` untracked; the rest still to delete or move to the lab. **Done 2026-10-10** (`docs/CLEANUP-PLAN-2026-10-10.md` 2.1): `<user>` and `grep.exe.stackdump` deleted, `tools/rdp-to-console.cmd` committed (a real tool); `tools/slow_t*.png` (ignored) and `tools/grab-screen.ps1` unchanged |
 | `tools/ffb/*.csv`, `drive2.graph.html`, `probe/`, `trace/` | gitignored patterns exist but several CSVs are still listed; verify `git ls-files tools/ffb` is scripts only |
 | `deck/build-controller-config.py` vs `build-controller-config-opt2.py`, `controller_neptune_i76.vdf` vs `_opt2.vdf` | pick one; DECK-CONTROLS.md explains the two options, the installer should ship one |
-| `tools/save-editor/i76-calibration-saves.py`, `saves/rescue-20260718/` | rescue folder is a one-off recovery; keep `saves/` only |
+| `tools/save-editor/i76-calibration-saves.py`, `shared/saves/rescue-20260718/` | rescue folder is a one-off recovery; keep `shared/saves/` only |
 
 ### Unverified items to label "experimental" in the release
 
@@ -348,7 +348,7 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
   sentence in the first paragraph of every README.
 - **Portable zip**: `windows/Make-Portable-Zip.ps1` contains game files by design. The release must say in INSTALL.md (it
   already does) and in the zip's own README that it is for the owner's machines only.
-- **Committed saves** (`saves/*.cmp`): user-generated bookmark data, not Activision assets; CONTRIBUTING.md's
+- **Committed saves** (`shared/saves/*.cmp`): user-generated bookmark data, not Activision assets; CONTRIBUTING.md's
   "never commit save files" line needs an exception sentence or the folder needs to go.
 
 ---

@@ -91,7 +91,7 @@ Many items are opt-in or sandbox-only; the catalogue's evidence column says whic
 
 The game is 20 fps as GOG ships it. The music-fix proxy (`music-fix/Strlkup.dll`) carries an
 opt-in switch set that makes it play well above that; `windows/PLAY-i76.ps1 -Preset <name>` applies a
-named set from [`presets/`](../presets/) to the game process only (`-Preset ?` lists them,
+named set from [`presets/`](../shared/presets/) to the game process only (`-Preset ?` lists them,
 `-DryRun` shows what the game would get without starting it; `windows/LAUNCHER.ps1` has the same
 drop-down). The default, `stock`, sets nothing.
 
@@ -110,7 +110,7 @@ game still renders 640x480, so dgVoodoo must present it stretched to that shape.
 best-wide` writes that conf and this display's width x height into the installed preset
 ([INSTALL.md](../INSTALL.md#presets-best-120-stock-and-best-wide)). The menus, cutscenes and in-mission text stay
 stretched ([docs/ENHANCEMENTS.md](ENHANCEMENTS.md#5-graphics) says why). The other presets in
-[`presets/`](../presets/) (`exp-*`, `framegen-90`) are experiments.
+[`presets/`](../shared/presets/) (`exp-*`, `framegen-90`) are experiments.
 
 **State on 2026-10-03:** a new daily driver was built by `tools\Make-Daily-Driver.ps1` with `best-120` as its
 preset (since promotion 2 that day, `best-wide`; `PLAY-16x10.bat` keeps `best-120`) ([docs/records/NEW-DAILY-DRIVER-RECIPE.md](records/NEW-DAILY-DRIVER-RECIPE.md),

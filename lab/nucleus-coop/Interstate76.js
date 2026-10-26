@@ -34,7 +34,7 @@ var JOY_WINMM = [15, 0, 1, 2]; // winmm id of each instance's pad (instance 0..3
 var STOCK_JADE = true;         // lab copies carry a modded ADDON\valepre4.vcf that fails ValidateVcf
                                // (..\docs\MULTIPLAYER-CAR-CHECK.md); put ADDON\valepre4.orig (stock) in its place
 var IPX_LOG_DEBUG = true;      // ipxwrapper.ini "logging = debug" per instance (first runs)
-var BEST120 = [                // i76-everywhere\presets\best-120.psd1, Env block verbatim
+var BEST120 = [                // i76-everywhere\shared\presets\best-120.psd1, Env block verbatim
   "I76_HIRES_CLOCK=1", "I76_FIXED_STEP=24", "I76_FRAMERATE_FIXES=1", "I76_ENGINE_DT_FIX=1", "I76_RENDER_INTERP=1",
   "I76_FIX_HEALTH_PCT=1", "I76_FIX_LABEL_TABLE=1", "I76_FAR_CLIP=1800", "I76_GLIDE_REFRESH=120",
   "I76_COLL_DEDUPE=0", "I76_AI_ROLL_HOLD=0"

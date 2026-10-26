@@ -40,7 +40,7 @@ Adreno GPUs) — the same Wine→DXVK→Vulkan chain as our `-glide` Deck launch
 | Our path (Mac/Deck) | Android equivalent | Notes |
 |---|---|---|
 | **Software renderer** (DxWnd wraps 1997 DirectDraw) | **cnc-ddraw** | Winlator bundles it; same job as DxWnd — wrap legacy DirectDraw for a modern display. The low-risk first attempt. |
-| **Glide path** (dgVoodoo 2.78.2 → DXVK → Metal) | **dgVoodoo 2.78.2 `Glide2x.dll` + our [`dgVoodoo.conf`](../../mac/dgVoodoo.conf)** → DXVK → Turnip | **Literally the Deck recipe.** Drop the same Glide wrapper + config into the container; DXVK/Turnip do the rest. This is the path most likely to look great. |
+| **Glide path** (dgVoodoo 2.78.2 → DXVK → Metal) | **dgVoodoo 2.78.2 `Glide2x.dll` + our [`dgVoodoo.conf`](../../shared/renderer/dgVoodoo.conf)** → DXVK → Turnip | **Literally the Deck recipe.** Drop the same Glide wrapper + config into the container; DXVK/Turnip do the rest. This is the path most likely to look great. |
 
 The Glide path is the one to bet on: it's the *identical* wrapper and config file we already tuned
 for the Deck (gamma + 4× MSAA + 32-bit), and Turnip on Adreno is a genuine Vulkan driver — no
@@ -71,7 +71,7 @@ MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](../VO
 
 | Repo asset | Phone use |
 |---|---|
-| [`dgVoodoo.conf`](../../mac/dgVoodoo.conf) + dgVoodoo 2.78.2 `Glide2x.dll` | Drop into the Winlator container for the Glide path — unchanged. |
+| [`dgVoodoo.conf`](../../shared/renderer/dgVoodoo.conf) + dgVoodoo 2.78.2 `Glide2x.dll` | Drop into the Winlator container for the Glide path — unchanged. |
 | [`input.map`](../input.map.reference) | Wine's winmm joystick path serves a Bluetooth controller the same way it does on Mac/Deck. Start from our reference and adapt bindings. |
 | [`smack-music-fix/`](../../smack-music-fix/) + [`setup-music.sh`](../../mac/setup-music.sh) | The MCI/redbook mission-music problem **and** the cutscene-music-bleed bug both exist under Wine on Android too — our virtual-CD setup + `SMACKW32.DLL` proxy port directly. |
 | [`i76-save-editor.html`](../../i76-save-editor.html) | **Works on a phone today** — open the page in any mobile browser, drag in a `.cmp`, edit, download. No install. (The `.command` launcher/server is desktop-only; the page's drag-and-drop mode is not.) |

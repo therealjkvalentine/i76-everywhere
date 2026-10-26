@@ -120,22 +120,26 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-# This script lives in windows\ in a clone of the repo and flat in the Patch Kit's _i76e\repo\; $repoRoot is the folder that holds presets\, tools\, u32x\ ...
+# This script lives in windows\ in a clone of the repo and flat in the Patch Kit's _i76e\repo\; $repoRoot is the folder that holds tools\, u32x\ ...
+# $payRoot holds presets\, controls\, saves\ (shared\ in a clone, $repoRoot itself in the kit); $confDir the dgVoodoo confs
+# (shared\renderer\ in a clone, beside this script in the kit).
 $winDir = $PSScriptRoot
-$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'shared\presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
+$payRoot = if (Test-Path -LiteralPath (Join-Path $repoRoot 'shared\presets')) { Join-Path $repoRoot 'shared' } else { $repoRoot }
+$confDir = if (Test-Path -LiteralPath (Join-Path $payRoot 'renderer\dgVoodoo.windows.conf')) { Join-Path $payRoot 'renderer' } else { $winDir }
 $isNitro = ($Exe -ieq 'nitro.exe')
 # Nitro: stock unless a preset is named (2026-10-23, tools\Build-From-GOG.ps1 -Game Nitro: the proxy runs on nitro.exe since the
 # nitro-port lane, docs\records\NITRO-PORT-2026-10-21.md; a Nitro preset carries only the switches ported there)
 if ($isNitro -and -not $PSBoundParameters.ContainsKey('Preset')) { $Preset = 'stock' }
-if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoRoot "presets\$Preset.psd1"))) {
-    Write-Host "Unknown -Preset '$Preset' (no presets\$Preset.psd1 in $repoRoot)." -ForegroundColor Red
+if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $payRoot "presets\$Preset.psd1"))) {
+    Write-Host "Unknown -Preset '$Preset' (no presets\$Preset.psd1 in $payRoot)." -ForegroundColor Red
     exit 1
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
 # a preset that carries I76_ASPECT needs dgVoodoo.wide.conf sized for the display (best-wide, best-wide-balanced, and since
 # 2026-10-23 the tick presets tick19-42 / preview: read from the preset itself)
 $presetHasAspect = $false
-try { $pe0 = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot "presets\$Preset.psd1")).Env; $presetHasAspect = [bool]"$($pe0['I76_ASPECT'])" } catch { }
+try { $pe0 = (Import-PowerShellDataFile -LiteralPath (Join-Path $payRoot "presets\$Preset.psd1")).Env; $presetHasAspect = [bool]"$($pe0['I76_ASPECT'])" } catch { }
 $widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced' -or $presetHasAspect)
 $wideTool = Join-Path $repoRoot 'tools\Make-Wide-Conf.ps1'
 # The display every conf step below sizes for (step 4's 16:10 / stock conf, step 6's wide conf and
@@ -289,7 +293,7 @@ Write-Host "dgVoodoo Glide + DirectDraw DLLs + control panel deployed."
 
 # --- 4. config ---------------------------------------------------------------
 $confPath = Join-Path $GameDir 'dgVoodoo.conf'
-$driverConf = Join-Path $winDir 'dgVoodoo.daily-driver-2026-10-03.conf'
+$driverConf = Join-Path $confDir 'dgVoodoo.daily-driver-2026-10-03.conf'
 if ($fastPreset -and (Test-Path $driverConf)) {
     # The daily driver's conf (2026-10-03). dgVoodoo 2.87.3 REJECTS a whole conf over one line it
     # does not like and then silently uses %APPDATA%\dgVoodoo\dgVoodoo.conf instead, so this file
@@ -308,7 +312,7 @@ if ($fastPreset -and (Test-Path $driverConf)) {
     # is this file with that one line changed). 4096+ WITHOUT the TMUFIX switch corrupts textures (promotion 5R),
     # so presets without it keep 2048. One line, read back.
     $presetEnv = @{}
-    try { $presetEnv = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot "presets\$Preset.psd1")).Env } catch { }
+    try { $presetEnv = (Import-PowerShellDataFile -LiteralPath (Join-Path $payRoot "presets\$Preset.psd1")).Env } catch { }
     if ($presetEnv -and "$($presetEnv['I76_ZGLIDE_TMUFIX'])" -eq '1') {
         $tmuRx = New-Object regex '(?m)^(MemorySizeOfTMU\s*=\s*)2048(\s*)$'
         if ($tmuRx.Matches($proven).Count -ne 1) { Write-Host "$driverConf : expected exactly one 'MemorySizeOfTMU = 2048' line; conf left as it is." -ForegroundColor Yellow }
@@ -350,7 +354,7 @@ if ($fastPreset -and (Test-Path $driverConf)) {
         Write-Host "  note: a global $env:APPDATA\dgVoodoo\dgVoodoo.conf exists on this PC. dgVoodoo uses it, silently, if it ever rejects the game folder's conf (a watermark or a 4:3 picture is the sign)." -ForegroundColor Yellow
     }
 } else {
-Copy-Item (Join-Path $winDir 'dgVoodoo.windows.conf') $confPath -Force
+Copy-Item (Join-Path $confDir 'dgVoodoo.windows.conf') $confPath -Force
 
 # Window size is DISPLAY-DEPENDENT and dgVoodoo SNAPS it to a real enumerated
 # display mode - an exact-14:9 computed size (1605x1032) silently became
@@ -387,7 +391,7 @@ if ($dispW -gt 0 -and $dispH -gt 0) {   # the display chosen above (-Display / I
 
 # --- 5. input.map: -Controls i76e (the shipped map, wholesale) or stock (minimal patch) ---
 $mapPath = Join-Path $GameDir 'input.map'
-$shippedMap = Join-Path $repoRoot 'controls\input.map'
+$shippedMap = Join-Path $payRoot 'controls\input.map'
 $mapStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 function Get-Md5([string]$p) { (Get-FileHash $p -Algorithm MD5).Hash.ToLower() }
 # --- the player's control files (2026-10-25, kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md) ---
@@ -573,7 +577,7 @@ if ($Controls -eq 'own') {
 } elseif (-not (Test-Path $mapPath) -and -not ($Controls -eq 'i76e' -and (Test-Path $shippedMap))) {
     Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
 } elseif ($Controls -eq 'i76e' -and -not (Test-Path $shippedMap)) {
-    Write-Host "controls\input.map is missing from $repoRoot - falling back to -Controls stock (GOG's keys + the minimal patch)." -ForegroundColor Yellow
+    Write-Host "controls\input.map is missing from $payRoot - falling back to -Controls stock (GOG's keys + the minimal patch)." -ForegroundColor Yellow
     $Controls = 'stock'
     Add-StockPatch
 } elseif ($Controls -eq 'i76e') {
@@ -666,7 +670,7 @@ if (-not $ControlsOnly) {   # steps 5a - 5a3 (closed before step 5b)
 # install has none, so we never clobber real in-progress saves on a re-run.
 # (Nitro has its own campaign/saves - the base-game saves don't apply there.)
 if (-not $isNitro) {
-    $repoSaves = Join-Path $repoRoot 'saves'
+    $repoSaves = Join-Path $payRoot 'saves'
     $haveSaves = Get-ChildItem $GameDir -Filter 'save*.cmp' -ErrorAction SilentlyContinue
     if ((Test-Path $repoSaves) -and -not $haveSaves) {
         Copy-Item (Join-Path $repoSaves 'save*.cmp') $GameDir -Force -ErrorAction SilentlyContinue
@@ -864,7 +868,7 @@ New-Item -ItemType Directory -Force (Join-Path $GameDir '_tools') | Out-Null
 Copy-Item (Join-Path $repoRoot 'tools\Make-Wide-Conf.ps1') (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1') -Force
 # The frame-rate presets PLAY-i76.ps1 -Preset reads (presets\*.psd1, data files). Copied beside
 # the launcher so the installed copy finds them. PLAY-i76.bat below names the one to apply.
-$presetSrc = Join-Path $repoRoot 'presets'
+$presetSrc = Join-Path $payRoot 'presets'
 if (Test-Path $presetSrc) {
     New-Item -ItemType Directory -Force (Join-Path $GameDir 'presets') | Out-Null
     Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $GameDir 'presets') -Force

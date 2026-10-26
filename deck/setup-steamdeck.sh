@@ -24,7 +24,7 @@ else
 fi
 
 echo "== 2. Graphics config =="
-CONF="$HERE/../mac/dgVoodoo.conf"; [ -f "$CONF" ] || CONF="$HERE/dgVoodoo.conf"
+CONF="$HERE/../shared/renderer/dgVoodoo.conf"; [ -f "$CONF" ] || CONF="$HERE/dgVoodoo.conf"
 cp "$CONF" "$GAME/dgVoodoo.conf"
 echo "   dgVoodoo.conf installed (gamma + MSAA 4x + 32-bit; edit Resolution to 'max' for 1280x800)."
 

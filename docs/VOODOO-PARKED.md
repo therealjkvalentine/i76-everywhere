@@ -108,8 +108,8 @@ make_app "Interstate 76 - Glide-dgVoodoo-DXVK-Metal" "com.jkv.i76.voodoo" "i76-v
 ```
 
 Preserved in the repo: [`mac/i76-voodoo-stub.swift`](../mac/i76-voodoo-stub.swift) (the launcher, with all
-the MVK/DXVK env), [`mac/setup-voodoo.sh`](../mac/setup-voodoo.sh), [`dgVoodoo.conf`](../mac/dgVoodoo.conf) +
-[`dxvk.conf`](../mac/dxvk.conf) (the tuned graphics config), [`mac/open-dgvoodoo-settings.command`](../mac/open-dgvoodoo-settings.command)
+the MVK/DXVK env), [`mac/setup-voodoo.sh`](../mac/setup-voodoo.sh), [`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf) +
+[`dxvk.conf`](../shared/renderer/dxvk.conf) (the tuned graphics config), [`mac/open-dgvoodoo-settings.command`](../mac/open-dgvoodoo-settings.command)
 + [`mac/setup-dgvoodoo-cpl.sh`](../mac/setup-dgvoodoo-cpl.sh) (the dgVoodoo GUI), and the whole
 [`tools/dxvk-pipeline-cache-persist/`](../tools/dxvk-pipeline-cache-persist/) patch. On the game
 side the dgVoodoo `Glide2x.dll` + engine DXVK swap are still in place.

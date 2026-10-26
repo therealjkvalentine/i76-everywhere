@@ -41,7 +41,8 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $RepoRoot = $PSScriptRoot   # windows\ : PLAY-i76.ps1 is beside this script
-$RepoTop = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }   # presets\
+$RepoTop = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }
+$PresetDir = if (Test-Path -LiteralPath (Join-Path $RepoTop 'shared\presets')) { Join-Path $RepoTop 'shared\presets' } else { Join-Path $RepoTop 'presets' }   # shared\presets\ in a clone, presets\ beside an installed copy
 $script:GameDir = $GameDir
 
 # ---------------------------------------------------------------- reading the real state ---
@@ -272,7 +273,7 @@ $gPlay.Controls.Add($cbPreset)
 $lblPreset = New-Label $gPlay '' 320 162 505
 $lblPreset.ForeColor = [Drawing.Color]::DimGray
 $presetInfo = @{}
-foreach ($f in (Get-ChildItem (Join-Path $RepoTop 'presets\*.psd1') -ErrorAction SilentlyContinue | Sort-Object Name)) {
+foreach ($f in (Get-ChildItem (Join-Path $PresetDir '*.psd1') -ErrorAction SilentlyContinue | Sort-Object Name)) {
     try { $d = Import-PowerShellDataFile $f.FullName } catch { continue }
     if (-not $d.Env) { $d.Env = @{} }
     $vars = if ($d.Env.Count) { ($d.Env.Keys | Sort-Object | ForEach-Object { "$_=$($d.Env[$_])" }) -join ' ' } else { 'no engine switches' }

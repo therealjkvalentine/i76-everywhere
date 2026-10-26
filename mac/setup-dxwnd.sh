@@ -26,7 +26,7 @@ fi
 # install our tuned profile as dxwnd.ini (the [window] header + the frozen target)
 {
   printf '[window]\nposx=1077\nposy=523\nsizx=640\nsizy=480\nshowhelp=NO\nexpert=1\n'
-  cat "$DIR/interstate-76.dxw"
+  cat "$DIR/../shared/renderer/interstate-76.dxw"
 } > "$DXDIR/dxwnd.ini"
 
 echo "DxWnd installed. Launch the game with: open \"$APP\""

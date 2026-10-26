@@ -1,18 +1,18 @@
 #!/bin/sh
 # Interstate '76 - sync your campaign saves across platforms via the repo.
-# The committed saves/ folder holds save000-004.cmp + savegame.dir (I76's 5 save
+# The committed shared/saves/ folder holds save000-004.cmp + savegame.dir (I76's 5 save
 # slots + index) - your own progress, so on any machine you clone/pull this repo you
 # can restore your saves and continue / replay any mission you've reached.
 #
-#   setup-saves.sh              install repo saves/ INTO the game (restore)
-#   setup-saves.sh --backup     copy the game's CURRENT saves back INTO repo saves/
+#   setup-saves.sh              install repo shared/saves/ INTO the game (restore)
+#   setup-saves.sh --backup     copy the game's CURRENT saves back INTO repo shared/saves/
 #                               (run this, then commit, to share new progress)
 #
 # I76 saves live next to i76.exe. This finds every Mac wrapper; on Windows/Deck copy
-# saves/* into the game folder (Heroic: .../Interstate 76/, or the Proton prefix).
+# shared/saves/* into the game folder (Heroic: .../Interstate 76/, or the Proton prefix).
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SAVES="$(cd "$HERE/.." && pwd)/saves"
+SAVES="$(cd "$HERE/.." && pwd)/shared/saves"
 mkdir -p "$SAVES"
 
 find_games() {
@@ -22,12 +22,12 @@ find_games() {
     done | sort -u
 }
 GAMES=$(find_games)
-[ -n "$GAMES" ] || { echo "No I76 wrapper found under ~/Applications (Mac). On Windows/Deck, copy saves/* into the game folder by hand."; exit 1; }
+[ -n "$GAMES" ] || { echo "No I76 wrapper found under ~/Applications (Mac). On Windows/Deck, copy shared/saves/* into the game folder by hand."; exit 1; }
 
 if [ "$1" = "--backup" ]; then
     g=$(echo "$GAMES" | head -1)
     cp "$g"/save00*.cmp "$g/savegame.dir" "$SAVES/" 2>/dev/null
-    echo "Backed up $g saves -> repo saves/ . Commit + push to share."
+    echo "Backed up $g saves -> repo shared/saves/ . Commit + push to share."
     exit 0
 fi
 

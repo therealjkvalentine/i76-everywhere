@@ -39,7 +39,7 @@ referenced throughout lives in [`../tools/`](../../tools/) and
 **TL;DR: dgVoodoo2 (2.87.3) in windowed mode, Glide renderer, 20 FPS cap, 3x
 resolution, 8x MSAA — scripted end-to-end in
 [`setup-windows.ps1`](../../windows/setup-windows.ps1) with the config in
-[`dgVoodoo.windows.conf`](../../windows/dgVoodoo.windows.conf).**
+[`dgVoodoo.windows.conf`](../../shared/renderer/dgVoodoo.windows.conf).**
 
 Verified findings:
 

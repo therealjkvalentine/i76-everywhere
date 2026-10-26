@@ -11,7 +11,7 @@ transfers — minus the one layer that caused us the most pain.*
 > state, rumble evidence and the "felt it" checklist: [records/DECK-2026-10-25.md](records/DECK-2026-10-25.md).
 
 > **STATUS: INSTALLED on this user's Deck (2026-07-11).** The game (511 MB), dgVoodoo 2.78.2 +
-> our [`dgVoodoo.conf`](../mac/dgVoodoo.conf) (gamma + 4× MSAA + 32-bit), a Deck-tuned `input.map`,
+> our [`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf) (gamma + 4× MSAA + 32-bit), a Deck-tuned `input.map`,
 > a full [controller config](../deck/controller_neptune_i76.vdf), and 5 pieces of
 > [library artwork](../deck/artwork/) were pushed over SSH to `~/Games/Interstate76/game`, added
 > to Steam as a non-Steam game (**GE-Proton10-12**, launch option `-glide`) alongside the existing
@@ -85,7 +85,7 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > Mac build `deck/Strlkup.deck.dll` (md5 7b780281) until the MSVC build carries the switch. (2) **"a hair
 > too dark"**: dgVoodoo's Glide gamma ramp has no effect under Proton (identical frames with it on and
 > off), so `Brightness = 115` stands in. (3) **right stick outside the car** did nothing: the orbit was
-> Shift+arrows only; now the plain arrows orbit too (controls/input.map and the Deck's map). (4)
+> Shift+arrows only; now the plain arrows orbit too (shared/controls/input.map and the Deck's map). (4)
 > **Controls guide:** [deck-controls.html](deck-controls.html). (5) The Deck's left stick was already
 > analog (`joystick_move` -> joystick1); the v4 table below is stale on that point. All in
 > `deck/setup-deck-wide.sh`.
@@ -96,7 +96,7 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > **2026-10-07, later: two control profiles.** `./deck/deck-push-pad.sh` adds a second library entry,
 > **"Interstate 76 (pad layer)"**: Steam layout v9 (`deck/controller_neptune_i76_pad.vdf`, a plain gamepad
 > plus the grips, the trackpad menu and the trackpad mouse) with the shared `windows/i76-remap.ahk` running in the
-> prefix and the shared `controls/input.map` live, so the Deck plays with the Windows/Mac pad controls (Y
+> prefix and the shared `shared/controls/input.map` live, so the Deck plays with the Windows/Mac pad controls (Y
 > view cycle, LB shift layer). The normal entry keeps layout v8.1 and the Deck's own map; the wrapper copies
 > `input.map.profile-pad` or `input.map.profile-deck` into place per launch. Smoke-tested: each entry
 > swaps the right map, the pad layer runs only in the pad entry, both full screen. Not yet played by hand.
@@ -371,7 +371,7 @@ management). You install the real game through Heroic, drop a Glide wrapper into
 and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on the Mac.
 
 **The repo files that transfer to the Deck unchanged:**
-- [`dgVoodoo.conf`](../mac/dgVoodoo.conf) — same graphics config; the gamma/MSAA/32-bit wins apply
+- [`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf) — same graphics config; the gamma/MSAA/32-bit wins apply
   natively (and should be *smoother* than Mac since there's no MoltenVK compile tax).
 - [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh) → the `input.map` it produces (mouse +
   `joystick1` bindings; fixes GOG's phantom `joystick5`).
@@ -395,7 +395,7 @@ and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on th
    - From dgVoodoo's `MS/x86/` drop **`Glide2x.dll`** (and `dgVoodoo.cpl` if you want the GUI) into
      the **game install dir**, next to `i76.exe`. **Delete GOG's bundled OpenGLide** `glide2x.dll`
      first so dgVoodoo's wins ([CahootsMalone guide](https://github.com/CahootsMalone/interstate-76-stuff/blob/master/running-interstate-76-gog-release-using-dgvoodoo.md)).
-   - Copy our [`dgVoodoo.conf`](../mac/dgVoodoo.conf) into the same dir.
+   - Copy our [`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf) into the same dir.
    - *Alternative, zero-download:* keep GOG's **OpenGLide** (Glide→OpenGL). Simpler, but softer
      image and no MSAA/gamma levers — dgVoodoo is the quality path.
 4. **Launch flag:** set the game's launch to `i76.exe -glide` (Heroic: "Alternative Exe" / launch
@@ -414,7 +414,7 @@ and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on th
 
 ## Graphics config on the Deck
 
-Use our [`dgVoodoo.conf`](../mac/dgVoodoo.conf) as-is. The three wins we found for the Mac apply here
+Use our [`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf) as-is. The three wins we found for the Mac apply here
 and should look *better* (native Vulkan, no MoltenVK quirks):
 
 - `EnableGlideGammaRamp = true` — the bright 3dfx gamma (the "darker than Windows" fix).
@@ -524,7 +524,7 @@ The cross-platform two-tier directive from that handoff shipped as
 
 ## Deliverable in this repo
 
-- [`dgVoodoo.conf`](../mac/dgVoodoo.conf), [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh),
+- [`dgVoodoo.conf`](../shared/renderer/dgVoodoo.conf), [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh),
   [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) — all transfer to the Deck.
 - [`deck/setup-steamdeck.sh`](../deck/setup-steamdeck.sh) — a helper that, run in Desktop Mode against your
   Heroic game dir + prefix, drops the config, applies the input.map, does the FFB registry rename,

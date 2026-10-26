@@ -38,7 +38,8 @@ def find_game_dir():
                 if glob.glob(os.path.join(root, "save*.cmp")):
                     return root
                 subdirs[:] = []
-    repo = os.path.join(HERE, "saves")
+    # the repo's shared/saves/ (two folders up from tools/save-editor/), or saves/ beside a copied-out server
+    repo = next((c for c in (os.path.join(HERE, "saves"), os.path.join(HERE, "..", "..", "shared", "saves")) if os.path.isdir(c)), os.path.join(HERE, "saves"))
     if glob.glob(os.path.join(repo, "save*.cmp")):
         return repo
     return None

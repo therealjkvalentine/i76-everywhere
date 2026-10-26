@@ -313,12 +313,12 @@ if ($RelayRestore) {
 # process, which is the user's shell when the script is run by hand).
 $gameEnv = [ordered]@{}
 
-# In a clone of the repo this script is in windows\ and presets\, tools\, music-fix\ are one folder up ($repoRoot); installed copies and
-# the Patch Kit's _i76e\repo\ have them beside the script.
-$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
-# presets\ lives beside this script in the repo; setup-windows.ps1 and the portable zip copy it
+# In a clone of the repo this script is in windows\ and tools\, music-fix\, shared\presets\ are one folder up ($repoRoot); installed copies and
+# the Patch Kit's _i76e\repo\ have them beside the script (presets\ flat there).
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'shared\presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
+# presets\ is shared\presets\ in a clone; setup-windows.ps1 and the portable zip copy it
 # beside the installed PLAY-i76.ps1, and the game folder is tried too.
-$presetDirs = @((Join-Path $repoRoot 'presets'), (Join-Path $GameDir 'presets')) | Where-Object { Test-Path $_ } | Select-Object -Unique
+$presetDirs = @((Join-Path $repoRoot 'shared\presets'), (Join-Path $repoRoot 'presets'), (Join-Path $GameDir 'presets')) | Where-Object { Test-Path $_ } | Select-Object -Unique
 
 function Read-Preset([string]$path) {
     # Data file only: Import-PowerShellDataFile evaluates no code, so a preset cannot do
