@@ -1,4 +1,49 @@
-# Interstate '76 Everywhere — session doctrine
+# Interstate '76 Everywhere: instructions for coding agents
+
+## Working on this repo from anywhere
+
+This section is for any contributor's agent (Claude Code, Codex, Cursor, ...) on any machine. Read it first.
+
+**Where things are.** [docs/README.md](docs/README.md) is the hub: five journeys (play, install, fix, engine,
+history), the dead ends that are settled, and the conventions. The fixes are catalogued in
+[src/README.md](src/README.md); each platform's install is in [windows/](windows/README.md), [mac/](mac/README.md)
+and [deck/](deck/README.md); the payload they copy is [shared/](shared/README.md); the tooling is
+[tools/](tools/README.md). Before reverse-engineering anything, check
+[docs/research/COMMUNITY-RESOURCES.md](docs/research/COMMUNITY-RESOURCES.md) and the records index
+[docs/records/README.md](docs/records/README.md): a question that looks open is often answered.
+
+**No game files, ever.** No executables, `*.ZFS`, textures, audio, movies, missions, or third-party binaries in a
+commit; the only binaries are this project's own builds beside their source ([CONTRIBUTING.md](CONTRIBUTING.md)).
+Test on a copy of the game, never on an install someone plays on.
+
+**Build and test.**
+- The proxy `Strlkup.dll`: [music-fix/README.md](music-fix/README.md#build) (32-bit mingw-w64 or MSVC;
+  `tools/build-proxy.ps1` builds a given commit reproducibly). `u32x/` and the other components have a build line in
+  their README.
+- `pytest tests` runs the offline suite; no game is needed. Run it before and after your change and compare.
+- After a change to the control map or the AutoHotkey layers: `tools\controls-sheet\build.ps1` (see the input.map
+  rules below).
+- What needs hardware (the game running, a wheel, a Mac, a Deck, a LAN) cannot be checked by an agent alone: say
+  in the PR what you could not test. A person runs it through the QA queue: an issue labelled `needs-qa` with
+  steps and checkbox acceptance criteria ([docs/process/PROCESS.md](docs/process/PROCESS.md), "QA issues").
+
+**How work flows.** Issues are the task layer: find or file one first. Every non-trivial change gets a dated record
+in [docs/records/](docs/records/) with what was measured: n, the control run, the spread. Run
+`python tools/records-index.py` after adding one. Living docs (guides/, engine/, research/, process/) are corrected
+in place; records are not rewritten, later facts go in a dated note at the top. Name the agent in the PR body.
+
+**Privacy.** This repository is public. No personal names, machine paths (`C:\Users\...`), IP addresses, host names
+or e-mail addresses in commits, issues, PRs or docs: write "the developer", "a tester", `<game folder>`, and grep
+your text for them before posting.
+
+**The sections below are the developer's lab doctrine.** They were written on and for the developer's machines,
+which have the lab, the game installs and the RE archive named there (`<lab>`, `<games>`, `<re-archive>`); the
+paths, the install table and the harness apply only where those folders exist, so skip them elsewhere. The
+input.map rules and the hard-won invariants describe the game itself and hold everywhere.
+
+---
+
+# The developer's lab doctrine
 
 ## Input bindings: input.map is the ONLY live file (field-proven 2026-07-18)
 
