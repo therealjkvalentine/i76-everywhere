@@ -16,7 +16,10 @@ https://github.com/user-attachments/assets/42019368-8b5b-4a6e-bf25-291014fed874
 https://github.com/user-attachments/assets/f0131a8d-c623-4877-af92-1e2a23dcda25
 
 
-https://github.com/user-attachments/assets/350cd970-86a8-4b69-a86e-f687aba85622
+https://github.com/user-attachments/assets/adcb8b46-3d7a-4385-9d5d-36a5fdf64612
+
+
+
 
 
 Original 1997 footage in the video: <a href="https://www.youtube.com/@LocalDitchGaming">Local Ditch Gaming</a>, used with permission.</p>
