@@ -15,7 +15,7 @@
   (An experimental full-game HD texture pack was explored and RETIRED - the
   in-game improvement did not justify shipping it, and palette-indexed tiles
   broke on night missions. The research is preserved in
-  docs/HD-TEXTURES-RESEARCH.md for future work.)
+  docs/research/HD-TEXTURES-RESEARCH.md for future work.)
 
   Usage (from this folder, in PowerShell):
     ./install.ps1                       # auto-detect game
@@ -29,7 +29,7 @@
                                         # menus and movies 4:3 with side bars). PLAY-16x10.bat
                                         # beside it starts the tested 16:10 picture (best-120).
     ./install.ps1 -Controls stock       # keep GOG's 1997 keys (default: this project's WASD-style
-                                        # map, controls\input.map; see docs\CONTROLS.md)
+                                        # map, controls\input.map; see docs\guides\CONTROLS.md)
     ./install.ps1 -Display 3440x1440    # size the dgVoodoo confs for this monitor (needed over Remote
                                         # Desktop, where the display read is the RDP desktop)
     ./install.ps1 -GameDir <dir> -NoShortcut -SkipNitro   # write nothing outside <dir>
@@ -152,5 +152,5 @@ if ($Nested) { exit 0 }   # Setup-From-GOG.ps1 prints the one closing summary (n
 Say "`n=== DONE ===" 'Green'
 if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
 else             { Say "Play from the desktop shortcut 'Interstate '76' (or PLAY-i76.bat in the game folder)." }
-if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\CONTROLS.md; printable: docs\Interstate76-Controls-Quick-Reference.pdf)." }
+if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\guides\CONTROLS.md; printable: docs\guides\Interstate76-Controls-Quick-Reference.pdf)." }
 Say "First boot: 60-75s of 'PLEASE STAND BY' - ESC skips the intro."

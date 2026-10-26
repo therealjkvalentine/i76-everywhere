@@ -49,8 +49,8 @@ that is what the pad layer reads and what carries rumble back to the Deck.
 
 The same layout as the Windows and Mac pad layer (the shared `shared/controls/input.map` and `windows/i76-remap.ahk`): the left stick
 steers, the triggers drive, LB is the shift layer for hardpoints, gears, horn and binoculars. In the menus the left stick moves the
-pointer, A clicks, B goes back, Start is Enter. The full table is the project's `docs/CONTROLS.md` and the printable sheet
-`docs/Interstate76-Controls-Quick-Reference.pdf` (both generated from the map itself).
+pointer, A clicks, B goes back, Start is Enter. The full table is the project's `docs/guides/CONTROLS.md` and the printable sheet
+`docs/guides/Interstate76-Controls-Quick-Reference.pdf` (both generated from the map itself).
 
 An Xbox controller paired to the Deck works the same way (Steam Input gives it the same layout when it is the active controller).
 
@@ -74,7 +74,7 @@ examples); it is read after the preset, so each `export` there wins. `deck-launc
 
 The preset carries the LAN switches, so the normal library entry plays LAN: MULTI MELEE > HOST or JOIN goes straight to the IPX
 screens (IPXWrapper). The Deck needs no firewall step. Keep the Deck awake during a game (Game Mode suspends after a few idle
-minutes: touch it now and then, or raise the suspend timeout). The project's `docs/MULTIPLAYER.md` explains hosting, co-op
+minutes: touch it now and then, or raise the suspend timeout). The project's `docs/guides/MULTIPLAYER.md` explains hosting, co-op
 scenes and the AI arenas. `i76-deck-launch-mp.sh` is kept for older setups whose preset has no LAN switches.
 
 ## Files, logs, undo
@@ -101,4 +101,4 @@ To undo: delete the library entry in Steam and the install folder; your GOG inst
   2.78.2** (Dege; Proton needs 2.80 or older, 2.81+ crashes under Wine's DXGI), **IPXWrapper 0.7.2** (GPL v2), optionally
   **GE-Proton 10-12**.
 
-Project: <https://github.com/therealjkvalentine/i76-everywhere> (docs/STEAMDECK.md, docs/records/DECK-2026-10-25.md).
+Project: <https://github.com/therealjkvalentine/i76-everywhere> (docs/guides/STEAMDECK.md, docs/records/DECK-2026-10-25.md).

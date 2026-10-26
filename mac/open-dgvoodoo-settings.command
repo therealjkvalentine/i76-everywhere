@@ -5,7 +5,7 @@
 # Interstate 76 - Glide-dgVoodoo-DXVK-Metal.app - they're written to dgVoodoo.conf in the game folder.
 #
 # LEAVE Output API = Direct3D 11 (FL 10.1) and VideoCard = Voodoo Graphics / TMU 2048
-# (higher TMU triggers I76's texture panic). See docs/VISUAL-QUALITY-MAC.md.
+# (higher TMU triggers I76's texture panic). See docs/engine/VISUAL-QUALITY-MAC.md.
 #
 # One-time: the CPL binary isn't in the repo (it's dgVoodoo's, and the repo ships no
 # binaries) - run setup-dgvoodoo-cpl.sh once to fetch dgVoodooCpl.exe into the game dir.

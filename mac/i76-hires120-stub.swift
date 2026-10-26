@@ -17,7 +17,7 @@
 // of this bundle's path). Never the Windows-path sweep the DxWnd stub uses - that one
 // would kill the other install's game.
 //
-// Parked-mode caveat (docs/VOODOO-PARKED.md): MoltenVK re-compiles Metal pipelines on
+// Parked-mode caveat (docs/research/VOODOO-PARKED.md): MoltenVK re-compiles Metal pipelines on
 // every launch; expect a short hitch the first time each effect appears in a session.
 // Build:  swiftc -O -o /tmp/hires i76-hires120-stub.swift
 import Foundation

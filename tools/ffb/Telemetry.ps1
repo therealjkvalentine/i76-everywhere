@@ -12,7 +12,7 @@
   WHAT IS CONFIRMED, AND HOW
   ---------------------------------------------------------------------------
   Offsets are from the player entity, [[[0x54a264]]+0x70]. Confidence is stated
-  per field because two of them were WRONG in docs/MEMORY-MAP-INDEX.md and cost
+  per field because two of them were WRONG in docs/engine/MEMORY-MAP-INDEX.md and cost
   real time; see "the corrected map" below.
 
   +0x004..0x030  FOUR float3 = wheel contact points in LOCAL space.  CONFIRMED
@@ -35,7 +35,7 @@
             +0x0AC   =  1.473
         A stationary car cannot prove this (0 == 0) and a fast one is hard to
         sample coherently; a slowly-rolling one proves it in a single frame.
-        docs/MEMORY-MAP-INDEX.md lists velocity as NOT FOUND ("RPM/gear/velocity:
+        docs/engine/MEMORY-MAP-INDEX.md lists velocity as NOT FOUND ("RPM/gear/velocity:
         nothing anywhere"), so this closes that gap.
         +0x0C0 (the y term) stays ~0 on flat ground, which is exactly why the
         discovery probe saw velocity as "two moving floats with a dead one in

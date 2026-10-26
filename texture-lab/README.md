@@ -6,7 +6,7 @@
 > or installs it. These scripts are kept only as the reference implementation
 > behind the writeup; nothing else in the repo points here.
 > **Read the verdict and the lessons first:**
-> [../docs/HD-TEXTURES-RESEARCH.md](../docs/HD-TEXTURES-RESEARCH.md).
+> [../docs/research/HD-TEXTURES-RESEARCH.md](../docs/research/HD-TEXTURES-RESEARCH.md).
 > If you resurrect this: build **M16-only** (`reencode_all.py` defaults to
 > `M16_ONLY=1`) and handle per-level palettes for anything palette-indexed.
 

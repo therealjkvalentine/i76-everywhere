@@ -1,6 +1,6 @@
 # soundhd: the Interstate '76 HD sound pack pipeline
 
-Design and evidence: [`docs/SOUND-HD-PACK.md`](../../docs/SOUND-HD-PACK.md). This folder is the implementation.
+Design and evidence: [`docs/guides/SOUND-HD-PACK.md`](../../docs/guides/SOUND-HD-PACK.md). This folder is the implementation.
 It builds a pack into `tools\soundhd\out\pack-v1\`. Nothing here installs into a game folder unless you run
 `install --apply` against a lab copy yourself, and that command refuses every folder except
 `<lab>\game*`.
@@ -161,7 +161,7 @@ them, and the pipeline's resampler is already windowed-sinc. The v1 pack was bui
 
 ## What to listen for (A/B in the lab, never on the daily driver)
 
-The owner's test is in [`docs/OWNER-TEST-LIST.md`](../../docs/OWNER-TEST-LIST.md). Per sound, the report's
+The owner's test is in [`docs/process/OWNER-TEST-LIST.md`](../../docs/process/OWNER-TEST-LIST.md). Per sound, the report's
 row says which strategy ran.
 
 - **Collisions and explosions** (vnvcs3/5, vshif1a, vvcre2, vvcbb3, xfire1, xbuild): the hit should have weight

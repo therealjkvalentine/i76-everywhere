@@ -10,7 +10,7 @@ Fields (set from each issue; re-running is safe and updates them):
   Evidence measured / designed / idea from its evidence/* label
   Area     the first area/* label
   Effort   S / M / L from the body's "**Effort:** X" line
-Views: "QA queue" (VIEWS) is created if missing; the others were made in the web UI (docs/PROCESS.md "Project board").
+Views: "QA queue" (VIEWS) is created if missing; the others were made in the web UI (docs/process/PROCESS.md "Project board").
 """
 import json, re, subprocess, sys
 
@@ -18,7 +18,7 @@ OWNER = "therealjkvalentine"
 REPO = f"{OWNER}/i76-everywhere"
 TITLE = "i76-everywhere roadmap"
 NUMBER = 1  # the board that carries the hand-made views (github.com/users/<owner>/projects/1); matched before TITLE
-QA_LABEL = "needs-qa"  # open + this label = Status "Waiting for QA" (docs/PROCESS.md "QA issues")
+QA_LABEL = "needs-qa"  # open + this label = Status "Waiting for QA" (docs/process/PROCESS.md "QA issues")
 FIELDS = {
     "Status": ["Backlog", "Now", "Waiting for QA", "Next", "Later", "Done"],
     "Evidence": ["measured", "designed", "idea"],

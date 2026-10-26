@@ -204,8 +204,8 @@ Enter / Space close the OK popups, Y / N / Esc answer the yes/no ones). Both pat
 ### Controls: this project's map or the 1997 keys
 
 The installer writes its own control map by default (`-Controls i76e`). The keys, beside the original ones, are
-in [docs/CONTROLS.md](docs/CONTROLS.md); the printable sheet is
-[docs/Interstate76-Controls-Quick-Reference.pdf](docs/Interstate76-Controls-Quick-Reference.pdf).
+in [docs/guides/CONTROLS.md](docs/guides/CONTROLS.md); the printable sheet is
+[docs/guides/Interstate76-Controls-Quick-Reference.pdf](docs/guides/Interstate76-Controls-Quick-Reference.pdf).
 
 | | `-Controls i76e` (default) | `-Controls stock` |
 |---|---|---|
@@ -238,7 +238,7 @@ joysticks at startup.
 
 ### Optional extras
 - **Force feedback** (wheels / FFB sticks): nothing to switch on. Start-up of the game's force feedback is
-  unconditional on the Gold exe ([docs/WHEEL-T300.md](docs/WHEEL-T300.md), from disassembly), so
+  unconditional on the Gold exe ([docs/guides/WHEEL-T300.md](docs/guides/WHEEL-T300.md), from disassembly), so
   `windows/enable-force-feedback.bat` is not needed; it is harmless. Nobody has re-tested a wheel on a PC where it was
   never run. Close the wheel's control panel before launching.
 - **Save editing:** open `i76-save-editor.html` in any browser, or use the

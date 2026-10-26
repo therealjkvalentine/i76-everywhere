@@ -6,7 +6,7 @@
   deviation only crosses its deadband during genuine spins, handbrake turns and
   impacts. Ordinary sliding does NOT deviate: the car slides visually while its
   yaw rate stays exactly what the steering asked for, which is what "no tyre
-  model" means in practice (docs/HANDLING-MODEL.md).
+  model" means in practice (docs/engine/HANDLING-MODEL.md).
 
   But the game clearly knows more than that. It plays skid sounds (skid1..skid4
   are in the exe) and it draws skid marks - the renderer even has a 'Skid ' timing

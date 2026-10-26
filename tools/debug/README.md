@@ -228,7 +228,7 @@ headless Edge captures of every tab during development.
 * The trainer tab's writes are the trainer window's code, but this front end has not been clicked against a game.
 * `accel_body` in the telemetry is the FFB block's copy, 0 when `ffb_present` is 0 (the whole overnight t05 run): the
   Telemetry tab then shows rot x `accel` (the engine's ent+0xd4, gravity convention unverified live).
-* Owner test item 33 in `docs/OWNER-TEST-LIST.md`.
+* Owner test item 33 in `docs/process/OWNER-TEST-LIST.md`.
 * Deployment: promotion 16 (2026-10-12) put I76 Debug in the daily driver (`_tools\debug`, `DEBUG.bat`, `TRAINER.bat` on
   its Trainer tab). The 2026-10-20 set (full state, haptics starter, the TRAINER.bat shim) is staged in the lab,
   `builds\debug-tool-20261020` (record `docs/records/DEBUG-TOOL-2026-10-20.md`), not installed.

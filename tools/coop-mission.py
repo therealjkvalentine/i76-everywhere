@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn a campaign mission into one a network game can load (the co-op spike, docs/COOP-SPIKE.md).
+"""Turn a campaign mission into one a network game can load (the co-op spike, docs/research/COOP-SPIKE.md).
 
     tools/coop-mission.py T01.MSN COOP01.LVL [--spacing 30] [--count 2] [--keep-movies] [--title "Co-op Scene 1"]
 

@@ -10,7 +10,7 @@ through the host.
   python make_synthetic.py braking turn       # some
   python make_synthetic.py --fps 120 --list
 
-The frames imitate the proxy under I76_FIXED_STEP=24 (docs/MOTION-OUTPUT.md 4.1): sim_time / sim_dt are the rendered
+The frames imitate the proxy under I76_FIXED_STEP=24 (docs/engine/MOTION-OUTPUT.md 4.1): sim_time / sim_dt are the rendered
 frame's, physics advances in whole 1/24 s steps (step_count 0 on frames without a step, the pose repeated), so every
 scenario also exercises the host's repeated-pose dedupe and its 24 Hz -> output-rate resampler.
 

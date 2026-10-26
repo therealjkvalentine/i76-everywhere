@@ -2,7 +2,7 @@
 
 Scope: every surviving source of content beyond the stock games (missions, arenas, cars, paint jobs, voices, music,
 textures, tools) for Interstate '76 / Gold / Nitro Pack / Arsenal. This extends
-[COMMUNITY-RESOURCES.md](../../COMMUNITY-RESOURCES.md) and [COMMUNITY-SITEMAP.md](../../COMMUNITY-SITEMAP.md) (2026-08-09)
+[COMMUNITY-RESOURCES.md](../COMMUNITY-RESOURCES.md) and [COMMUNITY-SITEMAP.md](../COMMUNITY-SITEMAP.md) (2026-08-09)
 and [records/COOP-LIST-ENTRIES-2026-10-18.md](../../records/COOP-LIST-ENTRIES-2026-10-18.md) s.4 (where "Lightfoot's
 Stolen Maps" was "a frameset, list not readable"). Nothing large was downloaded; every "live" claim below is an HTTP
 HEAD or 1-byte range request made on 2026-10-24, every archive.org file list comes from the item's metadata API or

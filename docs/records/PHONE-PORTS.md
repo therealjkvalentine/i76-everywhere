@@ -44,7 +44,7 @@ Adreno GPUs) — the same Wine→DXVK→Vulkan chain as our `-glide` Deck launch
 
 The Glide path is the one to bet on: it's the *identical* wrapper and config file we already tuned
 for the Deck (gamma + 4× MSAA + 32-bit), and Turnip on Adreno is a genuine Vulkan driver — no
-MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](../VOODOO-PARKED.md)).
+MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](../research/VOODOO-PARKED.md)).
 
 ### Concrete container settings (starting point)
 
@@ -57,7 +57,7 @@ MoltenVK shader-persistence wall (the reason [Voodoo is parked on the Mac](../VO
 - **Input API = DirectInput** (Winlator 11.x lets you pick DirectInput vs XInput per game).
   I76 is winmm/DirectInput-era, not XInput — same lesson as the Mac gamepad work.
 - **FPS:** set **`FPSLimit=20`** in `dgVoodoo.conf` (already in ours). The
-  [frame-rate ↔ jump-distance rule](../VERIFIED-FIXES.md) is engine-level and applies on *every*
+  [frame-rate ↔ jump-distance rule](../engine/VERIFIED-FIXES.md) is engine-level and applies on *every*
   platform — Mission 5's canyon jump misses above ~20 FPS no matter the hardware.
 
 ### Hardware reality

@@ -1,6 +1,6 @@
 @echo off
 rem Interstate '76 + in-container input remapper - Deck (Proton) / native Windows.
-rem Put this next to i76.exe, install C:\AutoHotkey per docs/INPUT-REMAPPER.md,
+rem Put this next to i76.exe, install C:\AutoHotkey per docs/guides/INPUT-REMAPPER.md,
 rem then launch THIS instead of i76.exe (Heroic: "select alternative exe").
 rem The Mac wrapper does NOT use this file - its launcher stub starts AHK itself.
 cd /d "%~dp0"

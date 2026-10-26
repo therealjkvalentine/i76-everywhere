@@ -9,8 +9,8 @@ recipe, frame-gen smoothing, FFB, and an aspect-ratio cheat — the question is 
 that runs back under Wine on Apple Silicon. Short answer: **the single most valuable piece
 (the HD textures) transfers for free and is already proven on Mac; the frame-cap/input/music
 wins already work there; the frame-gen and the dgVoodoo supersampling are the Windows-only
-advantages.** Companion to [DXGI-DGVOODOO-RESEARCH.md](../DXGI-DGVOODOO-RESEARCH.md),
-[HD-TEXTURES-RESEARCH.md](../HD-TEXTURES-RESEARCH.md), [MAC-SETUP.md](MAC-SETUP.md).*
+advantages.** Companion to [DXGI-DGVOODOO-RESEARCH.md](../research/DXGI-DGVOODOO-RESEARCH.md),
+[HD-TEXTURES-RESEARCH.md](../research/HD-TEXTURES-RESEARCH.md), [MAC-SETUP.md](MAC-SETUP.md).*
 
 ## Why the texture pack is the free lunch (the load-bearing insight)
 
@@ -76,7 +76,7 @@ For now the honest recommendation is: **play the Mac version at native 20 FPS wi
 
 *(Note 2026-10-03: `setup-mac-hd-textures.sh` below is not in this repo, and `games/interstate-76/` is the path
 this folder had inside mac-gaming-ports. The HD texture pack was retired on 2026-07-27:
-[HD-TEXTURES-RESEARCH.md](../HD-TEXTURES-RESEARCH.md), `texture-lab/README.md`. Kept as the 2026-07-10 record.)*
+[HD-TEXTURES-RESEARCH.md](../research/HD-TEXTURES-RESEARCH.md), `texture-lab/README.md`. Kept as the 2026-07-10 record.)*
 
 ```sh
 # 1. copy the built pack from the Windows box (it's portable — identical game files)
@@ -123,7 +123,7 @@ the horizon; game process 17-60 % of a core. Not yet measured: the frame rate, m
 the HUD squeeze on the software path, a played mission.
 
 Software resolution ceiling: 1024x768, set in-game (Options -> Graphic Detail -> Screen Resolution;
-[VERIFIED-FIXES.md](../VERIFIED-FIXES.md)). Anything above it is engine RE, not a setting.
+[VERIFIED-FIXES.md](../engine/VERIFIED-FIXES.md)). Anything above it is engine RE, not a setting.
 
 ### Later the same night: measuring the CPU path
 

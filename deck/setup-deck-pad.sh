@@ -2,7 +2,7 @@
 # Interstate '76 - the second Deck control profile: the shared pad layer. RUNS ON THE DECK.
 #
 # Adds a library entry "Interstate 76 (pad layer)" beside the normal one. It plays the same game
-# folder with the controls Windows and Mac use (docs/CONTROL-DOCTRINE.md, "Direction for the Steam
+# folder with the controls Windows and Mac use (docs/engine/CONTROL-DOCTRINE.md, "Direction for the Steam
 # Deck"): Steam Input layout v9 presents a plain gamepad (+ the Deck extras: grips, trackpad menu,
 # trackpad mouse), the shared i76-remap.ahk runs inside the Proton prefix and turns the pad into keys
 # (analog driving, Y view cycle, LB shift layer for hardpoints / gears / horn / binoculars), and the

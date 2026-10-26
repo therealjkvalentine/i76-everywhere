@@ -16,7 +16,7 @@ if [ "${I76_FORCE_OLD_SETUP:-0}" != "1" ]; then echo "setup-deck-wide.sh is reti
 #     32-bit dithering, fake fullscreen, CaptureMouse off; gamma 1.3 through the proxy
 #   * I76PATCH.DLL (GOG's ~20 fps cap) disabled: the fixed step keeps physics at stock pace
 #   * LAN play: IPXWrapper's three DLLs (if the push brought them) + WINEDLLOVERRIDES for
-#     wsock32/mswsock, the recipe that put the Mac into a PC-hosted IPX game (docs/MULTIPLAYER.md)
+#     wsock32/mswsock, the recipe that put the Mac into a PC-hosted IPX game (docs/guides/MULTIPLAYER.md)
 #
 # Kept as is: dgVoodoo 2.78.2 (the version proven under Proton on this Deck), the Steam
 # Input controller layout, input.map; the AHK pad layer stays off (I76_DECK_AHK=0). Not
@@ -212,7 +212,7 @@ if [ -f "$PAYLOAD/ipx/ipxwrapper.dll" ] && [ -f "$PAYLOAD/ipx/wsock32.dll" ] && 
 elif [ -f "$GAME/ipxwrapper.dll" ]; then
     IPX=1; say "already installed"
 else
-    say "not in the payload - skipped (LAN over IPX unavailable; see docs/MULTIPLAYER.md)"
+    say "not in the payload - skipped (LAN over IPX unavailable; see docs/guides/MULTIPLAYER.md)"
 fi
 
 # ------------------------------------------- 3c. input.map: orbit on arrows --

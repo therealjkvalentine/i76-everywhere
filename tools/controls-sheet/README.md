@@ -1,6 +1,6 @@
 # controls-sheet: the printable quick reference, and the check that keeps it true
 
-Output: [docs/Interstate76-Controls-Quick-Reference.pdf](../../docs/Interstate76-Controls-Quick-Reference.pdf),
+Output: [docs/guides/Interstate76-Controls-Quick-Reference.pdf](../../docs/guides/Interstate76-Controls-Quick-Reference.pdf),
 five US Letter landscape pages: keyboard and mouse, gamepad, wheel (T300RS), flight stick (CH Fighterstick), stock
 1997 keys vs ours. The pad, wheel and stick pages put each control's box around a schematic picture of the device.
 
@@ -25,11 +25,11 @@ five US Letter landscape pages: keyboard and mouse, gamepad, wheel (T300RS), fli
    ```
 
    It lints the map, checks every source against the others, and then writes `controls-sheet.html`, the PDF and
-   the generated table in `docs/CONTROLS.md`. If anything is inconsistent it writes nothing, lists every
+   the generated table in `docs/guides/CONTROLS.md`. If anything is inconsistent it writes nothing, lists every
    finding and exits 1. `-Png` also writes one PNG per page beside the HTML (needs PyMuPDF; not committed).
    `-Exe <path to i76.exe>` names the exe for the lint; without one the lint is skipped and says so.
 
-3. Look at the PDF, commit the changed sources together with the HTML, the PDF and `docs/CONTROLS.md`.
+3. Look at the PDF, commit the changed sources together with the HTML, the PDF and `docs/guides/CONTROLS.md`.
 
 Requirements: Python 3 (standard library only) and Microsoft Edge for the PDF. It starts no game and no
 AutoHotkey script.
@@ -46,7 +46,7 @@ AutoHotkey script.
   `expect` says, a wheel button the tables do not have;
 - a native `joystick1` button in the map (the layers own every button; a native one beside them fires twice);
 - a `known_mismatches` entry that is no longer a mismatch;
-- the generated table in `docs/CONTROLS.md` being out of date.
+- the generated table in `docs/guides/CONTROLS.md` being out of date.
 
 ## Known mismatches
 

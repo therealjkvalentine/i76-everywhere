@@ -2,7 +2,7 @@
 # Interstate '76 - Steam Deck / Linux setup helper. Run in Desktop Mode AFTER installing
 # the GOG game via Heroic. Drops our validated graphics config, applies the mouse/pad
 # input.map, does the force-feedback registry rename, and checks the Glide wrapper.
-# Guides rather than downloads (no game/binary redistribution). See docs/STEAMDECK.md.
+# Guides rather than downloads (no game/binary redistribution). See docs/guides/STEAMDECK.md.
 #
 # Usage:  ./setup-steamdeck.sh "/path/to/Interstate 76 game dir" [/path/to/wineprefix]
 #   e.g.  ./setup-steamdeck.sh ~/Games/Heroic/"Interstate 76" ~/Games/Heroic/Prefixes/default/"Interstate 76"
@@ -20,7 +20,7 @@ if [ -f "$GAME/Glide2x.dll" ]; then
   echo "   Glide2x.dll present ($sz bytes). If the 3D screen is black, swap in dgVoodoo"
   echo "   2.78.2 (or 2.8.2) MS/x86/Glide2x.dll and delete GOG's OpenGLide first."
 else
-  echo "   NO Glide2x.dll found. Drop dgVoodoo2 MS/x86/Glide2x.dll here (see docs/STEAMDECK.md)."
+  echo "   NO Glide2x.dll found. Drop dgVoodoo2 MS/x86/Glide2x.dll here (see docs/guides/STEAMDECK.md)."
 fi
 
 echo "== 2. Graphics config =="
@@ -59,4 +59,4 @@ echo "   Deck QAM framerate limit = 20. Verify physics in Instant Melee (no car 
 echo ""
 echo "Done. Launch flag must be:  i76.exe -glide   (Heroic: launch arguments)."
 echo "Add the game to Steam as a Non-Steam Game for Steam Input (driving template)."
-echo "Full recipe + open items (music, dgVoodoo version): docs/STEAMDECK.md"
+echo "Full recipe + open items (music, dgVoodoo version): docs/guides/STEAMDECK.md"

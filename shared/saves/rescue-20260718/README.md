@@ -9,7 +9,7 @@ Contents:
 - `save000.cmp`–`save013.cmp` — the campaign saves as of the snapshot.
 - `savegame.dir` — the directory file as captured (the engine truncates its
   newest entry on every save; the launcher stubs re-pad it — see CLAUDE.md /
-  docs/VERIFIED-FIXES.md before "fixing" its size).
+  docs/engine/VERIFIED-FIXES.md before "fixing" its size).
 - `save-01.cmp` — the known engine-bug orphan: a fresh-slot save writes the dir
   entry as `saveNNN` but the file as `save-01.cmp` (`sprintf("save%03d", -1)` —
   the slot allocator returned not-found). Kept as the live specimen of that bug

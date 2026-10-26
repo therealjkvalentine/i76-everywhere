@@ -9,7 +9,7 @@
 #
 #  *** BETA / not yet tested on a clean machine. ***  It does NOT create the
 #  Wine wrapper from nothing (that still needs the manual step in
-#  docs/MAC-BUILD.md, "The working recipe", or an agent). It requires that a
+#  docs/guides/MAC-BUILD.md, "The working recipe", or an agent). It requires that a
 #  Sikarugir Wine-10 wrapper already exists with the GOG game inside its prefix.
 #  It preflight-checks for exactly that and tells you what to do if it's missing.
 #
@@ -59,14 +59,14 @@ if [ "$missing" -eq 1 ]; then
   cat <<EOF
 
    This installer finishes an EXISTING wrapper; it can't build one from scratch.
-   To create it (one-time), follow docs/MAC-BUILD.md -> "The working recipe":
+   To create it (one-time), follow docs/guides/MAC-BUILD.md -> "The working recipe":
      1. Get a Sikarugir Wine-10 wrapper (free) and clone it (APFS: cp -c).
      2. Unzip your GOG Interstate '76 into:
           .../prefix/drive_c/GOG Games/Interstate 76/
      3. Re-run this installer.
 
    Fastest path if you use AI tooling: open this repo in Claude Code and say
-   "set up Interstate '76 on this Mac following docs/MAC-BUILD.md; my GOG zip
+   "set up Interstate '76 on this Mac following docs/guides/MAC-BUILD.md; my GOG zip
    is at ~/Downloads/i76.zip".
 
 EOF
@@ -77,7 +77,7 @@ ok "wrapper + game present"
 
 # ---------- 1. Required Wine registry keys (idempotent) ----------
 # Without the virtual desktop the game page-faults at boot; without the Mac-Driver
-# float key the window vanishes on focus loss. See docs/VERIFIED-FIXES.md.
+# float key the window vanishes on focus loss. See docs/engine/VERIFIED-FIXES.md.
 say "Applying required Wine registry keys"
 if [ -x "$WINE" ]; then
   export WINEPREFIX="$PFX" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
@@ -88,7 +88,7 @@ if [ -x "$WINE" ]; then
   step "float when inactive"         reg 'HKCU\Software\Wine\Mac Driver' WindowsFloatWhenInactive all
   "$APP/Contents/SharedSupport/wine/bin/wineserver" -w 2>/dev/null || true
 else
-  warn "skipped (no wine binary) -- set the 4 keys manually per docs/MAC-BUILD.md"
+  warn "skipped (no wine binary) -- set the 4 keys manually per docs/guides/MAC-BUILD.md"
 fi
 
 # ---------- 2. Verified setup scripts, in order ----------

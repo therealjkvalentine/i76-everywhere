@@ -5,7 +5,7 @@
 # to navigate the menu. Screen looks a little darker too." This installs:
 #   * i76-deck-launch.sh with the display profile: reads the size of the X screen the game is given
 #     (gamescope's Xwayland = Steam's per-game Game Resolution) and sets I76_ASPECT + dgVoodoo's
-#     [Glide] Resolution to it; handheld / tv brightness profiles (docs/STEAMDECK.md, "Docked to a TV")
+#     [Glide] Resolution to it; handheld / tv brightness profiles (docs/guides/STEAMDECK.md, "Docked to a TV")
 #   * the proxy with I76_PAD_MENU (music-fix/padmenu.c): left stick / D-pad move the menu pointer,
 #     A clicks, B = Esc, Start = Enter, in the shell and the Esc menu only
 #   * a block of tunables appended to i76-env.sh (marker: "display profiles + pad menu")
@@ -104,7 +104,7 @@ else
     cat >> "$INSTALL/i76-env.sh" <<'EOF'
 
 # --- rumble + cursor diagnostics (deck/setup-deck-tv.sh, 2026-10-16) -----------------------------
-# Owner: "rumble does not work", "the mouse pointer coordinates are a little off" (docs/STEAMDECK.md).
+# Owner: "rumble does not work", "the mouse pointer coordinates are a little off" (docs/guides/STEAMDECK.md).
 export I76_AHK_RUMBLE="${I76_AHK_RUMBLE:-auto}"   # pad layer rumble: auto (on unless the ffb-shim is installed) | 1 | all | 0
 export I76_CURSOR_LOG="${I76_CURSOR_LOG:-1}"     # mciproxy.log: game window client rect + the first 40 pointer translations
 export I76_DECK_XPROBE="${I76_DECK_XPROBE:-1}"   # deck-launch.log: X windows + X pointer at +25 s and +70 s

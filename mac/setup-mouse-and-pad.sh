@@ -1,7 +1,7 @@
 #!/bin/sh
 # Interstate '76 - add MOUSE driving + Xbox-pad bindings to the ACTIVE input.map.
 #
-# Research-grounded (see docs/VERIFIED-FIXES.md "Input"):
+# Research-grounded (see docs/engine/VERIFIED-FIXES.md "Input"):
 #  - I76 has NATIVE mouse support: analog channels `mouse Left/Right` (steer) and
 #    `mouse Down/Up` (throttle), buttons LeftBtn/RightBtn/MiddleBtn. Exactly three
 #    mouse buttons exist in the engine - weapon 4 stays on the keyboard.

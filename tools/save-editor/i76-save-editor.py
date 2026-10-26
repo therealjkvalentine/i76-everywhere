@@ -78,7 +78,7 @@ digit), compnent.cdf (engines/susp/brakes), specials spc01..spc09 from the exe s
 (spc02 NitrousOxide, spc04 X-Aust, spc05 Structo, spc06 Curb Feelers, spc07 Mud Flaps,
 spc08 Heated Seats, spc09 Cup Holders seen in saves; spc01 prints as "Radar Jammer" in the garage
 (sandbox 2026-10-02); every pair is also code-verified: the exe builds the def as sprintf("spc%02d", type),
-0x4b1502, <re-archive> engine.md). What each part does: PARTS_INFO below and docs/PARTS-REFERENCE.md.
+0x4b1502, <re-archive> engine.md). What each part does: PARTS_INFO below and docs/engine/PARTS-REFERENCE.md.
 Caps (sandbox 2026-10-02): the repair bench has none (15 queued jobs all listed, scrolling); the
 van holds >= 5 suspensions; only the weapon list's 11 is a real cap. The inventory dialog's columns
 are height-limited (ENGINES 4 rows, WEAPONS 11, WHEELS 12) - display, not storage.
@@ -90,7 +90,7 @@ Usage:
   i76-save-editor.py --dir DIR --dump N   dump slot N (index in --list order, or "save006")
   i76-save-editor.py --dir DIR --check    validate every file against the writer's frame
   i76-save-editor.py --json FILE...       machine-readable dump (tests/ compare it to the HTML parser)
-  i76-save-editor.py --parts              what every part does, with sources (docs/PARTS-REFERENCE.md)
+  i76-save-editor.py --parts              what every part does, with sources (docs/engine/PARTS-REFERENCE.md)
 
 Every modified file gets a one-time <name>.pre-edit backup plus a timestamped .bak-<ts>
 copy next to it, and is read back after the write.
@@ -241,10 +241,10 @@ def catalog_weight(name):
 #                identical; the sandbox ADDON folder overrides none of these files) through
 #                <re-archive>'s parsers (data\mod\i76mod.py show zfs:compnent.cdf ENGN#0, ...)
 #   [RE: ...]    <re-archive>'s static reading of i76.exe (md5 9a232dcc), doc + address
-#   [community]  published player measurements (Local Ditch, docs/WEAPON-STATS.md)
+#   [community]  published player measurements (Local Ditch, docs/engine/WEAPON-STATS.md)
 #   [unknown]    nothing found
 # i76-save-editor.html embeds the same table as JSON (tests/test_save_editor.py keeps them equal).
-# Full table with every source: docs/PARTS-REFERENCE.md.
+# Full table with every source: docs/engine/PARTS-REFERENCE.md.
 PARTS_INFO = {}
 
 def _info(key, name, short, what):
@@ -395,7 +395,7 @@ _info("spc02", "NitrousOxide", "x5 drive for 15 s, 3 charges (key)",
       "Press its special key: drive acceleration x5.0 for 15 s, still capped by rear-tyre traction; 3 charges, a second"
       " press restarts the 15 s and costs a charge (physics_FireNitro 0x43d280, 15.0 at 0x43d2a6, x5.0 at 0x4bd1dc;"
       " re-read from the exe in this pass) [RE: engine.md]. The community figure '+50% acceleration, +20% top"
-      " speed' [community: docs/I76-GAMEPLAY-REFERENCE.md] does not match the code." + _SPC)
+      " speed' [community: docs/engine/I76-GAMEPLAY-REFERENCE.md] does not match the code." + _SPC)
 _info("spc03", "Blower", "permanent x1.25 drive",
       "Passive: drive acceleration x1.25 from spawn (+0x128 = 1.25 at 0x438edb, read at 0x43c587; re-read in this pass)"
       " [RE: engine.md]. Set once at spawn, so it keeps working even after it is shot off [RE: engine.md].")
@@ -426,7 +426,7 @@ _info("spc09", "Cup Holders", "10% of hits do no internal damage",
       "Passive: a hit that gets past the armour and chassis to the components does no internal damage 10% of the time"
       " (entity_DamageComponent, rand()%100 < 10 at 0x465b7e clears the record's type mask) [RE: engine.md, damage.md]."
       " The armour and chassis still take their share first, so the community 'reduces the probability of being hit by"
-      " 10%' is only partly true. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some"
+      " 10%' is only partly true. docs/engine/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some"
       " are jokes)' [community]; the code gives them a real effect." + _SPC)
 
 def info_key(typ, dfl, cls=""):
@@ -1143,7 +1143,7 @@ def main():
     ap.add_argument("--dump", metavar="N", help="dump save slot N (index from --list) or saveNNN")
     ap.add_argument("--check", action="store_true", help="validate every file in --dir")
     ap.add_argument("--json", nargs="+", metavar="FILE", help="JSON dump of the given .cmp/.spc/.dir files")
-    ap.add_argument("--parts", action="store_true", help="print what every part does (docs/PARTS-REFERENCE.md)")
+    ap.add_argument("--parts", action="store_true", help="print what every part does (docs/engine/PARTS-REFERENCE.md)")
     ap.add_argument("--parts-json", action="store_true", help="print PARTS_INFO as the JSON the HTML editor embeds")
     ap.add_argument("--clear-cheat-options", action="store_true",
                     help="clear Play Options bits 0x1c (unlimited ammo/armour/chassis) in I76PLYR.DEF beside the saves, "

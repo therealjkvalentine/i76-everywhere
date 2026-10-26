@@ -1,6 +1,6 @@
 # Asset Bible — `road`
 
-*Interstate '76 / '77 Complete Asset Bible, 4th edition. Credit: **original Asset Bible writer and DIVER**, "Happy Nitrous Delivery Services -the Ruins Project-". Source: <https://route380.stars.ne.jp/i76/resource_i76/> (`i76cab4.zip`). Converted by `tools/asset-bible-to-md.py`; see [COMMUNITY-RESOURCES.md](../COMMUNITY-RESOURCES.md).*
+*Interstate '76 / '77 Complete Asset Bible, 4th edition. Credit: **original Asset Bible writer and DIVER**, "Happy Nitrous Delivery Services -the Ruins Project-". Source: <https://route380.stars.ne.jp/i76/resource_i76/> (`i76cab4.zip`). Converted by `tools/asset-bible-to-md.py`; see [COMMUNITY-RESOURCES.md](../research/COMMUNITY-RESOURCES.md).*
 
 Original file: `road.html`
 

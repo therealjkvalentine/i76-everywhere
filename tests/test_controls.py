@@ -4,7 +4,7 @@
 
 Starts no game. The consistency check is tools/controls-sheet/build_sheet.py --check: the map, the
 AutoHotkey layers, the launcher's mouse-wheel defaults and controls-sheet.json must agree, and the
-generated table in docs/CONTROLS.md must be current.  The lint needs an i76.exe (none is in the repo):
+generated table in docs/guides/CONTROLS.md must be current.  The lint needs an i76.exe (none is in the repo):
 set I76_EXE, or it uses the lab copies when present, else that one test is skipped.
 """
 import hashlib, importlib.util, os, subprocess, sys
@@ -28,12 +28,12 @@ def test_sources_agree():
 
 
 def test_map_is_the_recorded_file():
-    """shared/controls/README.md and docs/CONTROLS.md quote this md5; -text in .gitattributes keeps the bytes."""
+    """shared/controls/README.md and docs/guides/CONTROLS.md quote this md5; -text in .gitattributes keeps the bytes."""
     md5 = hashlib.md5(open(MAP, "rb").read()).hexdigest()
     readme = open(os.path.join(REPO, "shared", "controls", "README.md"), encoding="utf-8").read()
     assert md5 in readme, "shared/controls/input.map changed: update the md5 in shared/controls/README.md and rebuild the sheet"
-    controls = open(os.path.join(REPO, "docs", "CONTROLS.md"), encoding="utf-8").read()
-    assert md5 in controls, "docs/CONTROLS.md was generated from another map: run tools\\controls-sheet\\build.ps1"
+    controls = open(os.path.join(REPO, "docs", "guides", "CONTROLS.md"), encoding="utf-8").read()
+    assert md5 in controls, "docs/guides/CONTROLS.md was generated from another map: run tools\\controls-sheet\\build.ps1"
 
 
 def test_map_has_analog_sinks_and_no_native_buttons():

@@ -15,7 +15,7 @@
 #
 # The Mac launcher stub (i76-launch-stub.swift) auto-starts
 # C:\AutoHotkey\AutoHotkeyU32.exe C:\AutoHotkey\i76-remap.ahk when installed.
-# Deck / native Windows: docs/INPUT-REMAPPER.md (+ i76-with-remap.bat).
+# Deck / native Windows: docs/guides/INPUT-REMAPPER.md (+ i76-with-remap.bat).
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"   # the repo root: this script lives in mac/

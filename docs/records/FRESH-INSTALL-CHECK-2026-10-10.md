@@ -2,7 +2,7 @@
 
 Backlog R-04 ("Fresh `Setup-From-GOG.ps1` install + boot on a clean folder; blocks v1.1.0"), the half an agent can do
 without the console. **The game was not started** (console unavailable), so the boot itself stays an owner test:
-[OWNER-TEST-LIST.md](../OWNER-TEST-LIST.md) item 16.
+[OWNER-TEST-LIST.md](../process/OWNER-TEST-LIST.md) item 16.
 
 ## What was run
 

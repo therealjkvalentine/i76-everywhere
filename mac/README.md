@@ -1,7 +1,7 @@
 # mac/
 
 The Apple Silicon build: Wine wrapper setup, launch stubs and helpers. On a Mac, double-click `mac-install.command` at the
-repository root (a one-line hand-over to `mac/mac-install.command`). The guide is [docs/MAC-BUILD.md](../docs/MAC-BUILD.md).
+repository root (a one-line hand-over to `mac/mac-install.command`). The guide is [docs/guides/MAC-BUILD.md](../docs/guides/MAC-BUILD.md).
 
 | Files | What they are |
 |---|---|

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cockpit_split.py - double the static cockpit dash under Glide 2 by splitting each 256x128 dash tile into
 four 256x128 quarter tiles of a 512x256 version, and re-authoring the dash .geo so each face is cut along the
-quadrant lines and every piece samples its own quarter (docs/COCKPIT-HIRES-FEASIBILITY.md, option B, stage 1).
+quadrant lines and every piece samples its own quarter (docs/research/COCKPIT-HIRES-FEASIBILITY.md, option B, stage 1).
 
 Generator only: it reads the owner's own archive (I76.ZFS, an ADDON copy, or an extraction folder) and writes an
 ADDON-ready override pair into a folder the owner chooses:

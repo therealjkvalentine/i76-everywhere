@@ -13,5 +13,5 @@ contact_links:
     url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/tools/patch-kit/README.md
     about: The kit's README - "If something goes wrong" has the common fixes; "Problems and feedback" says what to attach.
   - name: Every verified fix, one table
-    url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/VERIFIED-FIXES.md
+    url: https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/engine/VERIFIED-FIXES.md
     about: Your answer may already be here.

@@ -1,8 +1,8 @@
 # Community contacts for the v0.7 announcement (2026-10-25)
 
 Who demonstrably cares about Interstate '76, and the **public** route to reach each of them. Built from
-[COMMUNITY-RESOURCES.md](../COMMUNITY-RESOURCES.md), [COMMUNITY-SITEMAP.md](../COMMUNITY-SITEMAP.md),
-[research/content-2026-10-24/](../research/content-2026-10-24/), [PRIOR-ART-I26-2026-10-21.md](../PRIOR-ART-I26-2026-10-21.md),
+[COMMUNITY-RESOURCES.md](../research/COMMUNITY-RESOURCES.md), [COMMUNITY-SITEMAP.md](../research/COMMUNITY-SITEMAP.md),
+[research/content-2026-10-24/](../research/content-2026-10-24/), [PRIOR-ART-I26-2026-10-21.md](../research/PRIOR-ART-I26-2026-10-21.md),
 and a fresh sweep on 2026-10-25: YouTube search (10 + 9 queries, 40 / 30 results each, metadata read from the public watch
 and channel-about pages), the GOG Interstate forum index, GitHub profiles (`gh api users/<name>`), and Discord's public
 invite lookup. **Nothing was sent and nothing was posted.** The announcement texts are in

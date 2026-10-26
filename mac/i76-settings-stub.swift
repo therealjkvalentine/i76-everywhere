@@ -2,7 +2,7 @@
 //
 // Opens the DxWnd GUI (no /R:1 autorun) so you can tweak the profile: select the
 // "Interstate 76" row -> Edit for options (Main tab: position/aspect/terminate-on-
-// close; DirectX tab: renderer/filters; see docs/DXWND-TUNING.md for what each does).
+// close; DirectX tab: renderer/filters; see docs/guides/DXWND-TUNING.md for what each does).
 // Double-click the row to launch the game from here for quick A/B testing.
 //
 // Changes save to C:\dxwnd\dxwnd.ini (live profile). To make a good config permanent

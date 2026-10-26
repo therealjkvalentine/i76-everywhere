@@ -47,6 +47,6 @@ foreach ($p in 'best-wide.psd1', 'best-120.psd1') {
 
 & (Join-Path $PSScriptRoot 'Promote-To-Driver.ps1') -Plan:$Plan `
     -What 'render freeze: dgVoodoo TMU 8192 (wide + 16x10) with I76_ZGLIDE_TMUFIX in best-wide + best-120; merged proxy (music run end exclusive, resume + guard default on, FRAME_SPIKES/TMUFIX switches)' `
-    -Gate 'lab twin game-dd-20261003, 2026-10-04, proxy 3a2c6d4a: gate rows 2-4 PASS 15/15 via PLAY.bat (runs\gate\20261004-182500) and via PLAY-16x10.bat (runs\gate\20261004-183219), grTexMaxAddress 0x7ffff0 + tmufix logged, 120 fps; soak t01/t05/t11/t12 with I76_FRAME_SPIKES (lab docs\RENDER-FREEZE-2026-10-04.md section 7); music: docs\MUSIC-TRACK-MAP.md 2026-10-04 lab test' `
+    -Gate 'lab twin game-dd-20261003, 2026-10-04, proxy 3a2c6d4a: gate rows 2-4 PASS 15/15 via PLAY.bat (runs\gate\20261004-182500) and via PLAY-16x10.bat (runs\gate\20261004-183219), grTexMaxAddress 0x7ffff0 + tmufix logged, 120 fps; soak t01/t05/t11/t12 with I76_FRAME_SPIKES (lab docs\RENDER-FREEZE-2026-10-04.md section 7); music: docs\engine\MUSIC-TRACK-MAP.md 2026-10-04 lab test' `
     -Files $files
 Write-Host "staged confs / presets: $stage"

@@ -11,7 +11,7 @@ device, the TOC is answered for tracks 1..17, `MCI_PLAY` track N plays GOG's `mu
 **mpegvideo** MCI device, `MEDIA_PRESENT` is reported so the "Please insert CD 2" prompt never fires, and the
 in-game music slider works (`auxSetVolume(0xB337B337) -> 700/1000`). Everything non-cdaudio passes straight
 through to the real winmm. **Confirmed in a mission 2026-08-08** (`MCI_PLAY flags=0xC from=104012301 -> track 13`;
-the full diagnosis is [docs/MUSIC.md](../docs/MUSIC.md)). Because this DLL is the one hook point every install
+the full diagnosis is [docs/MUSIC.md](../docs/guides/MUSIC.md)). Because this DLL is the one hook point every install
 already loads, it also carries the **opt-in** engine switches below (frame-rate fixes, fixed physics step, render
 interpolation, two stock bug fixes); all are off unless their environment variable is set, and every patched
 site's bytes are verified before writing, so an unknown build is left alone.
@@ -371,7 +371,7 @@ one PC with `I76_MULTI_INSTANCE=1`, but no session between them was achieved).
 
 The diagnosis as it was written, kept dated so nothing is lost. Several of these paragraphs were later overtaken
 (the aux hooks were built and the volume now works; `MCI_PLAY` was observed in a mission; MSVC builds the DLL);
-each is marked where that happened. The companion narrative is [docs/MUSIC.md](../docs/MUSIC.md) (diagnosed
+each is marked where that happened. The companion narrative is [docs/MUSIC.md](../docs/guides/MUSIC.md) (diagnosed
 2026-08-04, fixed 2026-08-08).
 
 ### 2026-10-10: `I76_GLIDE_DIR` removed from the source
@@ -440,7 +440,7 @@ TOC values look like garbage and are not.)
 #### Confirmed working
 
 The engine's own state, before and after (addresses from
-[MEMORY-MAP-INDEX.md](../docs/MEMORY-MAP-INDEX.md) Tier 1):
+[MEMORY-MAP-INDEX.md](../docs/engine/MEMORY-MAP-INDEX.md) Tier 1):
 
 | | before | after |
 |---|---|---|
@@ -460,7 +460,7 @@ done, or another status query answered wrongly — in which case the log names i
 
 > **Superseded 2026-08-08:** `MCI_PLAY` was observed in a mission
 > (`MCI_PLAY flags=0xC from=104012301 -> track 13`, then `track 2`; the engine's own choices). Log excerpt in
-> [docs/MUSIC.md](../docs/MUSIC.md).
+> [docs/MUSIC.md](../docs/guides/MUSIC.md).
 
 ### Earlier finding (2026-08-04): the hook was installed and NEVER CALLED
 

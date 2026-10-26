@@ -157,7 +157,7 @@ any, paces the sim. Note: the 2017 Galaxy exe imports **no winmm at all**; only 
    once found): direct struct read vs snapshot vs scene list, and whether
    software/Glide/D3D share one choke point. Decides if route 1 has one seam or three.
 9. **Reverse I76PATCH.DLL** (present in the Mac GOG install per
-   [MAC-BUILD.md](../MAC-BUILD.md); absent from both Windows installs — presence varies by
+   [MAC-BUILD.md](../guides/MAC-BUILD.md); absent from both Windows installs — presence varies by
    install). What does its QPC+Sleep trampoline hook, and why does it overshoot to
    20.66? Its insertion point is a field-proven host for a scheduler.
 10. **Build the per-mechanic breakage ladder nobody has:** 22/25/30/40 FPS with the

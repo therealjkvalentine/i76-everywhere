@@ -316,7 +316,7 @@ Recorded because none produced a useful error message:
 ## Telemetry map
 
 Player entity resolves via `[[[0x54a264]]+0x70]`. Full table and the corrections
-it forced live in `docs/MEMORY-MAP-INDEX.md` Tier 2. Summary:
+it forced live in `docs/engine/MEMORY-MAP-INDEX.md` Tier 2. Summary:
 
 | offset | field | confidence |
 |---|---|---|
@@ -437,7 +437,7 @@ no orientation to read); pitch, roll, position and per-wheel data are **zero**,
 because the engine has no suspension model and inventing one would drive a rig with
 detail the simulation does not have.
 
-Background and the numbers behind all of this: **[docs/FFB-DESIGN-LIBRARY.md](../../docs/FFB-DESIGN-LIBRARY.md)**.
+Background and the numbers behind all of this: **[docs/engine/FFB-DESIGN-LIBRARY.md](../../docs/engine/FFB-DESIGN-LIBRARY.md)**.
 
 ## Files
 

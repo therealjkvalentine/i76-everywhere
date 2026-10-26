@@ -76,7 +76,7 @@ What the verdict means (column `gold_verdict` / `best_verdict`; **all static, no
   `zmap6moo.map`, `zmzp3m00.map`); 37 maps. What the engine does with a missing map screen is not known.
 - `drops objects (...)`: object labels with no .sdf/.vcf anywhere (82 maps); the loader skips them silently.
 
-**Correction 2026-10-25 ([CONTENT-FEASIBILITY-2026-10-25.md](../../CONTENT-FEASIBILITY-2026-10-25.md) s.2):** the WREV 8
+**Correction 2026-10-25 ([CONTENT-FEASIBILITY-2026-10-25.md](../CONTENT-FEASIBILITY-2026-10-25.md) s.2):** the WREV 8
 WRLD is 318 bytes and does carry the author's title (at +0x12e); what it lacks is the 13-byte horizon name at +0x86, so
 Gold/Nitro read every later field 13 bytes off (hour, surfaces, far clip, title). `tools/content-archive/arena-pack.py`
 converts. The paragraph below is the original reading.

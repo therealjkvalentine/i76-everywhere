@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""compose.py - launch-video lane: build the cut from a timeline file (docs/LAUNCH-VIDEO-2026-10-25.md s.2).
+"""compose.py - launch-video lane: build the cut from a timeline file (docs/release/LAUNCH-VIDEO-2026-10-25.md s.2).
 
   python compose.py --timeline timeline-v1.json --out <dir>\\draft-v1.mp4 [--theme <music\\2.mp3>] [--music <groove.wav>]
 

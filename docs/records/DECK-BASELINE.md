@@ -35,7 +35,7 @@ Proton prefix — one source of truth across Mac, Windows and Deck.
 
 **What you give up:** the Steam Input v4 trackpad radial menu and the L4/L5/R4/R5 grip
 bindings. Both are convenience-tier only; every critical action is covered here
-([CONTROL-DOCTRINE.md](../CONTROL-DOCTRINE.md)). Rollback is one command.
+([CONTROL-DOCTRINE.md](../engine/CONTROL-DOCTRINE.md)). Rollback is one command.
 
 ## Deploy
 

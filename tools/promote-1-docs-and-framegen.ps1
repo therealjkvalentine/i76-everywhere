@@ -6,6 +6,6 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     -What 'controls quick-reference PDF; framegen-90 preset (new files only, nothing replaced)' `
     -Gate 'no gate needed: documents and an unused preset; sheet consistency check + 161 offline tests pass' `
     -Files @{
-        'Interstate76-Controls-Quick-Reference.pdf' = (Join-Path $repo 'docs\Interstate76-Controls-Quick-Reference.pdf')
+        'Interstate76-Controls-Quick-Reference.pdf' = (Join-Path $repo 'docs\guides\Interstate76-Controls-Quick-Reference.pdf')
         'Interstate 76\presets\framegen-90.psd1'    = (Join-Path $repo 'presets\framegen-90.psd1')
     }

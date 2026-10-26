@@ -21,7 +21,7 @@ fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD
   `[owner test pending]`; not in the committed `Strlkup.dll` and in no preset. `=1` measured 3/14: no effect.
 - **Co-op campaign** over IPX (`34a1fe4`..`13b5455`; `I76_COOP_DAMAGE`, `I76_COOP_AI`, `I76_COOP_CHAIN`, CB radio,
   objectives, joiner respawn, Windows reload crash fix): PC host + Mac joiner in campaign missions; gaps in
-  [docs/COOP.md](docs/COOP.md) `[measured, two machines]`.
+  [docs/COOP.md](docs/guides/COOP.md) `[measured, two machines]`.
 - `I76_JOY_MAP` / `I76_JOY_SYNTH` (`6f28a3b`), `I76_NO_MINIMIZE` (`ef8564c`) for two copies on one PC (Nucleus)
   `[built; used in the first Nucleus runs, no-minimize A/B n=1]` (`65d4a39`, `5e20b2d`, `c81181f`); `I76_MUSIC_THREAD` (`fa031d2`) MCI calls off the game thread `[built, untested]`.
 
@@ -93,7 +93,7 @@ fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD
   `a937f36d`); the driver gets both files by promotion after a pad test. `[lint and consistency check pass]`
   `[not played]`. On Mac / Deck the gear keys no longer match `input.map.reference`.
 - **Ten doc disagreements about controls resolved** against the daily driver's live configuration
-  ([docs/CONTROLS.md](docs/CONTROLS.md), last section). **Mac: converge later**: the Mac map was not examined.
+  ([docs/CONTROLS.md](docs/guides/CONTROLS.md), last section). **Mac: converge later**: the Mac map was not examined.
 - **New daily driver** built by `tools/Make-Daily-Driver.ps1` at `<games>\Interstate76-2026-10-03`
   with a golden copy beside it; preset `best-120`, the repo's `Strlkup.dll`, u32x lab build `054fb411`,
   `dgVoodoo.daily-driver-2026-10-03.conf`. Gated on a lab twin
@@ -127,7 +127,7 @@ fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD
 
 ### 2026-10-02 (commits `c9e2695..7c998bf` plus the release-hygiene pass)
 
-Status words are the ones [docs/RELEASE-PLAN.md](docs/RELEASE-PLAN.md) section 6 asks for: `[verified in play]`,
+Status words are the ones [docs/RELEASE-PLAN.md](docs/process/RELEASE-PLAN.md) section 6 asks for: `[verified in play]`,
 `[measured, sandbox]`, `[built, untested]`, `[retracted]`. "Sandbox" is `..\<lab>\game`; **nothing in
 this block is deployed to the playable install.** Session record: [docs/records/STATUS-2026-10-02.md](docs/records/STATUS-2026-10-02.md),
 owner's console run: [docs/records/PLAYTEST-2026-10-02.md](docs/records/PLAYTEST-2026-10-02.md), open work:
@@ -195,7 +195,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   [docs/records/HEALTH-BAR-COLOUR.md](docs/records/HEALTH-BAR-COLOUR.md), [docs/records/MOUNT-VALIDATION.md](docs/records/MOUNT-VALIDATION.md)
   (static: no class check at load; the turret rule applies only on DONE),
   [docs/records/SAVE-EDITOR-STATUS-2026-10-02.md](docs/records/SAVE-EDITOR-STATUS-2026-10-02.md),
-  [docs/EDITOR-FIELD-TESTS.md](docs/EDITOR-FIELD-TESTS.md).
+  [docs/EDITOR-FIELD-TESTS.md](docs/engine/EDITOR-FIELD-TESTS.md).
 
 #### Changed
 
@@ -244,7 +244,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   u32x build above (with `u32x_min`: 10 s idle, row click, SAVE twice, overwrite prompt reached by mouse; the
   full mouse-only save through YES was shown with the withdrawn `037fcb3a` build, which carries the same call).
 - **18 stale or contradictory doc claims** in this repo (backlog section 2), and on 2026-10-02 the remaining
-  sibling-repo ones listed in [docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md](docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md)
+  sibling-repo ones listed in [docs/DOC-CORRECTIONS-PENDING-SIBLINGS.md](docs/status/DOC-CORRECTIONS-PENDING-SIBLINGS.md)
   were applied in `<lab>` and `<re-archive>`.
 
 #### Retracted
@@ -327,14 +327,14 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   stopping the crash, which should have been the clue; the repeat-fire mode may be safe to
   restore. Generalises past this wheel: *when a vendor UI warns you to close it before gaming,
   that is about exclusive device acquisition, and it presents as the game being broken.*
-  Details in [docs/WHEEL-T300.md](docs/WHEEL-T300.md). Also settled there: **300°** is the
+  Details in [docs/WHEEL-T300.md](docs/guides/WHEEL-T300.md). Also settled there: **300°** is the
   right wheel rotation (an earlier draft guessed ~240°, too twitchy).
 - **FORCE FEEDBACK WORKS.** Confirmed in-sim on a Thrustmaster T300RS, with analog
   steering, analog accelerator/brake and all 13 buttons. This closes the repo's oldest
-  open question: [FORCE-FEEDBACK-AND-VISUALS.md](docs/FORCE-FEEDBACK-AND-VISUALS.md)
+  open question: [FORCE-FEEDBACK-AND-VISUALS.md](docs/engine/FORCE-FEEDBACK-AND-VISUALS.md)
   had FFB as a Mac dead end and a Windows "should work" resting on two community
   reports. It also resolves that doc's standing contradiction with
-  [GAMEPAD-PC-MAC.md](docs/GAMEPAD-PC-MAC.md)'s "no DirectInput — confirmed in the
+  [GAMEPAD-PC-MAC.md](docs/guides/GAMEPAD-PC-MAC.md)'s "no DirectInput — confirmed in the
   exe": **input is winmm, FFB output is DirectInput.** Both were true. The registry
   gate was already satisfied on this GOG install — no admin step needed.
 - **Fixed: a latent AHK bug that hangs the game with ANY wheel or stick, on every
@@ -359,7 +359,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   *centre*, so it pins at full deflection (runaway throttle). **Combined (2-axis)** mode
   gives one centre-resting axis and the stock binding is then correct. Full axis/button
   map, FFB status and the settings that matter in
-  [docs/WHEEL-T300.md](docs/WHEEL-T300.md); new instrument
+  [docs/WHEEL-T300.md](docs/guides/WHEEL-T300.md); new instrument
   [`tools/i76-joyprobe.py`](tools/i76-joyprobe.py) (waits for input rather than racing a
   timer, and warms up before baselining — a naive trigger fires on the device settling,
   not the user). Two more traps found in play: the `mouse` source sitting alongside
@@ -377,7 +377,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   profile with `AutoScale=true` + fixed 2× so frame-gen engages by itself — no Ctrl+Alt+S —
   and [`PLAY-i76.ps1`](windows/PLAY-i76.ps1) now starts/stops it with the game (only if it wasn't
   already running). Physics stay at the 20 FPS base; these are interpolated *display*
-  frames only. Details in [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) sec 2.
+  frames only. Details in [docs/WINDOWS-PLAYBOOK.md](docs/guides/WINDOWS-PLAYBOOK.md) sec 2.
   [`Setup-FrameGen.ps1`](windows/Setup-FrameGen.ps1) scripts the whole thing (profile +
   `-FixShortcut` + `-Revert`) so a second PC is one command.
 - **Steam Deck: baseline control tier — rumble parity with Mac/Windows (untested on
@@ -407,7 +407,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   pulled: the in-game improvement didn't justify shipping it, and palette-indexed
   tiles rendered wrong on night missions (no palette-agnostic fix exists). The
   `-WithHDTextures` build step is gone; the research — including the cracked `.M16`
-  format spec — is preserved in [docs/HD-TEXTURES-RESEARCH.md](docs/HD-TEXTURES-RESEARCH.md)
+  format spec — is preserved in [docs/HD-TEXTURES-RESEARCH.md](docs/research/HD-TEXTURES-RESEARCH.md)
   for future work. The OpenGLide-HD fork ([tools/openglide-hd/](tools/openglide-hd/))
   remains as the unfinished true-HD route.
 
@@ -416,7 +416,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
 First public milestone: Interstate '76 (GOG Gold, 1997) running well on three platforms
 from a free/open-source stack, plus a save editor and reverse-engineered file formats.
 Everything below was hit, diagnosed, and verified in play on this port — details in
-[docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md).
+[docs/VERIFIED-FIXES.md](docs/engine/VERIFIED-FIXES.md).
 
 ### Play — Apple Silicon Mac (the shipping build)
 - Self-contained Sikarugir **Wine 10 (wow64)** wrapper, software renderer via **DxWnd** — instant

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""cockpit_mockup.py - stage 0 of docs/COCKPIT-HIRES-FEASIBILITY.md: a picture the owner can judge before any
+"""cockpit_mockup.py - stage 0 of docs/research/COCKPIT-HIRES-FEASIBILITY.md: a picture the owner can judge before any
 console time. Decodes the dash tiles (ZDASHn01/n02.M16 from zdashn06.pak), upscales them 2x and 4x, rebuilds the
 dash from the cockpit .geo, and writes an HTML page with 1x / 2x / 4x side by side, plus crops:
 
@@ -10,7 +10,7 @@ dash from the cockpit .geo, and writes an HTML page with 1x / 2x / 4x side by si
      down shows, minus perspective). The needles (separate sub-objects) and painted faces are not drawn.
   3. What does not change: crops of the painted gauge faces from the same capture (radar, weapons, damage).
 
-Upscaler (redistributable as a recipe, docs/COCKPIT-HIRES-FEASIBILITY.md section 5): U2's dash-class winner,
+Upscaler (redistributable as a recipe, docs/research/COCKPIT-HIRES-FEASIBILITY.md section 5): U2's dash-class winner,
 4x-Manga109Attempt (CC-BY-4.0) x 4x_RRDB_PSNR (Apache-2.0) interpolated 50/50, run at 4x; the 2x is a Lanczos
 downscale of that 4x (U2's "o4 -> 2x"). Weights are read from <work>/models/interp (never in the repo). If they are
 missing it falls back to a classical Lanczos + luminance unsharp and says so on the page.
@@ -265,7 +265,7 @@ figure img{{display:block;max-width:100%;image-rendering:auto}} figcaption{{font
 code{{font-size:.9em}}
 </style></head><body>
 <h1>Cockpit dash at 2x / 4x: what the tile split would buy</h1>
-<p class="muted">Stage 0 of docs/COCKPIT-HIRES-FEASIBILITY.md, {meta['date']}. Piranha dash ({meta['geo']}, tiles {', '.join(meta['tiles'])} from {meta['tex_pak']}.pak).
+<p class="muted">Stage 0 of docs/research/COCKPIT-HIRES-FEASIBILITY.md, {meta['date']}. Piranha dash ({meta['geo']}, tiles {', '.join(meta['tiles'])} from {meta['tex_pak']}.pak).
 Offline render, nothing run in game. Upscaler: {html.escape(up)}. Derived game art: local only, never commit.</p>
 <ul>
 <li><b>2x is what the Glide route can deliver</b> (four 256x128 quarter tiles per dash tile, no exe change). 4x is shown for reference: it would need 16 tiles per dash tile, the same geo trick twice.</li>

@@ -1,7 +1,7 @@
 # Interstate '76: development history, press previews and cut content
 
 Swept 2026-10-24 for future expansion work. This extends
-[COMMUNITY-RESOURCES.md](../../COMMUNITY-RESOURCES.md) §5 ("Background / preservation"). Every source below
+[COMMUNITY-RESOURCES.md](../COMMUNITY-RESOURCES.md) §5 ("Background / preservation"). Every source below
 was fetched during the sweep unless it is marked **not fetched**. Treat all of it as third-party data.
 
 Reliability scale:

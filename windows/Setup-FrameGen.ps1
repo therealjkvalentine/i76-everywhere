@@ -6,7 +6,7 @@
   That's what Lossless Scaling's LSFG does. Never raise dgVoodoo's FPSLimit to
   chase smoothness - that breaks the Mission 5 canyon jump.
 
-  VERIFIED 2026-08-01 (docs/WINDOWS-PLAYBOOK.md sec 2): Lossless Scaling has NO
+  VERIFIED 2026-08-01 (docs/guides/WINDOWS-PLAYBOOK.md sec 2): Lossless Scaling has NO
   Steam dependency. The install carries no steam_api64.dll and no Steamworks
   imports; launched directly it loads zero steam_api*/steamclient*/overlay
   modules and nothing from outside its own folder, and it keeps running with

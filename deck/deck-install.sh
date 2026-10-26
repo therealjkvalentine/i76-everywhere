@@ -4,7 +4,7 @@
 # Kept for reference only; do not hand it to users.
 # Interstate '76 -> Steam Deck: the "stupid easy" installer (BETA).
 # Pattern: NonSteamLaunchers/EmuDeck bootstrapper - zenity-guided, idempotent,
-# self-updating (fetches the repo fresh each run). See docs/STEAMDECK.md.
+# self-updating (fetches the repo fresh each run). See docs/guides/STEAMDECK.md.
 #
 # What the end user does:  (1) buy I76 on GOG + download the *offline installer*
 # to ~/Downloads   (2) run this (double-click Install-I76.desktop, or the curl
@@ -135,5 +135,5 @@ python3 "$WORK/bundle/config/add-to-steam.py" || die "Steam registration failed 
 # relaunch Steam
 ( setsid steam >/dev/null 2>&1 & ) || true
 
-Z --info --text "Done!\n\n1. Find 'Interstate 76' in your library (Non-Steam).\n2. Launch from GAME MODE (Desktop Mode has window-focus quirks). Leave QAM > Performance > Framerate Limit at its default: the game paces itself.\n3. First launch builds the Proton prefix (a minute); if it misbehaves, run first-launch-fix.sh and see docs/STEAMDECK.md.\n\nThe controller layout is pre-applied. Have fun on the interstate." || true
+Z --info --text "Done!\n\n1. Find 'Interstate 76' in your library (Non-Steam).\n2. Launch from GAME MODE (Desktop Mode has window-focus quirks). Leave QAM > Performance > Framerate Limit at its default: the game paces itself.\n3. First launch builds the Proton prefix (a minute); if it misbehaves, run first-launch-fix.sh and see docs/guides/STEAMDECK.md.\n\nThe controller layout is pre-applied. Have fun on the interstate." || true
 info "install complete"

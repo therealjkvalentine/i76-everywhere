@@ -6,7 +6,7 @@ are out of range, so clicks land wrong and the "Overwrite an existing bookmark?"
 The proxy translates four calls (`GetCursorPos`, `SetCursorPos`, `ClipCursor`, `PeekMessageA`), forwards the
 other 49 by name to the real `user32`, and calls `DisableProcessWindowsGhosting()` once at load so DWM does not
 replace the Save Bookmark screen with a ghost window after about 5.9 s idle. Root-cause write-up:
-[docs/SAVE-FREEZE-ROOT-CAUSE.md](../docs/SAVE-FREEZE-ROOT-CAUSE.md).
+[docs/engine/SAVE-FREEZE-ROOT-CAUSE.md](../docs/engine/SAVE-FREEZE-ROOT-CAUSE.md).
 
 It contains no Activision bytes: it is our own code plus forwarders by name.
 
@@ -39,7 +39,7 @@ It contains no Activision bytes: it is our own code plus forwarders by name.
 
 ## What is here, and where it came from
 
-Moved into this repo on 2026-10-02 (backlog P3-02; [docs/RELEASE-PLAN.md](../docs/RELEASE-PLAN.md) section 2
+Moved into this repo on 2026-10-02 (backlog P3-02; [docs/process/RELEASE-PLAN.md](../docs/process/RELEASE-PLAN.md) section 2
 asked for it: a deployed, load-bearing DLL whose source sat only in the private lab repo was not releasable).
 
 | file | what | md5 | source note |

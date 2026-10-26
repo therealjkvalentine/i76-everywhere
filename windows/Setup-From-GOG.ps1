@@ -25,7 +25,7 @@
                                              # tools\Make-Wide-Conf.ps1: 2x the display per axis, stretched_ar,
                                              # so menus and movies are 4:3 with side bars)
     ./Setup-From-GOG.ps1 -NoShortcut         # no desktop shortcut
-    ./Setup-From-GOG.ps1 -Controls stock     # keep GOG's 1997 keys (docs\CONTROLS.md)
+    ./Setup-From-GOG.ps1 -Controls stock     # keep GOG's 1997 keys (docs\guides\CONTROLS.md)
     ./Setup-From-GOG.ps1 -Display 3440x1440  # size the dgVoodoo confs for this monitor; needed when
                                              # installing over Remote Desktop (INSTALL.bat -Display ... too)
 
@@ -156,7 +156,7 @@ if ($NoShortcut) { Say "Play from PLAY-i76.bat in the game folder." }
 else             { Say "Play from the desktop shortcut `"Interstate '76`" (or PLAY-i76.bat in the game folder)." }
 if ($Preset -ne 'stock') { Say "PLAY-i76.bat = preset $Preset; PLAY-stock.bat = the same folder with no engine switches." }
 if ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced') { Say "PLAY-16x10.bat = the tested 16:10 picture (best-120), if widescreen does not suit this display." }
-if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\CONTROLS.md; printable: docs\Interstate76-Controls-Quick-Reference.pdf)." }
+if ($Controls -ne 'stock') { Say "Controls: this project's WASD-style map unless you chose stock earlier (docs\guides\CONTROLS.md; printable: docs\guides\Interstate76-Controls-Quick-Reference.pdf)." }
 Say "First boot: ~60-75s of 'PLEASE STAND BY' - ESC skips the intro."
 Say "To move this working install to another PC, run:  ./Make-Portable-Zip.ps1"
 $rdp = ($env:SESSIONNAME -like 'RDP-*')

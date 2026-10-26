@@ -87,13 +87,14 @@ $files = @(
 )
 $files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'shared\saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
 # In the repo these live in windows\ (the two confs in shared\renderer\); the kit keeps them flat in _i76e\repo\ (setup-windows.ps1 and
-# PLAY-i76.ps1 look for them beside themselves). presets\, controls\, saves\ are under shared\ in the repo and at the top of _i76e\repo\.
+# PLAY-i76.ps1 look for them beside themselves). presets\, controls\, saves\ are under shared\ in the repo and at the top of _i76e\repo\; docs\guides\X is docs\X there.
 $winFlat = @('setup-windows.ps1', 'PLAY-i76.ps1', 'i76-remap.ahk', 'i76-ch-fighterstick.ahk',
              'i76-opentrack-headlook.ahk', 'i76-opentrack-autostart.ahk', 'i76-opentrack-autostart.ps1')
 $confFlat = @('dgVoodoo.daily-driver-2026-10-03.conf', 'dgVoodoo.windows.conf')
 foreach ($rel in $files) {
     $srcRel = if ($winFlat -contains $rel) { "windows\$rel" } elseif ($confFlat -contains $rel) { "shared\renderer\$rel" }
-              elseif ($rel -match '^(presets|controls|saves)\\') { "shared\$rel" } else { $rel }
+              elseif ($rel -match '^(presets|controls|saves)\\') { "shared\$rel" }
+              elseif ($rel -match '^docs\\') { "docs\guides\$($rel.Substring(5))" } else { $rel }
     $from = Join-Path $repo $srcRel
     if (-not (Test-Path -LiteralPath $from)) { Die "missing in the repo: $srcRel" }
     $to = Join-Path $sr $rel

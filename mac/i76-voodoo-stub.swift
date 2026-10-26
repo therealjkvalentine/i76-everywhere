@@ -17,7 +17,7 @@
 //
 // TRADEOFF vs the DxWnd default: first-seen effects compile GPU pipelines - a
 // one-time "break-in". THE CEILING (researched 2026-07-11, cited in
-// docs/DXGI-DGVOODOO-RESEARCH.md): our patched DXVK persists MoltenVK's SPIRV->MSL
+// docs/research/DXGI-DGVOODOO-RESEARCH.md): our patched DXVK persists MoltenVK's SPIRV->MSL
 // translation across runs (banked), BUT MoltenVK CANNOT persist the compiled *Metal*
 // pipeline - VkPipelineCache stores MSL only; MTLBinaryArchive persistence is
 // unimplemented (KhronosGroup/MoltenVK#1765, Apple-blocked) and absent even in our

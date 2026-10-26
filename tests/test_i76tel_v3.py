@@ -4,7 +4,7 @@
 
 Packs synthetic datagrams and shared-memory blocks the way music-fix/strlkproxy.c writes them (v3) and the way the
 committed v2 proxy writes them, and decodes both with the v3 reader. What this cannot show: that the live game
-produces these events (docs/OWNER-TEST-LIST.md has the live test).
+produces these events (docs/process/OWNER-TEST-LIST.md has the live test).
 """
 import importlib.util, mmap, os, re, struct, sys
 

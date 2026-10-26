@@ -341,7 +341,7 @@ level's shared 256-color `.ACT`. The hardware path is the *better* modding targe
 Decoder/encoder: `decode_m16` / `encode_m16` in
 [`i76img.py`](../../tools/i76img.py) (round-trip pixel-diff 0). The VQM/CBK/MAP/
 PAK/PIX codecs live in the same file; full layouts in
-[HD-TEXTURES-RESEARCH.md](../HD-TEXTURES-RESEARCH.md).
+[HD-TEXTURES-RESEARCH.md](../research/HD-TEXTURES-RESEARCH.md).
 
 ## 5. Texture-replacement pipeline
 

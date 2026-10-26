@@ -14,7 +14,7 @@
 #   setup-music.sh --off    DISABLE it (flagm0 bit 0 off) - silences in-mission music,
 #                           but lets the FMV cutscenes play their OWN baked audio cleanly.
 #                           Use this if the known GOG "music-over-cutscenes" bug bugs you
-#                           (see docs/VERIFIED-FIXES.md - the cutscene score is inside the
+#                           (see docs/engine/VERIFIED-FIXES.md - the cutscene score is inside the
 #                           smk/*.SMK movies; the mission CD track otherwise bleeds over it).
 #   setup-music.sh --on     re-ENABLE it.
 set -e
@@ -70,4 +70,4 @@ rm -f "$GAME/music/tracklen.nfo"   # empty file breaks dxwplay; let it regenerat
 echo "Music wired: $(ls Track*.mp3 2>/dev/null | wc -l | tr -d ' ') CD tracks -> TrackNN.mp3"
 set_vcd on
 echo "Done. (Cutscenes will show the known GOG music-overlap bug - run '$0 --off' to trade"
-echo " in-mission music for clean cutscenes. See docs/VERIFIED-FIXES.md.)"
+echo " in-mission music for clean cutscenes. See docs/engine/VERIFIED-FIXES.md.)"

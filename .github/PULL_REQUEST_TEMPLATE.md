@@ -15,5 +15,5 @@
 - [ ] Field-tested in the actual game where applicable (or noted why not)
 - [ ] Byte-level changes verified against a real save (if touching the save parser/editor)
 - [ ] Backups/recoverable-delete behavior preserved (if touching the editors)
-- [ ] Updated docs/VERIFIED-FIXES.md and/or the doc map if behavior changed
+- [ ] Updated docs/engine/VERIFIED-FIXES.md and/or the doc map if behavior changed
 - [ ] Didn't re-open a documented dead end (checked docs/README.md)

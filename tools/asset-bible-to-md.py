@@ -12,7 +12,7 @@ so regex beats pulling in a parser dependency. Image hrefs are preserved as rela
 into refs/ so a picture is one click away.
 
 CREDIT: original Asset Bible writer and DIVER, "Happy Nitrous Delivery Services -the Ruins
-Project-". Redistributed here for reference; see docs/COMMUNITY-RESOURCES.md.
+Project-". Redistributed here for reference; see docs/research/COMMUNITY-RESOURCES.md.
 """
 import re, os, sys, html
 

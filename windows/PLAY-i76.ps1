@@ -71,7 +71,7 @@ param(
     # adding a feature: I'76 plays its music as Red Book CD audio through MCI, and
     # on a machine with no optical drive there is no cdaudio device to open, so the
     # engine gets silence. GOG ships the tracks as music\*.mp3 but never wires them
-    # into the game. See docs/MUSIC.md and tools/i76-music.ps1.
+    # into the game. See docs/guides/MUSIC.md and tools/i76-music.ps1.
     [switch]$NoMusic,
     # Play only while a mission is loaded, leaving menus quiet as the original did.
     # Off by default: it depends on the player-entity pointer resolving, and silence
@@ -84,7 +84,7 @@ param(
     # translated to "setaudio <alias> volume to N", so that one is adjustable in-game.
     [int]$MusicVolume = 385,
     # Boot straight into a mission, skipping the title screen and the menus - about
-    # 10 seconds from launch to driving. See docs/MISSION-LAUNCH.md. Needs the
+    # 10 seconds from launch to driving. See docs/guides/MISSION-LAUNCH.md. Needs the
     # music-fix proxy deployed, since that is what applies the patch.
     #     .\PLAY-i76.ps1 -Mission t01.msn
     [string]$Mission,
@@ -112,7 +112,7 @@ param(
     # Names must match input.map; verify with tools/lint-input-map.py.
     [string]$WheelUp = "Tab",
     [string]$WheelDown = "5",
-    # Skip the CH Fighterstick HOTAS layer (docs/FIGHTERSTICK.md). It is otherwise
+    # Skip the CH Fighterstick HOTAS layer (docs/guides/FIGHTERSTICK.md). It is otherwise
     # started with the game and is harmless without the stick - it detects the
     # device and exits on its own if it is not there.
     [switch]$NoStick,
@@ -1246,7 +1246,7 @@ if ((Test-Path $ahkExe) -and (Test-Path $ahkCfg) -and -not $layersOff) {
     $ahk = Start-Process -FilePath $ahkExe -ArgumentList "`"$ahkCfg`"" -WorkingDirectory (Join-Path $GameDir '_ahk') -PassThru
 }
 
-# CH Fighterstick HOTAS layer (docs/FIGHTERSTICK.md): the stick's deflection is the
+# CH Fighterstick HOTAS layer (docs/guides/FIGHTERSTICK.md): the stick's deflection is the
 # gearbox and handbrake, its grip buttons are weapons and targeting. Started here
 # for the same reason as the remapper - so it lives exactly as long as the play
 # session does - and started UNCONDITIONALLY, because the script identifies the
@@ -1269,7 +1269,7 @@ if (-not $NoStick -and (Test-Path $ahkExe) -and (Test-Path $stickCfg) -and -not 
 # Head tracking: opentrack + the freetrack->game layer. opentrack has NO command-line switch to begin
 # tracking, and the old i76-opentrack-autostart.ahk never managed to press Start (opentrack 2026.1 is
 # Qt 6: its buttons are not windows, so ControlClick found nothing - owner 2026-10-24, reproduced).
-# Now, either is enough (docs/HEAD-TRACKING.md):
+# Now, either is enough (docs/guides/HEAD-TRACKING.md):
 #  1. opentrack's own Options > Game detection, switched on here for i76.exe -> the current profile
 #     BEFORE opentrack starts (it reads the setting at start): opentrack starts tracking ~1 s after the
 #     game's process appears and stops when it exits. Existing rows are kept. It is a setting of the
@@ -1372,7 +1372,7 @@ if ($headOn -and (Test-Path $ahkExe) -and (Test-Path $trackCfg)) {
 Write-LaunchLog $headStatus $(if ($headOn) { 'Cyan' } else { 'DarkGray' })
 
 # Frame generation (Lossless Scaling), optional. The engine's physics are locked
-# at 20 FPS and break above ~25 (docs/STEAMDECK.md sec 5), so the ONLY way to a
+# at 20 FPS and break above ~25 (docs/guides/STEAMDECK.md sec 5), so the ONLY way to a
 # smoother picture is interpolating display frames on top - which is exactly what
 # LSFG does. VERIFIED 2026-08-01: Lossless Scaling has NO Steam dependency -
 # launched directly it loads zero steam_api/steamclient/overlay modules and
@@ -1478,7 +1478,7 @@ if (Test-Path $shellPath) {
 #
 # It used to check "analog joystick lines but no joystick Button binding". That was
 # right while input.map carried a button tier. It no longer does: buttons are owned
-# by i76-remap.ahk (docs/WHEEL-T300.md), which gives a shift layer worth ~27 actions
+# by i76-remap.ahk (docs/guides/WHEEL-T300.md), which gives a shift layer worth ~27 actions
 # from 13 buttons - something native binding cannot express, since it tops out at
 # one action per button. Under that design "axes but no buttons" is the CORRECT
 # state, and the old test would have fired on every launch and pasted a stale map

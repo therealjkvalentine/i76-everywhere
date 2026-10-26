@@ -31,7 +31,7 @@ scp -q "$HERE/Strlkup.deck.dll" "$HERE/setup-deck-wide.sh" "$HERE/i76-deck-launc
        "$HERE/add-to-steam.py" "$HOST:~/$DEST/deck/"
 N=5
 # IPXWrapper (GPL-2.0, solemnwarning.net/ipxwrapper; not in this repo): taken from a local
-# copy, by default the Mac IPX test wrapper's game folder (docs/MULTIPLAYER.md section 6).
+# copy, by default the Mac IPX test wrapper's game folder (docs/guides/MULTIPLAYER.md section 6).
 IPXD="${I76_IPXWRAPPER_DIR:-$HOME/Applications/Sikarugir/I76 IPX TEST.app/Contents/SharedSupport/prefix/drive_c/GOG Games/Interstate 76}"
 if [ -f "$IPXD/ipxwrapper.dll" ] && [ -f "$IPXD/wsock32.dll" ] && [ -f "$IPXD/mswsock.dll" ]; then
     ssh "$HOST" "mkdir -p ~/$DEST/ipx"

@@ -1,7 +1,7 @@
 <#
   ffb-find-fire.ps1 - find the weapon-fire flag by watching it change.
 
-  WHY: docs/MEMORY-MAP-INDEX.md lists `0x5367db` as the weapon_fire input, and it
+  WHY: docs/engine/MEMORY-MAP-INDEX.md lists `0x5367db` as the weapon_fire input, and it
   may well be right - but the whole input-globals block reads zero on a parked car
   with no input, which cannot distinguish "correct address, nothing happening" from
   "wrong address". Rather than build a force channel on an address I have not seen

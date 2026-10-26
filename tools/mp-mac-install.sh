@@ -1,5 +1,5 @@
 #!/bin/bash
-# Interstate '76 LAN pack on a Mac (game night, docs/GAME-NIGHT.md; pack built by tools/mp-pack.py).
+# Interstate '76 LAN pack on a Mac (game night, docs/guides/GAME-NIGHT.md; pack built by tools/mp-pack.py).
 #
 #   tools/mp-mac-install.sh update APP PACK   replace APP's game folder with PACK/common + PACK/mac. The old folder is
 #                                             MOVED (not copied) to "Interstate 76.pre-mp-<date>" beside it and kept;
@@ -51,9 +51,9 @@ def setv(key, name, val):
     lines.insert(1 if len(lines) < 2 or not lines[1].startswith('#time') else 2, '"%s"=%s' % (name, val))
     s = s[:i] + '\n'.join(lines) + s[e:]
 dll = '[Software\\\\Wine\\\\AppDefaults\\\\i76.exe\\\\DllOverrides]'
-setv(dll, 'wsock32', '"native,builtin"')       # IPXWrapper (docs/MULTIPLAYER.md section 6, step 2)
+setv(dll, 'wsock32', '"native,builtin"')       # IPXWrapper (docs/guides/MULTIPLAYER.md section 6, step 2)
 setv(dll, 'mswsock', '"native,builtin"')
-setv('[Environment]', 'I76_COOP_AI', '"1"')     # docs/COOP.md: shared enemies (only matters in the co-op missions)
+setv('[Environment]', 'I76_COOP_AI', '"1"')     # docs/guides/COOP.md: shared enemies (only matters in the co-op missions)
 setv('[Environment]', 'I76_COOP_CHAIN', '"1"')  # won -> next co-op mission, lost -> retry; melee arenas end normally
 setv('[Environment]', 'I76_MUSIC_THREAD', '"1"')  # MP3 open off the game thread: without it the boot sat in mmdevapi for minutes (the developer's Mac, 2026-10-17)
 open(p, 'w', encoding='utf-8').write(s)

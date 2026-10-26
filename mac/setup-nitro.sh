@@ -45,7 +45,7 @@ WINE="$APP/Contents/SharedSupport/wine/bin/wine"
 DXINI="$PFX/drive_c/dxwnd/dxwnd.ini"
 LAUNCHER="$SIK/Interstate 76 Nitro (DxWnd).app"
 
-[ -d "$APP" ] || { echo "Base wrapper not found: $APP"; echo "Set up the base game first (see docs/MAC-BUILD.md)."; exit 1; }
+[ -d "$APP" ] || { echo "Base wrapper not found: $APP"; echo "Set up the base game first (see docs/guides/MAC-BUILD.md)."; exit 1; }
 
 # ---- --revert -------------------------------------------------------------
 if [ "${1:-}" = "--revert" ]; then

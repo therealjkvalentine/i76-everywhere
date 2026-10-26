@@ -9,7 +9,7 @@
 # Trade-off you are opting into (docs/records/DECK-BASELINE.md): the Steam Input v4
 # config's trackpad radial menu and L4/L5/R4/R5 grip bindings go away. They are
 # convenience-tier only - every critical action is covered by this tier
-# (docs/CONTROL-DOCTRINE.md).
+# (docs/engine/CONTROL-DOCTRINE.md).
 #
 #   ./setup-deck-baseline.sh              install
 #   ./setup-deck-baseline.sh --revert     restore input.map + remove the payload
@@ -128,7 +128,7 @@ PY
 $MARK
 # Parity with Mac/Windows. Analog steer/throttle above now read joystick1 only.
 # Face buttons + hat below are ALTERNATIVES (separate blocks, never chords -
-# see the alternatives rule in docs/CONTROL-DOCTRINE.md).
+# see the alternatives rule in docs/engine/CONTROL-DOCTRINE.md).
 # Rollback: deck/setup-deck-baseline.sh --revert
 weapon_fire {
    + joystick1  Button1

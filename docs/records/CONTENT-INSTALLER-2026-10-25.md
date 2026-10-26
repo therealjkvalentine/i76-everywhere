@@ -1,6 +1,6 @@
 # Content installer: community maps in the family pack, Patch Kit extras, German voices, extra music (2026-10-25)
 
-Owner's rulings 2026-10-25 (on [CONTENT-FEASIBILITY-2026-10-25.md](../CONTENT-FEASIBILITY-2026-10-25.md)): (1) the 10 community maps into
+Owner's rulings 2026-10-25 (on [CONTENT-FEASIBILITY-2026-10-25.md](../research/CONTENT-FEASIBILITY-2026-10-25.md)): (1) the 10 community maps into
 the family pack now, slot 10 = RepoTown USA, Great Oval only as an extra if it tests better; (2) a Patch Kit installer step that
 downloads (from the original sites, sha256-checked), converts and installs them, with credits; (3) optional helper apps with an
 explanation each; (4) a private "shuffle in the Bullmark tracks" option read from a user-supplied folder; (5) a German-voices option

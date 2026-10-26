@@ -51,7 +51,7 @@ mkdir -p "$Q"
 #    The SOFTWARE renderer (the Mac build) is CPU->DirectDraw->winemac GL - it uses
 #    NONE of these. Only the parked Voodoo/Glide path did. Verified: software mode
 #    boots + renders menu/3D with all of this gone. (Un-parking Voodoo needs it back -
-#    docs/VOODOO-PARKED.md.)
+#    docs/research/VOODOO-PARKED.md.)
 [ -d "$FW/renderer" ]   && mv "$FW/renderer"   "$Q/renderer"   && echo "quarantined: renderer backends"
 [ -d "$FW/moltenvkcx" ] && mv "$FW/moltenvkcx" "$Q/moltenvkcx" && echo "quarantined: moltenvkcx"
 [ -f "$FW/libMoltenVK.dylib" ] && mv "$FW/libMoltenVK.dylib" "$Q/libMoltenVK.dylib" && echo "quarantined: libMoltenVK"

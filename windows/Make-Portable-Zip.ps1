@@ -150,7 +150,7 @@ if ($NoU32x) {
 }
 
 # --- optional: bundle Lossless Scaling (frame generation) --------------------
-# It has NO Steam dependency (docs/WINDOWS-PLAYBOOK.md sec 2), so it runs from
+# It has NO Steam dependency (docs/guides/WINDOWS-PLAYBOOK.md sec 2), so it runs from
 # the unzipped folder on any of your PCs. It is a PAID app - your licence, your
 # machines only. Installing it from Steam on the target is the cleaner route
 # (you get updates); this switch exists for offline/one-carry moves.
@@ -277,7 +277,7 @@ OPTIONAL, per machine
 
 WHAT'S BAKED IN
   * dgVoodoo (20 FPS physics cap so scene 5's ramp jump works, sharp Voodoo look, MSAA)
-  * The input.map of the install this zip was made from (see docs\CONTROLS.md in the repo)
+  * The input.map of the install this zip was made from (see docs\guides\CONTROLS.md in the repo)
   * The cutscene-music fix (if it was built) and the mouse-wheel targeting helper.
 
 Connect your controller BEFORE launching - the 1997 engine enumerates joysticks

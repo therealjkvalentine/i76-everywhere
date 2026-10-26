@@ -27,7 +27,7 @@ Two standing exceptions, so the rule above is not read as contradicting the tree
    *working / parked dead-end / other-platform / reference*. Several "obvious" ideas
    (Voodoo-on-Mac shader persistence, Mac force feedback, HD-on-Mac renderer switch) are
    **settled dead ends**; please don't re-open them without new evidence.
-2. **Check [docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md)** — the symptom→cause→fix table is the
+2. **Check [docs/engine/VERIFIED-FIXES.md](docs/engine/VERIFIED-FIXES.md)** — the symptom→cause→fix table is the
    source of truth. If your change fixes something, add a row.
 
 ## House rules (how this project earns trust)

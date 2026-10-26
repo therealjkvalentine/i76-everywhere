@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the LAN multiplayer pack (game night, docs/GAME-NIGHT.md) from the Windows daily driver, READ-ONLY.
+"""Build the LAN multiplayer pack (game night, docs/guides/GAME-NIGHT.md) from the Windows daily driver, READ-ONLY.
 
     python tools/mp-pack.py <pack dir> [--driver "<driver game folder>"] [--proxy <STRLKUP.DLL to ship instead>]
 
@@ -106,7 +106,7 @@ def main():
                 shutil.copy2(sys.argv[sys.argv.index("--proxy") + 1], os.path.join(common, n))
     with open(os.path.join(win, "PLAY-LAN.bat"), "w", newline="\r\n") as f:
         f.write("@echo off\n"
-                "REM Interstate '76 LAN / co-op (docs/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"
+                "REM Interstate '76 LAN / co-op (docs/guides/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"
                 "REM PLAY.bat (preset best-wide), plus the co-op switches. Arena list (MULTI MELEE > HOST): the 15 stock\n"
                 "REM arenas = normal melee, then \"<name> (Scenario)\" = the 7 auto-melee scenarios with their AI cars\n"
                 "REM (joiners respawn; the host's death restarts the scenario), then \"Scene 1..17 (Co-op)\" = the co-op campaign.\n"

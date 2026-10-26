@@ -103,7 +103,7 @@ Each of these was checked and is **not** the cause:
 **One thing that IS a real, separate cause:** the **Thrustmaster control panel
 being open** takes the DirectInput device exclusively, producing the identical
 "module loaded, no device" state. Close it before launching — its own UI says so
-on every tab. See [WHEEL-T300.md](../WHEEL-T300.md).
+on every tab. See [WHEEL-T300.md](../guides/WHEEL-T300.md).
 
 Likewise, if FFB has already failed once, relaunching may not recover it: a
 crashed process can leave the device unreleased. **Power-cycle the wheel.**
@@ -145,7 +145,7 @@ C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -Command "(Get-Process
 ```
 
 From 64-bit PowerShell that call reports **0** modules; from `SysWOW64` it reports
-all 99. Found while diagnosing missing music (see [MUSIC.md](../MUSIC.md)), where the
+all 99. Found while diagnosing missing music (see [MUSIC.md](../guides/MUSIC.md)), where the
 same false negative made GOG's `audiere.dll` music bridge look absent when it was
 merely never loaded.
 

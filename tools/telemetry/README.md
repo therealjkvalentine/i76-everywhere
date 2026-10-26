@@ -4,7 +4,7 @@
 > frame to 664 bytes (fields appended after `event_count`; every v2 offset unchanged), and two opt-in event groups
 > arrived, `I76_SOUND_EVENTS=1` (SOUND_START / SOUND_STOP / WEAPON_UI) and `I76_DAMAGE_EVENTS=1` (DAMAGE_SIDE), both only
 > with `I76_TELEMETRY` on. The committed `music-fix/Strlkup.dll` is still v2; the v3 build is `music-fix/out/Strlkup-tel3.dll`
-> until a live test passes (docs/OWNER-TEST-LIST.md). Readers: `i76tel.py` picks the layout per frame from its
+> until a live test passes (docs/process/OWNER-TEST-LIST.md). Readers: `i76tel.py` picks the layout per frame from its
 > `version` field (v2 through the frozen `i76tel_v2.h`), so it reads either proxy; a reader still on the v2 header reads a
 > v3 frame's fields but not its events. `tests/test_i76tel_v3.py` packs and decodes both offline;
 > `verify_v3_sites.py` checks every patched site's bytes in the pristine and the lab exe.

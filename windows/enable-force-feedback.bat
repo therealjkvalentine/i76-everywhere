@@ -19,7 +19,7 @@ rem Reversible either way: delete the "Interstate '76" key to revert.
 rem
 rem RUN AS ADMINISTRATOR (HKLM). Works on 64-bit Windows (WOW6432Node) and 32-bit.
 rem NOTE: no effect on the Mac port - Wine has no macOS backend for DirectInput
-rem FFB *effects* (docs/FORCE-FEEDBACK-AND-VISUALS.md). Gamepad RUMBLE is a
+rem FFB *effects* (docs/engine/FORCE-FEEDBACK-AND-VISUALS.md). Gamepad RUMBLE is a
 rem different channel and DOES work on Mac via XInputSetState (synthetic,
 rem driven by i76-remap.ahk - field-confirmed 2026-07-18).
 

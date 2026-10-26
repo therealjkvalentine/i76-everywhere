@@ -33,7 +33,7 @@
 #                        buttons, native pad buttons, K O [ ] hardpoints. On a folder that has
 #                        the i76e map it first restores input.map.stock-<timestamp>. The
 #                        AutoHotkey pad / wheel / stick layers are NOT deployed in this mode:
-#                        they type the keys of the i76e map (docs/CONTROLS.md section 4).
+#                        they type the keys of the i76e map (docs/guides/CONTROLS.md section 4).
 #      The way back for an installed user, touching nothing but the controls:
 #          setup-windows.ps1 -GameDir <dir> -Controls stock -ControlsOnly
 #      and forward again with -Controls i76e -ControlsOnly. The choice is remembered in
@@ -58,7 +58,7 @@
 #
 # NOT done here (separate, optional):
 #   - Force feedback: nothing to do on the Gold exe, which starts it unconditionally
-#     (docs/WHEEL-T300.md, from disassembly). enable-force-feedback.bat is therefore not
+#     (docs/guides/WHEEL-T300.md, from disassembly). enable-force-feedback.bat is therefore not
 #     needed; it is harmless. Nobody has re-tested a wheel without having run it.
 #   - Frame smoothing: Lossless Scaling x2 experiment - set ForceVerticalSync=false
 #     in dgVoodoo.conf first so LS owns presentation (see WINDOWS-PLAYBOOK.md sec 2).
@@ -494,7 +494,7 @@ function Get-StockPatched([string]$map) {
         # (instance .Replace() because the static one has no count overload)
         # ONE analog source per block. Until 2026-10-03 this wrote "- joystick1" AND "- mouse"
         # into the same steer / throttle block, which is the analog chord trap of
-        # docs/VERIFIED-FIXES.md (the axis pins dead-centre) and fails tools/lint-input-map.py.
+        # docs/engine/VERIFIED-FIXES.md (the axis pins dead-centre) and fails tools/lint-input-map.py.
         # The blocks are now joystick1 only, as in docs/input.map.reference and the daily
         # driver's map (controls\input.map). Mouse BUTTONS are unchanged. Mouse steering is not
         # offered (owner decision 2026-10-03).
@@ -511,7 +511,7 @@ function Get-StockPatched([string]$map) {
         $map = $steerRx.Replace($map, "steer {`r`n   - joystick1  Left/Right`r`n}", 1)
         $map = $map -replace '\+ joystick5  Button2', '+ joystick1  Button2'
         # Handbrake on Space, matching the Mac map (docs/input.map.reference) and
-        # the verified rebind in docs/VERIFIED-FIXES.md: e_brake moves off C onto
+        # the verified rebind in docs/engine/VERIFIED-FIXES.md: e_brake moves off C onto
         # Space, and keyboard fire moves off Space onto Enter so the two don't
         # collide (mouse LeftBtn + pad still fire; Space is the natural handbrake).
         # Fire only leaves Space if the handbrake really took it: the 2.1.0.17 map has e_brake
@@ -627,7 +627,7 @@ if ($Controls -eq 'own') {
             $kitWroteMap = $true
             $lintNote = if ($null -eq $lintOk) { 'lint skipped: no Python found' } else { 'lint clean' }
             Write-Host "input.map installed (md5 $($shipMd5.Substring(0,8)), $lintNote). W A S D drive, the arrow keys look around."
-            Write-Host "  Keys: docs\CONTROLS.md and docs\Interstate76-Controls-Quick-Reference.pdf."
+            Write-Host "  Keys: docs\guides\CONTROLS.md and docs\guides\Interstate76-Controls-Quick-Reference.pdf."
             Write-Host "  The 1997 keys instead: setup-windows.ps1 -GameDir `"$GameDir`" -Controls stock -ControlsOnly"
         }
     }
@@ -779,7 +779,7 @@ if ($NoU32x) {
 # Fighterstick layer live in i76-remap.ahk / i76-ch-fighterstick.ahk. They work by
 # TYPING KEYS, and the keys they type are those of the i76e map (controls\input.map):
 # Enter = fire, Space = handbrake, Tab = cycle weapon, X = reverse, I = ignition...
-# On GOG's 1997 map the same keys do other things (docs/CONTROLS.md section 4 has the
+# On GOG's 1997 map the same keys do other things (docs/guides/CONTROLS.md section 4 has the
 # table), so with -Controls stock the two layer scripts are NOT put in _ahk\, and
 # copies from an earlier run are moved to _ahk\off-stock-controls\. PLAY-i76.ps1 starts
 # a layer only when its script is in _ahk\, so nothing else has to know.
@@ -800,7 +800,7 @@ if ($Controls -ne 'i76e') {
         }
     }
     Write-Host "AutoHotkey pad / wheel / stick layers NOT deployed (-Controls $Controls)." -ForegroundColor Yellow
-    Write-Host "  A gamepad still works natively: left stick, A fire, X cycle weapon, Y handbrake, D-pad glance (button numbers assumed, docs/GAMEPAD-PC-MAC.md)."
+    Write-Host "  A gamepad still works natively: left stick, A fire, X cycle weapon, Y handbrake, D-pad glance (button numbers assumed, docs/guides/GAMEPAD-PC-MAC.md)."
     Write-Host "  Lost with the layers: triggers, right-stick glance, the LB shift layer, wheel buttons, the Fighterstick, mouse buttons 4 / 5."
 } elseif (($haveAhkSrc -or (Test-Path (Join-Path $ahkOut 'AutoHotkeyU32.exe'))) -and (Test-Path $remapSrc)) {
     New-Item -ItemType Directory -Force $ahkOut | Out-Null
@@ -999,10 +999,10 @@ if ($keptOwn.Count) { Write-Host "Kept as you had them: $($keptOwn -join ', ') (
 if ($Controls -eq 'own') {
     Write-Host "Controls: own - your input.map as it was, no AutoHotkey layers. This project's map: CONTROLS.bat (kit), or -Controls i76e -ControlsOnly -ReplaceControls"
 } elseif ($Controls -eq 'i76e') {
-    Write-Host "Controls: i76e - this project's WASD-style map, not the 1997 keys. Sheet: docs\Interstate76-Controls-Quick-Reference.pdf. The 1997 keys: -Controls stock -ControlsOnly"
+    Write-Host "Controls: i76e - this project's WASD-style map, not the 1997 keys. Sheet: docs\guides\Interstate76-Controls-Quick-Reference.pdf. The 1997 keys: -Controls stock -ControlsOnly"
 } else {
     Write-Host "Controls: stock - GOG's 1997 keys + the minimal patch; no AutoHotkey layers. This project's map: -Controls i76e -ControlsOnly"
 }
-Write-Host "Force feedback: the Gold exe starts it by itself (docs/WHEEL-T300.md); enable-force-feedback.bat is not needed per the disassembly."
+Write-Host "Force feedback: the Gold exe starts it by itself (docs/guides/WHEEL-T300.md); enable-force-feedback.bat is not needed per the disassembly."
 Write-Host "Connect controller BEFORE launching - the engine enumerates joysticks at startup only."
 if ($rdpUnsized) { Write-RdpWarning }   # again at the end, where it is read

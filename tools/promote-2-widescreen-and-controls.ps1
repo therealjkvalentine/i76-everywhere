@@ -17,7 +17,7 @@ $files = @{
     'PLAY-16x10.bat'                                  = (Join-Path $twin 'PLAY-16x10.bat')
     'PLAY-stock.bat'                                  = (Join-Path $twin 'PLAY-stock.bat')
     'PLAY-with-FrameGen.bat'                          = (Join-Path $twin 'PLAY-with-FrameGen.bat')
-    'Interstate76-Controls-Quick-Reference.pdf'       = (Join-Path $repo 'docs\Interstate76-Controls-Quick-Reference.pdf')
+    'Interstate76-Controls-Quick-Reference.pdf'       = (Join-Path $repo 'docs\guides\Interstate76-Controls-Quick-Reference.pdf')
 }
 foreach ($f in Get-ChildItem (Join-Path $repo 'presets\*.psd1')) { $files["Interstate 76\presets\$($f.Name)"] = $f.FullName }
 & (Join-Path $PSScriptRoot 'Promote-To-Driver.ps1') -Plan:$Plan `

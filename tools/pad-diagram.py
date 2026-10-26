@@ -263,7 +263,7 @@ any time — never edit this file.</p>
                f'<rect x="-180" width="1280" height="420" fill="#1b1712"/>'
                f'<text x="450" y="20" text-anchor="middle" class="cap">{cap}</text>'
                f'{body}</svg>')
-        sp = os.path.join(REPO, "docs", fname)
+        sp = os.path.join(REPO, "docs", "guides", fname)
         open(sp, "w").write(doc)
         print(sp)
 

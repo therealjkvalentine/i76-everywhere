@@ -40,10 +40,10 @@ licence allows: dgVoodoo, AutoHotkey and IPXWrapper (rows below).
 | **innoextract** | Extracts the GOG installer (Deck script) | zlib — [constexpr.org/innoextract](https://constexpr.org/innoextract/) |
 | **AutoHotkey 1.1** (staged, input remapper WIP) | In-container input remapping | GPL — [autohotkey.com](https://www.autohotkey.com/) |
 | **Lossless Scaling** (THS) | Optional frame generation on Windows (`windows/Setup-FrameGen.ps1`, `windows/PLAY-i76.ps1 -LosslessScaling`) | **Commercial** (Steam). Never fetched or shipped by this repo. `windows/Make-Portable-Zip.ps1 -IncludeFrameGen` copies *your* installed copy into *your* zip: your licence, your PCs only |
-| **opentrack** | Optional head tracking (`i76-opentrack-*.ahk`, [docs/HEAD-TRACKING.md](docs/HEAD-TRACKING.md)) | ISC, with GPL-licensed components — [github.com/opentrack/opentrack](https://github.com/opentrack/opentrack). Not shipped; `windows/Make-Portable-Zip.ps1 -IncludeHeadTrack` copies your installed copy into your own zip |
+| **opentrack** | Optional head tracking (`i76-opentrack-*.ahk`, [docs/guides/HEAD-TRACKING.md](docs/guides/HEAD-TRACKING.md)) | ISC, with GPL-licensed components — [github.com/opentrack/opentrack](https://github.com/opentrack/opentrack). Not shipped; `windows/Make-Portable-Zip.ps1 -IncludeHeadTrack` copies your installed copy into your own zip |
 | **GE-Proton** (GloriousEggroll) | Proton build the Deck scripts select | Proton's licences (BSD-style / LGPL components) — [github.com/GloriousEggroll/proton-ge-custom](https://github.com/GloriousEggroll/proton-ge-custom). Fetched on the Deck, not shipped |
 | **Steam ROM Manager** | The controller-config apply mechanism `deck/add-to-steam.py` imitates (its configset approach); no code of it is used | GPL — [github.com/SteamGridDB/steam-rom-manager](https://github.com/SteamGridDB/steam-rom-manager). Referenced, not shipped |
-| **input-remapper** | Referenced by the Deck control-tier scripts and docs (`deck/setup-deck-baseline.sh`, [docs/INPUT-REMAPPER.md](docs/INPUT-REMAPPER.md)) | GPL — [github.com/sezanzeb/input-remapper](https://github.com/sezanzeb/input-remapper). Installed on the Deck by the user, not shipped |
+| **input-remapper** | Referenced by the Deck control-tier scripts and docs (`deck/setup-deck-baseline.sh`, [docs/guides/INPUT-REMAPPER.md](docs/guides/INPUT-REMAPPER.md)) | GPL — [github.com/sezanzeb/input-remapper](https://github.com/sezanzeb/input-remapper). Installed on the Deck by the user, not shipped |
 | **ViGEm / vJoy** | Mentioned only as things that can break FFB device acquisition ([docs/records/FFB-LAPTOP-RECON.md](docs/records/FFB-LAPTOP-RECON.md)) | Not used, not shipped |
 | **w64devkit** (skeeto) | Optional 32-bit gcc for `music-fix/build.ps1` | Unlicense / GPL toolchain components — [github.com/skeeto/w64devkit](https://github.com/skeeto/w64devkit). A build tool; nothing of it is in the output |
 | **Microsoft Visual C++ Build Tools 2019 (x86)** | What actually builds `Strlkup.dll` and `u32x.dll` (statically linked CRT, `/MT` for the proxy) | Microsoft licence; a build tool, not shipped |
@@ -69,7 +69,7 @@ licence allows: dgVoodoo, AutoHotkey and IPXWrapper (rows below).
 - **Reimplementation projects** referenced (not included): **Open76** (Unity) and
   **Roanish/i76 "Vigalante '76"** — see [docs/records/MODERN-PORTS-AND-VR.md](docs/records/MODERN-PORTS-AND-VR.md).
 - **CahootsMalone's `interstate-76-stuff`** guide and tools, and the other community sources indexed by
-  problem in [docs/COMMUNITY-RESOURCES.md](docs/COMMUNITY-RESOURCES.md). Linked, not copied.
+  problem in [docs/research/COMMUNITY-RESOURCES.md](docs/research/COMMUNITY-RESOURCES.md). Linked, not copied.
 
 ## What the portable zip is
 

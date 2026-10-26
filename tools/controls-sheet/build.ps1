@@ -1,5 +1,5 @@
 # One command: check the control sources against each other, regenerate the quick reference
-# (HTML + the table in docs\CONTROLS.md), lint the shipped map, and print the PDF.
+# (HTML + the table in docs\guides\CONTROLS.md), lint the shipped map, and print the PDF.
 #
 #   powershell -ExecutionPolicy Bypass -File tools\controls-sheet\build.ps1
 #   ... -Exe "D:\Games\Interstate 76\i76.exe"   the exe the lint checks tokens against
@@ -20,7 +20,7 @@ $here = $PSScriptRoot
 $repo = Split-Path (Split-Path $here -Parent) -Parent
 $map  = Join-Path $repo 'shared\controls\input.map'
 $html = Join-Path $here 'controls-sheet.html'
-$pdf  = Join-Path $repo 'docs\Interstate76-Controls-Quick-Reference.pdf'
+$pdf  = Join-Path $repo 'docs\guides\Interstate76-Controls-Quick-Reference.pdf'
 
 # Python: the py launcher, else python (the Microsoft Store stub answers --version with an error).
 $py = $null; $pyPre = @()
@@ -48,7 +48,7 @@ if ($Exe -and (Test-Path $Exe)) {
     Write-Host "lint SKIPPED: no i76.exe found (pass -Exe <path>, or set I76_EXE). The consistency check still runs." -ForegroundColor Yellow
 }
 
-# 2. consistency check + HTML + the generated table in docs\CONTROLS.md
+# 2. consistency check + HTML + the generated table in docs\guides\CONTROLS.md
 & $py @pyPre (Join-Path $here 'build_sheet.py')
 if ($LASTEXITCODE -ne 0) { Write-Host "controls-sheet: inconsistent sources (listed above). Nothing built." -ForegroundColor Red; exit 1 }
 

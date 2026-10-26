@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Game-as-oracle calibration saves: bookmarks that make the game itself answer the save-format
-questions the editor still cannot (docs/EDITOR-FIELD-TESTS.md). Built on i76-save-editor.py's
+questions the editor still cannot (docs/engine/EDITOR-FIELD-TESTS.md). Built on i76-save-editor.py's
 frame (PartNode + PartRec, section C rebuilt from the state-3 records), so every edit lands on
 the record it names - the 2026-07 calibration saves wrote condition and location one record
 late and their results are void.
