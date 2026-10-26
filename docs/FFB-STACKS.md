@@ -99,7 +99,7 @@ runs: the fault is in the **original** DLL, so replacing that DLL removes the re
 bypass it, and the force stream keeps flowing into code we control. On a shimmed
 install, do not zero the pointer. On a stock install, keep zeroing it.
 
-**2. Pad-motor ownership is now shim-first everywhere.** `i76-remap.ahk` ships
+**2. Pad-motor ownership is now shim-first everywhere.** `windows/i76-remap.ahk` ships
 `gShimOwnsRumble := true`, which skips its own rumble mixer entirely so the two never
 fight over one motor. That is correct on the Mac. On any machine **without** the shim —
 the Windows rig, the Steam Deck — it silently turns pad rumble off, and nothing warns
@@ -145,7 +145,7 @@ memory-watching path, and it already runs there. In rough order of value:
    the same weapon pointed different ways: if `+0x10` tracks where you are aimed it is a
    direction, if it tracks the weapon it is the firing frequency. Both halves key weapon
    effects off this record, so it is the cheapest disambiguation on the list.
-2. **Set `gShimOwnsRumble := false` in `i76-remap.ahk` before judging pad rumble.** It
+2. **Set `gShimOwnsRumble := false` in `windows/i76-remap.ahk` before judging pad rumble.** It
    ships `true`, which is Mac-correct — the shim owns the motor there. On a box with no
    shim it simply turns the pad mixer off, and the symptom reads as "rumble stopped
    working" rather than as an error.

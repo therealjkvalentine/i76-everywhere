@@ -123,7 +123,7 @@ or the PCs broadcast on different adapters (section 2 step 4).
 
 No proxy switch is needed for PCs on a LAN. (`I76_MULTI_INSTANCE=1` is only for two copies on one PC.)
 
-**The old way (2026-10-20):** `PLAY.bat --legacy-multiplayer` (any PLAY*.bat, `PLAY-LAN.bat` and `PLAY-TICK.bat 44 --legacy-multiplayer` too; `PLAY-i76.ps1 -LegacyMultiplayer`) starts that launch with the stock MODEM / IPX / INTERNET / NULLMODEM row under HOST / JOIN (`I76_MP_MENU=0`), for a setup that already works without the patched menu. On a Mac, add `"I76_MP_MENU"="0"` to `[Environment]` in the wrapper prefix's `user.reg` (as `tools/mp-mac-install.sh` writes `I76_COOP_AI`), or start it with `open --env I76_MP_MENU=0 <app>`; on the Deck, `export I76_MP_MENU=0` in `i76-env-mp.sh`. [records/MENU-SOUND-POLISH-2026-10-20.md](records/MENU-SOUND-POLISH-2026-10-20.md) item D.
+**The old way (2026-10-20):** `PLAY.bat --legacy-multiplayer` (any PLAY*.bat, `PLAY-LAN.bat` and `PLAY-TICK.bat 44 --legacy-multiplayer` too; `windows/PLAY-i76.ps1 -LegacyMultiplayer`) starts that launch with the stock MODEM / IPX / INTERNET / NULLMODEM row under HOST / JOIN (`I76_MP_MENU=0`), for a setup that already works without the patched menu. On a Mac, add `"I76_MP_MENU"="0"` to `[Environment]` in the wrapper prefix's `user.reg` (as `tools/mp-mac-install.sh` writes `I76_COOP_AI`), or start it with `open --env I76_MP_MENU=0 <app>`; on the Deck, `export I76_MP_MENU=0` in `i76-env-mp.sh`. [records/MENU-SOUND-POLISH-2026-10-20.md](records/MENU-SOUND-POLISH-2026-10-20.md) item D.
 
 ## 6. The Mac (Wine)
 

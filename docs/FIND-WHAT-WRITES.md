@@ -73,7 +73,7 @@ tools/setup-debugger.sh --launch   # run it inside the prefix
 tools/setup-debugger.sh --remove   # undo
 ```
 
-The download is sha256-pinned (same convention as `setup-input-remapper.sh`);
+The download is sha256-pinned (same convention as `mac/setup-input-remapper.sh`);
 the binary is never committed to this repo.
 
 ## The workflow — step by step

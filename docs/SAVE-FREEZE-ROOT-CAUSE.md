@@ -496,7 +496,7 @@ killed the screen after ~6s, and this dropped almost every keystroke before that
 
 `tools\fix-shell-textentry.ps1` restores the stock bytes (verifies before and after, backs up
 to `i76shell.dll.pre-toascii-fix`, idempotent, and refuses a shell build it does not recognise
-rather than guessing). `PLAY-i76.ps1` now carries the same repair as a launch guard, next to
+rather than guessing). `windows/PLAY-i76.ps1` now carries the same repair as a launch guard, next to
 the `savegame.dir` one.
 
 Verified end-to-end in the shipping configuration - ship `u32x`, no instrumentation:
@@ -598,5 +598,5 @@ pristine GOG sandbox      41 08   (stock by nature - the control)
 CD 1997 sandbox           ff 0c   (a different binary; the tool refuses it by design)
 ```
 
-`PLAY-i76.ps1` carries the same repair as a launch guard, so an install that regains the
+`windows/PLAY-i76.ps1` carries the same repair as a launch guard, so an install that regains the
 patched bytes is fixed on next launch rather than silently losing text entry again.

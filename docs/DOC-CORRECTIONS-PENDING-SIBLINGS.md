@@ -243,7 +243,7 @@ unpoked (corrected 2026-10-02).
 
 ## Code in this repo and the lab that still carries a corrected claim (not edited by this docs pass)
 
-Status 2026-10-02: `LAUNCHER.ps1` and both `tools/check-ffb.ps1` rows fixed in `e4485ca`; `tools/ffb/Telemetry.ps1`
+Status 2026-10-02: `windows/LAUNCHER.ps1` and both `tools/check-ffb.ps1` rows fixed in `e4485ca`; `tools/ffb/Telemetry.ps1`
 already read `TEL_FIRE_ADDR = 0x5367db` (corrected in the file on 2026-09-27, so the row below was stale when
 written); `../<lab>/autotest/lib/memlib.ps1:48` still open.
 

@@ -150,7 +150,7 @@ tools\i76-music.ps1 -MissionOnly         # quiet in the menus
 tools\i76-music.ps1 -Shuffle -Volume 650
 ```
 
-`PLAY-i76.ps1` **suppresses it automatically** whenever `strlkup_orig.dll` is
+`windows/PLAY-i76.ps1` **suppresses it automatically** whenever `strlkup_orig.dll` is
 present, since that means the proxy is installed and the game is driving its own
 music — running both plays two soundtracks at once. It is otherwise on by default
 (unlike `-Ffb`, this restores stock behaviour rather than adding a feature) and is

@@ -65,7 +65,7 @@ The design therefore:
 | piece | path | what it does | status |
 |---|---|---|---|
 | Force model | `tools/ffb/FfbMixer.ps1` (63 KB) | `Mix-DefaultTune` (~130 tunables), `Mix-Update` -> wheel force + **device-independent bus** `{Steady, Tactile[], Transient, Motion{SurgeA,SwayA,HeaveA,YawRate,Pitch}, Lfe{engine, road, impulse, heave, scrub, weapon, explode}}`; `Mix-RenderWheel`, `Mix-RenderPad`; 8 wheel channels | working, 28 assertions (`ffb-mixer-test.ps1`). **Uncommitted diff** (32+/10-): explosion carrier 22->25 Hz, amp 0.44->0.58, new `LfeExplodeDuck=0.75`, and a real bug fix (blast envelope decay and `$duck` were inside the firing-edge branch, so beds were silently zeroed). Backlog P3-01. Feel tuning "not started" |
-| Pad mixer (AHK) | `i76-remap.ahk` lines ~586-660 | Per-event `RumblePulse(l, r, ticks)`, last-event-wins, `SetState` on change; gated off by `gShimOwnsRumble := true` | **[live]** 2026-07-18 field-proven path, but *off on Windows* because the gate ships Mac-correct (FFB-STACKS fight 2) |
+| Pad mixer (AHK) | `windows/i76-remap.ahk` lines ~586-660 | Per-event `RumblePulse(l, r, ticks)`, last-event-wins, `SetState` on change; gated off by `gShimOwnsRumble := true` | **[live]** 2026-07-18 field-proven path, but *off on Windows* because the gate ships Mac-correct (FFB-STACKS fight 2) |
 | Shim rumble model | `ffb-shim/i7ffshim.c` RUMBLE TUNING block | slip-led two-motor mix with `.gpw` skid envelope as texture; the real DLL's impact magnitude formulas | **[live]** Mac only |
 | Stock effect parser | `tools/ffb/parse-frc.py` | Reads the 14 RIFF `FORC` files: compositions known (`Sine+Constant+Superimpose` etc.), **parameter block not decoded** | working for type names; numbers unknown |
 | Stock DLL behaviour | `docs/records/FFB-DEEP-DIVE.md` 3 | Per-event formulas from `i7_sfrce.dll` disassembly: ordnance `(40+0.6667*dmg)*100`, concussion `(35+0.6667*dmg)*100`, collision `(55+0.5625*dmg)*100`, decay by dt, stop at -1500; engine gain `0x14 - speed/2`, freq `8 - k*pitch`; flat-tyre threshold 3000; terrain table by surface id | **[static]**, the raw material for `stock-ffb-reference.json` |
@@ -283,7 +283,7 @@ impact, engine and terrain families, and the weapon families use the per-hardpoi
 
 ### 3.4 Never touching the daily driver until gated
 
-- Host default game dir resolution copies `LAUNCHER.ps1`'s order (`-GameDir`, `I76_GAME_DIR`, lab sandbox,
+- Host default game dir resolution copies `windows/LAUNCHER.ps1`'s order (`-GameDir`, `I76_GAME_DIR`, lab sandbox,
   else stop) and **refuses** a path under `~\Downloads\Interstate76-i76-everywhere-portable-*`.
 - The proxy's new events are behind `I76_SOUND_EVENTS`; the daily driver runs with every `I76_*` unset
   (AGENTS.md promotion rule), so a promoted `Strlkup.dll` carrying the code is inert there.
@@ -536,7 +536,7 @@ Repo: `docs/FFB-DESIGN-LIBRARY.md`, `docs/FFB-STACKS.md`, `docs/FORCE-FEEDBACK-A
 `BACKLOG-2026-10-02.md` (P3-01, P3-17, P3-18, P3-24, P4-20); `tools/ffb/README.md` and the scripts named in
 section 1; `tools/telemetry/README.md`, `i76tel.h`, `verification-2026-10-01.txt`; `music-fix/strlkproxy.c`
 (telemetry export, `frame_sound_wrap`, `apply_joy_routing`), `music-fix/README.md`; `ffb-shim/README.md`,
-`i7ffshim.c`; `sound-rumble/README.md`, `dsndrumble.c`; `i76-remap.ahk` rumble block; `docs/WHEEL-T300.md`.
+`i7ffshim.c`; `sound-rumble/README.md`, `dsndrumble.c`; `windows/i76-remap.ahk` rumble block; `docs/WHEEL-T300.md`.
 Lab: `../<lab>/src/dsstub.c`, `tools/mute.ps1`, `docs/ENGINE-REFERENCE.md` (FFB block rows).
 Map: `../<re-archive>/subsystems/sound.md` (voice record, `sound_StartVoice` 0x4220c0, tyre table 0x4bd0d0, engine
 loop callback 0x424ca0), `data/FORMATS.md` 8 (.gpw) and the `.frc` row.

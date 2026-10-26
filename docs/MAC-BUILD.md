@@ -14,7 +14,7 @@ symptom→cause→fix in one table).
 
 ## The launchers
 
-Built/installed by [`build-launchers.sh`](../build-launchers.sh) into `~/Applications/Sikarugir/`:
+Built/installed by [`mac/build-launchers.sh`](../mac/build-launchers.sh) into `~/Applications/Sikarugir/`:
 
 | App | What it is |
 |---|---|
@@ -27,15 +27,15 @@ Built/installed by [`build-launchers.sh`](../build-launchers.sh) into `~/Applica
 > un-parks it (one-line rebuild): **[docs/VOODOO-PARKED.md](VOODOO-PARKED.md)**. The pretty
 > Glide path lives happily on the **[Steam Deck](STEAMDECK.md)** (native Vulkan, no MoltenVK).
 
-One-time setup: [`setup-dxwnd.sh`](../setup-dxwnd.sh) (installs DxWnd + our
-[profile](../interstate-76.dxw)), [`setup-music.sh`](../setup-music.sh) (in-mission music, see below),
-[`fix-arrows-for-mac.sh`](../fix-arrows-for-mac.sh) (steering on Mac arrow keys).
+One-time setup: [`mac/setup-dxwnd.sh`](../mac/setup-dxwnd.sh) (installs DxWnd + our
+[profile](../mac/interstate-76.dxw)), [`mac/setup-music.sh`](../mac/setup-music.sh) (in-mission music, see below),
+[`mac/fix-arrows-for-mac.sh`](../mac/fix-arrows-for-mac.sh) (steering on Mac arrow keys).
 
 First launch, macOS asks for **microphone** access — that's Wine's CoreAudio driver opening the
 default *input* device during audio init. Harmless; **Deny is fine** (output is unaffected).
 
-The launch stubs ([main](../i76-launch-stub.swift) / [voodoo](../i76-voodoo-stub.swift) /
-[settings](../i76-settings-stub.swift)) exist because the stock Sikarugir launcher injects a GL flag
+The launch stubs ([main](../mac/i76-launch-stub.swift) / [voodoo](../mac/i76-voodoo-stub.swift) /
+[settings](../mac/i76-settings-stub.swift)) exist because the stock Sikarugir launcher injects a GL flag
 and a wrong CWD that break the renderers, misses the GStreamer env (freezes + silent music — see
 VERIFIED-FIXES), and LaunchServices won't run script bundle executables - so each is a small
 Mach-O (original launcher kept as `Sikarugir.orig`). They also fix "quit doesn't really quit":
@@ -46,7 +46,7 @@ Wine session and sweeps survivors.
 
 Mission music is CD redbook audio; GOG ships it as `music/N.mp3` + an empty `tracklen.nfo`, so
 under Wine missions were silent (cutscene audio is separate and always worked).
-[`setup-music.sh`](../setup-music.sh) wires GOG's files into DxWnd's **virtual CD audio** emulation
+[`mac/setup-music.sh`](../mac/setup-music.sh) wires GOG's files into DxWnd's **virtual CD audio** emulation
 (hard-links to its `TrackNN.mp3` naming, clears the broken `tracklen.nfo`; the profile's
 VIRTUALCDAUDIO flag does the rest). MP3 decode needs the GStreamer env the stubs set.
 **Confirmed playing in missions.** (No in-game radio/track controls exist — verified by dumping
@@ -59,7 +59,7 @@ mission-scripted; the one knob is the music volume slider in Options.)
 the Steam-game-cloned wrapper also hauls ~2.5 GB I76 never touches: the whole **Steam client**
 (~1.9 GB - I76 is GOG, launched directly), **wine-mono** (~230 MB .NET), **wine-gecko** (~207 MB
 browser), and the **Voodoo GPU stack** (~140 MB renderer backends + MoltenVK - the software
-renderer is CPU→DirectDraw→OpenGL, no Metal). [`slim-wrapper.sh`](../slim-wrapper.sh) removes all of it
+renderer is CPU→DirectDraw→OpenGL, no Metal). [`mac/slim-wrapper.sh`](../mac/slim-wrapper.sh) removes all of it
 (quarantine → confirm → commit; boot+render verified), taking 3.9 GB → **1.4 GB**. 300 MB isn't
 reachable without depending on a system-wide Wine.
 
@@ -72,8 +72,8 @@ blit - added/fixed by the AiO patch). No DirectX 11 anywhere - D3DMetal is irrel
 
 DxWnd wraps the game's DirectDraw output so the software render (set the in-game resolution to
 its 1024x768 max — that IS the engine ceiling, see VERIFIED-FIXES) is scaled into a big window.
-Setup once with [`setup-dxwnd.sh`](../setup-dxwnd.sh) (downloads DxWnd, installs our profile). The
-profile ([interstate-76.dxw](../interstate-76.dxw)) is frozen at:
+Setup once with [`mac/setup-dxwnd.sh`](../mac/setup-dxwnd.sh) (downloads DxWnd, installs our profile). The
+profile ([interstate-76.dxw](../mac/interstate-76.dxw)) is frozen at:
 
 - **Main tab:** Run in Window, Early hook, `Terminate on window close` (closing the window = quit;
   the stub then reaps everything), **Position = Desktop** (`coord0=3`) + **Keep aspect ratio** →
@@ -225,7 +225,7 @@ scripts were not changed and have not been compared with the Windows map: "Mac: 
 
 The engine natively supports **mouse driving** (analog `mouse Left/Right` steer, `Down/Up`
 throttle, three buttons) and **winmm joysticks** — no mapper software needed.
-[`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) patches the active `input.map`: mouse
+[`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh) patches the active `input.map`: mouse
 steer/throttle + MB1/MB2/MB3 → weapons 1/2/3 (only three mouse-button tokens exist in the
 engine; weapon 4 stays on the `4` key), and fixes GOG's phantom `joystick5` bindings to
 `joystick1` with left-stick driving, A-button fire, hat glances. Keyboard bindings all stay —
@@ -240,7 +240,7 @@ wrong stick numbers, crashes); edit `input.map` instead. Facts + citations in
 Setting the game up on real Windows (max graphics via dgVoodoo, force feedback, frame
 interpolation, ALIVE multiplayer community)? The cited to-do list is
 [docs/WINDOWS-PLAYBOOK.md](WINDOWS-PLAYBOOK.md), automated by
-[setup-windows.ps1](../setup-windows.ps1). The full July 2026 findings report — verified
+[setup-windows.ps1](../windows/setup-windows.ps1). The full July 2026 findings report — verified
 dgVoodoo recipe, the first documented I76+LSFG frame-generation result, the **cracked
 .M16 hardware-texture format**, and the first working vehicle-texture replacement
 pipeline — is **[docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md)**.
@@ -250,7 +250,7 @@ pipeline — is **[docs/records/FINDINGS-2026-07-WINDOWS-AND-TEXTURES.md](record
 winemac delivers Mac arrow keys as the game's `Grey*` (numpad-cluster) codes; the stock
 `KEYBOARD.MAP` binds those to glance/track camera and puts **driving** on the plain arrow names
 Mac arrows never produce - so arrows look around instead of steering. Run
-[`fix-arrows-for-mac.sh`](../fix-arrows-for-mac.sh) on the `KEYBOARD.MAP` in your game folder
+[`mac/fix-arrows-for-mac.sh`](../mac/fix-arrows-for-mac.sh) on the `KEYBOARD.MAP` in your game folder
 (it swaps the four arrow tokens; backup written beside it; restart the game). Glance/track land
 on the numpad - still reachable on a full-size external keyboard.
 
@@ -265,7 +265,7 @@ Quirk: bare Shift can't be a primary key (the parser treats it as a modifier).
 
 Real, and in this GOG build (Nitro Pack) - but dormant by default, and **there is no macOS path**
 (Wine's only FFB backend is Linux evdev). On a **Windows box** an FFB wheel works like the Sidewinder
-did, with nothing to switch on: [`enable-force-feedback.bat`](../enable-force-feedback.bat) is not needed
+did, with nothing to switch on: [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) is not needed
 per the disassembly in WHEEL-T300.md (harmless; not re-tested without it). Full analysis:
 [docs/FORCE-FEEDBACK-AND-VISUALS.md](FORCE-FEEDBACK-AND-VISUALS.md). (FFB **does** work on the
 Steam Deck with a docked wheel — Linux has the evdev backend.)
@@ -274,9 +274,9 @@ Steam Deck with a docked wheel — Linux has the evdev backend.)
 
 The Deck may be the **best** way to play this: native Vulkan means the dgVoodoo→DXVK chain runs
 without MoltenVK, so the shader-warmup stutter largely disappears — and force feedback works. Our
-[`dgVoodoo.conf`](../dgVoodoo.conf) and input bindings transfer directly. Full recipe (Heroic + Proton
+[`dgVoodoo.conf`](../mac/dgVoodoo.conf) and input bindings transfer directly. Full recipe (Heroic + Proton
 + dgVoodoo, controls, 20 FPS cap, FFB, open items): [docs/STEAMDECK.md](STEAMDECK.md) +
-[`setup-steamdeck.sh`](../setup-steamdeck.sh).
+[`deck/setup-steamdeck.sh`](../deck/setup-steamdeck.sh).
 
 ## Verify-the-cap checklist (any path)
 

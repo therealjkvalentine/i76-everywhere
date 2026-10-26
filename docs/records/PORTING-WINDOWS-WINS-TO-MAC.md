@@ -106,7 +106,7 @@ fixes 36/36, render interp 11/11, terrain/object/clutter/mirror distances, fps c
 IAT hook. The proxy's own CD emulation played `music\9.mp3` through mpegvideo/GStreamer.
 
 **dgVoodoo -> DXVK -> MoltenVK -> Metal (the parked Voodoo path): renders, but at 0.4-0.5 fps.**
-Test wrapper `Interstate 76 - HiRes120 TEST.app` ([`i76-hires120-stub.swift`](../../i76-hires120-stub.swift)).
+Test wrapper `Interstate 76 - HiRes120 TEST.app` ([`i76-hires120-stub.swift`](../../mac/i76-hires120-stub.swift)).
 Correct picture (cockpit, Hor+ widescreen, round reticle) on the DXVK HUD at 0.4 fps with one core
 pinned. **Not the proxy:** the same 0.4 fps with every `I76_*` switch off (music only), and with
 `I76_GLIDE_REFRESH` / `I76_FPS_CAP` off. At the full 3456x2234 (Wine `RetinaMode=y`, screen-sized
@@ -191,7 +191,7 @@ Built on the Mac by `tools/openglide-hd/MAC-BUILD.md` route B: voyageur/openglid
 `Interstate 76 - GL120 TEST.app` with the MAC-BUILD `OpenGLid.INI` (`Version=0.09rc9`). It boots with no extension
 MessageBox; `OpenGLid.log`: Vendor Apple, Renderer Apple M5 Pro, **Version 2.1 Metal - 90.5**
 (`GL_EXT_texture_env_combine` emulated). Launched `-glide` in `explorer /desktop=...,1280x960` by
-[`i76-hires120-stub.swift`](../../i76-hires120-stub.swift); t01 direct boot (movies hidden, null audio), W held by script.
+[`i76-hires120-stub.swift`](../../mac/i76-hires120-stub.swift); t01 direct boot (movies hidden, null audio), W held by script.
 
 | OpenGLid `Resolution` | fps (5 s windows) | OpenGLide frame_ms | lfb_total_ms | swap_ms | main thread |
 |---|---|---|---|---|---|

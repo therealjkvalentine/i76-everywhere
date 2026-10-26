@@ -21,7 +21,7 @@ section and the GOG link fix.
    still says the assets are not under its GPL. *Do:* never offer the game itself.
 6. **Pin third-party downloads, keep mirrors outside the release.** OpenRA pins SHA1s and reads mirror lists from its
    site, failing gracefully when empty (PR #11375). *Do:* sha256 plus two URLs (upstream, archive.org) per tool, and an
-   error that says where to fetch it by hand. Today `install.ps1` downloads dgVoodoo without a hash check, and
+   error that says where to fetch it by hand. Today `windows/install.ps1` downloads dgVoodoo without a hash check, and
    `deck/deck-install.sh` takes dgVoodoo, innoextract and "latest" GE-Proton unpinned.
 7. **Read licences before bundling.** dgVoodoo's terms allow shipping "individual dgVoodoo files" with a game or mod,
    require the full zip for standalone hosting, and say *"You cannot bundle dgVoodoo inside launchers or frameworks,
@@ -61,9 +61,9 @@ section and the GOG link fix.
 **Scripts, not a separate launcher app.** OpenRA can keep content separate because it is a new engine reading assets.
 We run the original exe, which loads our DLLs from its own folder, so the result is a patched game folder whatever we
 build; an app would add signing, notarization ($99/year) and antivirus exposure without removing the patching.
-`LAUNCHER.ps1` can stay as a thin optional front end.
+`windows/LAUNCHER.ps1` can stay as a thin optional front end.
 
-One pipeline across `Setup-From-GOG.ps1`, `deck/deck-install.sh` and `mac-install.command`:
+One pipeline across `windows/Setup-From-GOG.ps1`, `deck/deck-install.sh` and `mac-install.command`:
 
 1. **Find** the GOG installer, a Galaxy / Heroic / Lutris install, a CD, or a folder the user names.
 2. **Verify** by sha256 against `sources.json`; an unknown build stops with a clear message.

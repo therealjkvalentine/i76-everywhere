@@ -23,7 +23,7 @@ To play through the relay every time without typing it, open `SETTINGS.bat` and 
 
 ## What it does to your folder
 
-For that launch only, `PLAY-i76.ps1` checks the three IPXWrapper files in `_ipx\relay\` against their pinned SHA-256, moves your own
+For that launch only, `windows/PLAY-i76.ps1` checks the three IPXWrapper files in `_ipx\relay\` against their pinned SHA-256, moves your own
 IPX files (`ipxwrapper.dll`, `wsock32.dll`, `mswsock.dll`, `ipxwrapper.ini`, if you have them) into `_ipx\lan-saved\`, copies the relay
 set beside the exe and writes a two-line `ipxwrapper.ini`:
 

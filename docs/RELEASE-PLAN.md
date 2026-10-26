@@ -19,7 +19,7 @@ play; **parked** = settled dead end; **research** = documents only.
 >
 > - **There is a new daily driver.** `tools\Make-Daily-Driver.ps1` built `<games>\Interstate76-2026-10-03`
 >   (golden copy `...\Interstate76-golden-2026-10-03`) on 2026-10-03: repo `Strlkup.dll`, u32x lab build `054fb411`,
->   `dgVoodoo.daily-driver-2026-10-03.conf`, preset `best-120`, `I76PATCH.DLL` disabled. "Daily driver" in the rows
+>   `windows/dgVoodoo.daily-driver-2026-10-03.conf`, preset `best-120`, `I76PATCH.DLL` disabled. "Daily driver" in the rows
 >   below means the old folder in Downloads, which is now the rollback
 >   ([STATUS-2026-10-02.md](records/STATUS-2026-10-02.md) "2026-10-03", [NEW-DAILY-DRIVER-RECIPE.md](records/NEW-DAILY-DRIVER-RECIPE.md)).
 >   So the "60 fps proxy switches", "draw distance" and "sandbox only" statuses no longer hold for the owner's machine.
@@ -35,10 +35,10 @@ play; **parked** = settled dead end; **research** = documents only.
 
 | component | where | state | evidence |
 |---|---|---|---|
-| Windows installer from a GOG offline backup | `INSTALL.bat` -> `Setup-From-GOG.ps1` (silent Inno install, dgVoodoo, input.map, AHK layer, Strlkup proxy, shortcut) | verified on this machine (INSTALL.md) | `install.ps1` is the older "game already installed" path; both call `setup-windows.ps1` |
-| Windows launcher | `PLAY-i76.ps1` (starts i76wheel, AHK remap, cursor overlay, Fighterstick, opentrack, Lossless Scaling, optional `-Ffb`, `-Mission`, savegame.dir re-pad) | deployed, verified | daily driver has `PLAY-i76.ps1`, `_ahk\`, `i76wheel.exe` |
-| Settings panel | `LAUNCHER.ps1` (WinForms: dgVoodoo FPSLimit, cursor mode, music volume, health checks for u32x / shell bytes / savegame.dir / Strlkup; builds the PLAY-i76 command line) | deployed | this is the only "tuner" in the repo; `$GameDir` no longer defaults to the daily driver (2026-10-02, backlog P3-12: `I76_GAME_DIR`, then an install beside the script, then the lab sandbox; the title bar names the folder) |
-| Portable zip | `MAKE-PORTABLE.bat` -> `Make-Portable-Zip.ps1` (adds `PLAY.bat`, `Setup-This-PC.bat`, save editor, README) | verified (the daily driver *is* one) | contains game files; for the owner's machines only |
+| Windows installer from a GOG offline backup | `INSTALL.bat` -> `windows/Setup-From-GOG.ps1` (silent Inno install, dgVoodoo, input.map, AHK layer, Strlkup proxy, shortcut) | verified on this machine (INSTALL.md) | `windows/install.ps1` is the older "game already installed" path; both call `windows/setup-windows.ps1` |
+| Windows launcher | `windows/PLAY-i76.ps1` (starts i76wheel, AHK remap, cursor overlay, Fighterstick, opentrack, Lossless Scaling, optional `-Ffb`, `-Mission`, savegame.dir re-pad) | deployed, verified | daily driver has `windows/PLAY-i76.ps1`, `_ahk\`, `i76wheel.exe` |
+| Settings panel | `windows/LAUNCHER.ps1` (WinForms: dgVoodoo FPSLimit, cursor mode, music volume, health checks for u32x / shell bytes / savegame.dir / Strlkup; builds the PLAY-i76 command line) | deployed | this is the only "tuner" in the repo; `$GameDir` no longer defaults to the daily driver (2026-10-02, backlog P3-12: `I76_GAME_DIR`, then an install beside the script, then the lab sandbox; the title bar names the folder) |
+| Portable zip | `windows/MAKE-PORTABLE.bat` -> `windows/Make-Portable-Zip.ps1` (adds `PLAY.bat`, `Setup-This-PC.bat`, save editor, README) | verified (the daily driver *is* one) | contains game files; for the owner's machines only |
 | Stock 20 fps cap | GOG's `I76PATCH.DLL` (AiO) | deployed | ~~dgVoodoo `FPSLimit` is **ignored** on this build in both directions (uncap-lab `docs/framerate/README.md` matrix, n=9 cells)~~ **void 2026-10-03**: that matrix ran while dgVoodoo was rejecting the sandbox conf, so `FPSLimit` was never in effect; not re-measured. The old daily driver carries `FPSLimit = 19.2`; the 2026-10-03 one sets 0 |
 | In-mission music | `music-fix\Strlkup.dll` (IAT hook: virtual cdaudio over `music\N.mp3`; aux-volume device so the in-game slider works) | deployed, verified in a mission (`docs/MUSIC.md`: `MCI_PLAY -> track 13`) | daily driver `Strlkup.dll` md5 `b910850f` is **older** than the repo's `fe82a0ee` (2026-09-27, 148,480 B) |
 | Cutscene-music fix | `smack-music-fix\` (ordinal-exact SMACKW32 proxy) | Mac: verified by ear 2026-07-14. Windows: built; **not** on the daily driver (no `smackorg.dll` there) | DLL is gitignored, built from source |
@@ -46,19 +46,19 @@ play; **parked** = settled dead end; **research** = documents only.
 | 60 fps proxy switches | `music-fix\Strlkup.dll`: `I76_HIRES_CLOCK`, `I76_FIXED_STEP`, `I76_FRAMERATE_FIXES` (+`I76_AI_FIRE_CACHE`), `I76_ENGINE_DT_FIX`, `I76_RENDER_INTERP` (+`I76_INTERP_SMOOTH`), `I76_FPS_CAP`, `I76_FIX_HEALTH_PCT`, `I76_FIX_LABEL_TABLE`, `I76_MISSION`, `I76_SKIP_MOVIES` | sandbox; measured (music-fix/README.md "recommended switch set", <re-archive> capture 014); **played** in two console sessions (render-interp notes) and **console-verified by the owner 2026-10-02** with every switch on (music, F6/B at 1800 m, flamer, slider, AI, jumps, body roll); "Nothing here is deployed to the playable install" | launcher: `<lab>\TEST-FRAMERATE.bat` (4 modes: fixed / nointerp / stock60 / stock20) |
 | Draw-distance patch | `patch-farclip.ps1` (uncap-lab), render pool x16 | sandbox, verified at 1800/5000 m (`docs/DRAW-DISTANCE.md`) | `i76.exe.farorig` in the sandbox only |
 | Camera-rate 60 fps constant patch | `i76.exe` `.rdata` 0x4bc528 | sandbox only (`i76.exe.camorig`); `READY-TO-TEST.md` carried a "deployed" claim and now carries the L004 correction (portable `6319abf7` = AiO + u32x rename only) — conflict resolved 2026-10-01 | superseded by `I76_FRAMERATE_FIXES` row 5 |
-| Force feedback, stock engine FFB on a wheel | T300RS, `enable-force-feedback.bat`, `docs/WHEEL-T300.md`, `tools/ffb-recon.ps1`, `tools/check-ffb.ps1` | verified in-sim (CHANGELOG "FORCE FEEDBACK WORKS") | no registry key gates FFB in the exe — device presence is `[0x52bbe4] != 0` (<re-archive> finding L084; corrected 2026-10-02, this said "registry gate already satisfied"); the registry check in `check-ffb.ps1` is a leftover |
+| Force feedback, stock engine FFB on a wheel | T300RS, `windows/enable-force-feedback.bat`, `docs/WHEEL-T300.md`, `tools/ffb-recon.ps1`, `tools/check-ffb.ps1` | verified in-sim (CHANGELOG "FORCE FEEDBACK WORKS") | no registry key gates FFB in the exe — device presence is `[0x52bbe4] != 0` (<re-archive> finding L084; corrected 2026-10-02, this said "registry gate already satisfied"); the registry check in `check-ffb.ps1` is a leftover |
 | Custom FFB (slip/load synthesis) | `tools/ffb/` (FfbCore, Telemetry, FfbMixer, interposer, calibrate, LFE shaker chain) | built; output/telemetry/mixer "working", **feel tuning not started**; opt-in `-Ffb` | `tools/ffb/README.md` status table; `FfbMixer.ps1` is modified and uncommitted right now |
 | Pad rumble from the FFB stream (Mac) | `ffb-shim/` (replaces `i7_SFRCE.DLL`) | resolved 2026-10-01: `ffb-shim/README.md:42-49` now says "field-run and tuned on the Mac over 2026-07-19/20", agreeing with `docs/README.md` | still open: never run on Windows or with the wheel/shaker stack (backlog P3-18) |
 | Rumble from audio | `sound-rumble/` (dsound proxy) | built, explicitly experimental, unverified | |
-| Frame generation | `Setup-FrameGen.ps1` + Lossless Scaling profile; PLAY-i76 starts/stops it | verified 2026-08-01 (no Steam dependency) | needs the $7 commercial app; interpolates display only |
-| Head tracking | `i76-opentrack-headlook.ahk` + `i76-opentrack-autostart.ahk` | verified ("Working and field-confirmed", `docs/HEAD-TRACKING.md`) | opentrack is GPL, bundled only with `-IncludeHeadTrack` |
-| CH Fighterstick layer | `i76-ch-fighterstick.ahk` | **verified in play 2026-08-08** (corrected 2026-10-03: this said "built 2026-08-08, `-whatif` bench mode", from the doc's opening line. [FIGHTERSTICK.md](FIGHTERSTICK.md) "What is and is not verified", last edited later the same day in `eabf5cc`, reads: "**Confirmed in the game**, 2026-08-08, control by control": trigger, the three hats, special, glance, stick axes, held horn) | buttons 17-19 and the mode-switch renumbering do not exist on the device |
-| Controller layer (XInput shift layer, rumble mixer) | `i76-remap.ahk`, `_ahk\` | deployed, verified on Mac/Windows | Deck "baseline tier" (`deck/setup-deck-baseline.sh`) **unverified on device** |
-| Boot straight into a mission | `I76_MISSION` via the proxy; `PLAY-i76.ps1 -Mission t01.msn` | verified: in the mission 10 s after launch (`docs/MISSION-LAUNCH.md`) | |
-| Save editor | `i76-save-editor.html` (hosted on GitHub Pages via `index.html`), `i76-save-editor.py`, `i76-save-editor.command` + `-server.py` (Mac write-back) | verified byte-identical parser; `docs/SAVE-FORMAT-GAPS.md`, `EDITOR-FIELD-TESTS.md` list open in-game checks | |
+| Frame generation | `windows/Setup-FrameGen.ps1` + Lossless Scaling profile; PLAY-i76 starts/stops it | verified 2026-08-01 (no Steam dependency) | needs the $7 commercial app; interpolates display only |
+| Head tracking | `windows/i76-opentrack-headlook.ahk` + `windows/i76-opentrack-autostart.ahk` | verified ("Working and field-confirmed", `docs/HEAD-TRACKING.md`) | opentrack is GPL, bundled only with `-IncludeHeadTrack` |
+| CH Fighterstick layer | `windows/i76-ch-fighterstick.ahk` | **verified in play 2026-08-08** (corrected 2026-10-03: this said "built 2026-08-08, `-whatif` bench mode", from the doc's opening line. [FIGHTERSTICK.md](FIGHTERSTICK.md) "What is and is not verified", last edited later the same day in `eabf5cc`, reads: "**Confirmed in the game**, 2026-08-08, control by control": trigger, the three hats, special, glance, stick axes, held horn) | buttons 17-19 and the mode-switch renumbering do not exist on the device |
+| Controller layer (XInput shift layer, rumble mixer) | `windows/i76-remap.ahk`, `_ahk\` | deployed, verified on Mac/Windows | Deck "baseline tier" (`deck/setup-deck-baseline.sh`) **unverified on device** |
+| Boot straight into a mission | `I76_MISSION` via the proxy; `windows/PLAY-i76.ps1 -Mission t01.msn` | verified: in the mission 10 s after launch (`docs/MISSION-LAUNCH.md`) | |
+| Save editor | `i76-save-editor.html` (hosted on GitHub Pages via `index.html`), `tools/save-editor/i76-save-editor.py`, `tools/save-editor/i76-save-editor.command` + `-server.py` (Mac write-back) | verified byte-identical parser; `docs/SAVE-FORMAT-GAPS.md`, `EDITOR-FIELD-TESTS.md` list open in-game checks | |
 | Trainer | `tools/trainer/i76trainer.py` (status / flags / repair / ammo / teleport; refuses non-sandbox without `--any`; every write read back) | sandbox; addresses from <re-archive> `cheats.md` | the older AHK tools (`tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`) are the 2026-07 generation |
 | Shipped bookmark saves | `saves/` (scenes 2-15, `Install-Saves.ps1`) | committed `.cmp` files | user-generated data, not game assets; keep but say so |
-| Mac build | `build-launchers.sh`, `*.swift` stubs, `setup-*.sh`, `interstate-76.dxw`, `mac-install.command` (BETA) | verified (software renderer via DxWnd, 1024x768, ~19.2 fps) | 60 fps and the Strlkup proxy are **untested under Wine** |
+| Mac build | `mac/build-launchers.sh`, `*.swift` stubs, `setup-*.sh`, `mac/interstate-76.dxw`, `mac-install.command` (BETA) | verified (software renderer via DxWnd, 1024x768, ~19.2 fps) | 60 fps and the Strlkup proxy are **untested under Wine** |
 | Steam Deck | `deck/deck-install.sh` (innoextract + dgVoodoo 2.78.2 from archive.org), controller template, artwork | verified installed 2026-07-11 (Glide path + FFB) | QAM limiter 20 is the documented cap; proxy untested under Proton |
 | HD textures | `texture-lab/`, `tools/i76img.py`, `tools/openglide-hd/` | **retired** (night palette artefacts); M16/VQM format crack kept | |
 | Voodoo (Glide->Metal) on Mac | `docs/VOODOO-PARKED.md` | **parked** (MoltenVK pipeline persistence) | |
@@ -132,9 +132,9 @@ i76-everywhere/
   docs/             (curated; section 5 lists what leaves)
 ```
 
-How a preset applies (proposed, matches what `TEST-FRAMERATE.ps1` already does): `PLAY-i76.ps1 -Preset smooth-60`
+How a preset applies (proposed, matches what `TEST-FRAMERATE.ps1` already does): `windows/PLAY-i76.ps1 -Preset smooth-60`
 sets the `I76_*` environment variables, renames `I76PATCH.DLL` <-> `I76PATCH.DLL.disabled` as the preset says, and
-refuses to start if `Strlkup.dll` is not the proxy (the switches are no-ops without it). `LAUNCHER.ps1` gets a preset
+refuses to start if `Strlkup.dll` is not the proxy (the switches are no-ops without it). `windows/LAUNCHER.ps1` gets a preset
 drop-down and shows the proxy log lines (`hires-clock: 2/2`, `render-interp: 3/3 hooks`) after a run, the way
 TEST-FRAMERATE prints them. No new mechanism: every piece exists in `TEST-FRAMERATE.ps1` and `music-fix/README.md`.
 
@@ -209,21 +209,21 @@ One-page README outline (proposed) for public <re-archive>:
    patch, AutoHotkey 1.1 (pinned sha256) + `_ahk\i76-remap.ahk`, `Strlkup.dll` proxy (`strlkup_orig.dll` backup),
    `i76wheel.exe` if built, `PLAY-i76.bat` + desktop shortcut. One UAC prompt.
 4. Plug in the controller/wheel **before** launching. *Manual, documented.*
-5. Double-click the shortcut -> `PLAY-i76.ps1`. **Automated**: AHK layers, cursor overlay, savegame.dir re-pad, music
+5. Double-click the shortcut -> `windows/PLAY-i76.ps1`. **Automated**: AHK layers, cursor overlay, savegame.dir re-pad, music
    proxy log. 60-75 s "PLEASE STAND BY", Esc skips the intro. This is **Stock 20** (I76PATCH.DLL caps it).
 6. To get 60 fps today you must: rename `I76PATCH.DLL`, set the five `I76_*` variables in the shell, start
    `i76.exe -glide` from that shell. **Not automated for players**: only `<lab>\TEST-FRAMERATE.bat` does it,
-   and only against the sandbox. **Missing before release**: the preset switch in `PLAY-i76.ps1`/`LAUNCHER.ps1`
-   (section 2; done 2026-10-02, `PLAY-i76.ps1 -Preset`) and `u32x.dll` deployment in `setup-windows.ps1` (**coded
+   and only against the sandbox. **Missing before release**: the preset switch in `windows/PLAY-i76.ps1`/`windows/LAUNCHER.ps1`
+   (section 2; done 2026-10-02, `windows/PLAY-i76.ps1 -Preset`) and `u32x.dll` deployment in `windows/setup-windows.ps1` (**coded
    2026-10-02**, step 5a3 via `u32x\deploy-u32x.ps1`, also run on the portable zip's staged copy; exercised offline on
    scratch copies of the pristine binaries only. The fresh-install console run in section 7 item 3 is still owed).
-7. Optional: `enable-force-feedback.bat` as admin (FFB wheels), `Setup-FrameGen.ps1` (Lossless Scaling), `LAUNCHER.ps1`.
+7. Optional: `windows/enable-force-feedback.bat` as admin (FFB wheels), `windows/Setup-FrameGen.ps1` (Lossless Scaling), `windows/LAUNCHER.ps1`.
 
 ### Mac (today: 20 fps only)
 
 1. GOG offline installer. *Manual.*
-2. Wine wrapper (Sikarugir) + the repo's stubs: `build-launchers.sh`, `setup-dxwnd.sh`, `setup-music.sh`,
-   `fix-arrows-for-mac.sh`, `setup-cutscene-music-fix.sh`, `setup-input-remapper.sh`. **Semi-automated**;
+2. Wine wrapper (Sikarugir) + the repo's stubs: `mac/build-launchers.sh`, `mac/setup-dxwnd.sh`, `mac/setup-music.sh`,
+   `mac/fix-arrows-for-mac.sh`, `mac/setup-cutscene-music-fix.sh`, `mac/setup-input-remapper.sh`. **Semi-automated**;
    `mac-install.command` is BETA (CHANGELOG v1.0.0 "Known gaps").
 3. Launch `Interstate 76 Gold.app`; deny the microphone prompt once. Set 1024x768 in Options.
 4. 60 fps: **not available**. The software renderer plus DxWnd is capped at ~19.2 fps by design (`maxfps0=52`), and the
@@ -297,7 +297,7 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | uncap-lab `docs/framerate/README.md` | `docs/records/MODERN-SETUP.md` "20 FPS... above ~30 FPS the sim over-integrates" and `WINDOWS-PLAYBOOK.md` section 1 point 4 "Do not raise it" | measured false (gravity dt-correct, jump clears at 60); the playbook still teaches the lore as fact |
 | `ffb-shim/README.md` status line | `docs/README.md` row for ffb-shim | resolved 2026-10-01: the shim README now says field-run and tuned on the Mac 2026-07-19/20, matching the doc map; what remains open is "never run on Windows / with the wheel" (backlog P3-18) |
 | `docs/README.md` (doc map) | its "Current state (2026-07-11)" block | three months stale; regenerate from the section 1 table |
-| `THIRD-PARTY.md` dgVoodoo row | `install.ps1` (fetches 2.87.3 from GitHub), `deck-install.sh` (2.78.2 from archive.org), VERIFIED-FIXES (2.78.2 on Mac) | one row saying which version per platform and from where |
+| `THIRD-PARTY.md` dgVoodoo row | `windows/install.ps1` (fetches 2.87.3 from GitHub), `deck-install.sh` (2.78.2 from archive.org), VERIFIED-FIXES (2.78.2 on Mac) | one row saying which version per platform and from where |
 | `subsystems/framerate.md` row 5 | "the portable install's patch rescales the constant" | resolved: `../<re-archive>/subsystems/framerate.md:37` already cites L004 and says "sandbox / lab only" (corrected 2026-10-01) |
 | `docs/records/GHIDRA-MEMORY-MAP.md` (990 lines), `STATIC-RE-FABLE.md`, `MEMORY-MAP-INDEX.md`, `MW2-I76-STRUCTS.md`, `RE-METHODOLOGY.md`, `RE-FIELD-GUIDE.md`, `FIND-WHAT-WRITES.md` | move to the private <re-archive> tree or an `docs/archive/` folder | 2026-07 RE logs superseded by <re-archive>; the public player repo does not need 3,000 lines of raw session logs, and they contain intermediate claims the <re-archive> `findings.md` has since contradicted |
 
@@ -305,14 +305,14 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 
 | pair | resolution (proposed) |
 |---|---|
-| `Setup-From-GOG.ps1` vs `install.ps1` | keep both but make `install.ps1` the "already installed" sub-step that `Setup-From-GOG.ps1` calls; today both re-implement game-dir discovery and tool download |
+| `windows/Setup-From-GOG.ps1` vs `windows/install.ps1` | keep both but make `windows/install.ps1` the "already installed" sub-step that `windows/Setup-From-GOG.ps1` calls; today both re-implement game-dir discovery and tool download |
 | `tools/i76-music.ps1` (external MP3 player stopgap) vs `music-fix/` | PLAY-i76 already skips the stopgap when the proxy is deployed; retire `i76-music.ps1`, `tools/winmm-cdaudio/` (the winmm-proxy attempt that dgVoodoo's search-path hardening defeated) and `tools/cdaudio-image/` |
-| `i76-with-remap.bat` vs `PLAY-i76.ps1` | PLAY-i76 starts AHK itself; delete the .bat |
+| `windows/i76-with-remap.bat` vs `windows/PLAY-i76.ps1` | PLAY-i76 starts AHK itself; delete the .bat |
 | `tools/i76-trainer.ahk`, `i76-debugmenu.ahk`, `i76-rearm.ahk`, `i76-worldscan.ahk`, `i76-chaindiff.ahk`, `i76-mem-*.ahk`, `i76-findval.ahk`, `tools/i76-mem-scan.py`, `find-regen-*.py`, `diffscan.sh`, `chaindiff.sh`, `findval.sh`, `exe-disasm.py`, `exe-xref.py`, `tools/i76-addresses.json` | 2026-07 generation of the trainer and RE instruments; `tools/trainer/i76trainer.py` + <re-archive> supersede them. Move to `tools/archive/` or the private tree |
 | `swap-renderer.ps1`, `test-drive.ps1`, `tools/grab-screen.ps1`, `tools/slow_t*.png`, `0x501918/`, `drive5.csv` (5.8 MB), `fx.csv`, `lfe-sweep.wav` (1.3 MB), `grep.exe.stackdump`, untracked `<user>` and `tools/rdp-to-console.cmd` | lab residue. 2026-10-03: `swap-renderer.ps1`, `test-drive.ps1`, `0x501918/`, `drive5.csv`, `fx.csv`, `lfe-sweep.wav` moved to `lab-residue/`; `grep.exe.stackdump` untracked; the rest still to delete or move to the lab. **Done 2026-10-10** (`docs/CLEANUP-PLAN-2026-10-10.md` 2.1): `<user>` and `grep.exe.stackdump` deleted, `tools/rdp-to-console.cmd` committed (a real tool); `tools/slow_t*.png` (ignored) and `tools/grab-screen.ps1` unchanged |
 | `tools/ffb/*.csv`, `drive2.graph.html`, `probe/`, `trace/` | gitignored patterns exist but several CSVs are still listed; verify `git ls-files tools/ffb` is scripts only |
 | `deck/build-controller-config.py` vs `build-controller-config-opt2.py`, `controller_neptune_i76.vdf` vs `_opt2.vdf` | pick one; DECK-CONTROLS.md explains the two options, the installer should ship one |
-| `i76-calibration-saves.py`, `saves/rescue-20260718/` | rescue folder is a one-off recovery; keep `saves/` only |
+| `tools/save-editor/i76-calibration-saves.py`, `saves/rescue-20260718/` | rescue folder is a one-off recovery; keep `saves/` only |
 
 ### Unverified items to label "experimental" in the release
 
@@ -336,7 +336,7 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
 - **`types/anet.h`** is derived from anet-0.10 (Activision's LGPL netcode release); **`dx5.h`** from the DirectX 5 SDK
   headers. Public <re-archive> `THIRD-PARTY.md` must list both; dx5.h may need rewriting as our own boundary types.
 - **THIRD-PARTY.md exists but is incomplete** (9 tool rows at `THIRD-PARTY.md:24-32`; corrected 2026-10-02 — this said "missing"). Still absent: Lossless Scaling (commercial, referenced and optionally bundled by
-  `Make-Portable-Zip.ps1 -IncludeFrameGen`: say "your licence, your PCs only"), opentrack (GPL, `-IncludeHeadTrack`),
+  `windows/Make-Portable-Zip.ps1 -IncludeFrameGen`: say "your licence, your PCs only"), opentrack (GPL, `-IncludeHeadTrack`),
   GE-Proton, Steam ROM Manager configset (Deck), immi101's i76fix and bolrog's D2DX (referenced in uncap-lab
   `refs/`, the frame-loop hook design), Roanish/i76 and That Tony (listed under credits, fine), CahootsMalone's
   guide, Ghidra / capstone / pefile / Unicorn / Frida (<re-archive> tools), w64devkit (build), the Visual C++ 5.0 media
@@ -346,7 +346,7 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
   permits redistribution only if that is true (check Dege's licence text before claiming it; today we only fetch).
 - **GOG copy required** everywhere: INSTALL.md, README, deck-install.sh all say it; keep the "you bring your own"
   sentence in the first paragraph of every README.
-- **Portable zip**: `Make-Portable-Zip.ps1` contains game files by design. The release must say in INSTALL.md (it
+- **Portable zip**: `windows/Make-Portable-Zip.ps1` contains game files by design. The release must say in INSTALL.md (it
   already does) and in the zip's own README that it is for the owner's machines only.
 - **Committed saves** (`saves/*.cmp`): user-generated bookmark data, not Activision assets; CONTRIBUTING.md's
   "never commit save files" line needs an exception sentence or the folder needs to go.
@@ -380,7 +380,7 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
    `tools/rdp-to-console.cmd` committed. Re-check `git status` before the release.)
 2. Diff the daily driver against pristine (`<re-archive> tools/which_build.py`): confirm `i76.exe` `6319abf7` = AiO + u32x,
    `Strlkup.dll` = the build being released (today it is **not**: `b910850f` vs `fe82a0ee`).
-3. Fresh-install test on a clean folder: `Setup-From-GOG.ps1 -GameDir C:\Games\I76-test` -> `PLAY-i76.ps1 -GameDir ...`
+3. Fresh-install test on a clean folder: `windows/Setup-From-GOG.ps1 -GameDir C:\Games\I76-test` -> `windows/PLAY-i76.ps1 -GameDir ...`
    boots, music plays in a mission (`mciproxy.log` shows `MCI_PLAY`), save works, mouse lands. This proves u32x is
    installed by the installer, which today it is not.
 4. Preset A/B at the console on the **sandbox**: `TEST-FRAMERATE.bat` 1/2/3/4, each twice (A/A before A/B, record n

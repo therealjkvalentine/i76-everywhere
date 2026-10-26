@@ -1,16 +1,16 @@
 # Flying the '76: a CH Fighterstick on a driving game
 
-**Built 2026-08-08.** [`i76-ch-fighterstick.ahk`](../i76-ch-fighterstick.ahk) puts a
+**Built 2026-08-08.** [`windows/i76-ch-fighterstick.ahk`](../windows/i76-ch-fighterstick.ahk) puts a
 CH Products Fighterstick USB on Interstate '76 — the grip's buttons follow F-16
 HOTAS convention, and the stick's own deflection becomes the **gearbox and the
 handbrake**.
 
 ```bash
-AutoHotkey.exe i76-ch-fighterstick.ahk             # run alongside the game
-AutoHotkey.exe i76-ch-fighterstick.ahk -map        # print the full reference card
-AutoHotkey.exe i76-ch-fighterstick.ahk -whatif     # BENCH TEST: names each action, sends no keys
-AutoHotkey.exe i76-ch-fighterstick.ahk -learn      # press each control, see its number
-AutoHotkey.exe i76-ch-fighterstick.ahk -selftest   # test the ADC logic, no hardware
+AutoHotkey.exe windows/i76-ch-fighterstick.ahk             # run alongside the game
+AutoHotkey.exe windows/i76-ch-fighterstick.ahk -map        # print the full reference card
+AutoHotkey.exe windows/i76-ch-fighterstick.ahk -whatif     # BENCH TEST: names each action, sends no keys
+AutoHotkey.exe windows/i76-ch-fighterstick.ahk -learn      # press each control, see its number
+AutoHotkey.exe windows/i76-ch-fighterstick.ahk -selftest   # test the ADC logic, no hardware
 ```
 
 **In PowerShell you need the call operator `&`**, because a quoted path at the
@@ -18,10 +18,10 @@ start of a line parses as a string literal, not a command — it fails with
 `Unexpected token`, which reads exactly like "nothing happened":
 
 ```powershell
-& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "i76-ch-fighterstick.ahk" -map
+& "C:\Program Files\AutoHotkey\AutoHotkey.exe" "windowsi76-ch-fighterstick.ahk" -map
 ```
 
-The script also keeps its **tray icon** — unlike `i76-remap.ahk`, which sets
+The script also keeps its **tray icon** — unlike `windows/i76-remap.ahk`, which sets
 `#NoTrayIcon` because it lives inside the Wine prefix for the length of a game
 session. This one is launched by hand next to a fullscreen game; without an icon
 it runs with no window, no tray entry, and no way to stop it short of Task
@@ -72,9 +72,9 @@ This started as a `.ps1` and was ported. Two reasons, and the second is the one
 that decides it:
 
 - **Uniformity.** Input remapping in this repo is already AHK's job —
-  [`i76-remap.ahk`](../i76-remap.ahk) is the established remapper, and there are a
+  [`windows/i76-remap.ahk`](../windows/i76-remap.ahk) is the established remapper, and there are a
   dozen more AHK scripts including two that already read joystick axes.
-- **Portability, which PowerShell simply cannot do.** `i76-remap.ahk` runs *inside
+- **Portability, which PowerShell simply cannot do.** `windows/i76-remap.ahk` runs *inside
   the Wine/Proton prefix* on Mac and Steam Deck, unchanged from native Windows. A
   PowerShell tool is Windows-only, which is a poor fit for a repo called
   *i76-everywhere*.
@@ -203,7 +203,7 @@ see below.
 ### The cone hat and head tracking
 
 The hat sends the engine's glance keys, which works in **DIGITAL** head-tracking
-mode — the mode `i76-opentrack-headlook.ahk` starts in. There, head yaw holds the
+mode — the mode `windows/i76-opentrack-headlook.ahk` starts in. There, head yaw holds the
 same arrow keys, both drive one channel, and whichever moved last wins. That is the
 override: park your head, hold the hat, keep a look pinned out of the side window
 and shoot down it.

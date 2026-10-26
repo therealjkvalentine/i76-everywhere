@@ -3,7 +3,7 @@
 > **STATUS: RETIRED (2026-07-27).** A full-game enhanced-texture pack was built,
 > shipped, and then **pulled**. This document is the detailed record of what we
 > tried and learned, kept for future work. The pack is no longer installed by
-> `install.ps1`, and the tooling (`../texture-lab/`, `../tools/i76img.py`,
+> `windows/install.ps1`, and the tooling (`../texture-lab/`, `../tools/i76img.py`,
 > `../tools/zfs_extract.py`) is retained as archived experiment code that only
 > this writeup references.
 

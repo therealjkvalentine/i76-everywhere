@@ -16,7 +16,7 @@ index: `savegame.dir` addresses the `.cmp` files by name, so the two cannot be i
 
 `save000`-`save002` are byte-identical to the Mac set's; `save003` is byte-identical to
 `rescue-20260718/save003.cmp`. What only exists here is `save004` - the save recovered from
-the 2026-09-05 field case (`PLAY-i76.ps1`) - and `save005`/`save006`, which are two names for
+the 2026-09-05 field case (`windows/PLAY-i76.ps1`) - and `save005`/`save006`, which are two names for
 one file (identical bytes). `save006`'s scene was reconstructed as 6, not recovered; see
 `../README.md`.
 

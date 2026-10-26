@@ -47,7 +47,7 @@ that is what the pad layer reads and what carries rumble back to the Deck.
 
 ## Controls (the gamepad layout)
 
-The same layout as the Windows and Mac pad layer (the shared `controls/input.map` and `i76-remap.ahk`): the left stick
+The same layout as the Windows and Mac pad layer (the shared `controls/input.map` and `windows/i76-remap.ahk`): the left stick
 steers, the triggers drive, LB is the shift layer for hardpoints, gears, horn and binoculars. In the menus the left stick moves the
 pointer, A clicks, B goes back, Start is Enter. The full table is the project's `docs/CONTROLS.md` and the printable sheet
 `docs/Interstate76-Controls-Quick-Reference.pdf` (both generated from the map itself).

@@ -352,7 +352,7 @@ The residual risk is a silent off-by-one: the play path subtracts the TOC's
 track — see `music/tracklen.nfo`). If the original disc reported `first=2`, the
 same WRLD value could land one track away on this port.
 
-**Ruled out already:** the file mapping itself. `setup-music.sh` hard-links
+**Ruled out already:** the file mapping itself. `mac/setup-music.sh` hard-links
 `music/N.mp3` → `TrackNN.mp3`, and dxwplay's regenerated TOC lists track 1 as
 `type=d` (data) with tracks 2–17 as music whose durations match the mp3s exactly
 (track 2 = 156 s ↔ `music/2.mp3` = 156.08 s, track 17 = 59 ↔ 59.30 s, spot-checked

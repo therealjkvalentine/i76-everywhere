@@ -5,7 +5,7 @@ dgVoodoo levers. This doc records which ones we pulled back into the Mac **Voodo
 verified. Bottom line: of the five, **three are real wins that work on Apple Silicon (gamma ramp,
 MSAA, 32-bit rendering), one is impossible on any platform (anisotropic for Glide), one was already
 correct (voodoo_graphics / 2 MB / 2048 KB-TMU).** All three wins are now in the shipped
-[`dgVoodoo.conf`](../dgVoodoo.conf).*
+[`dgVoodoo.conf`](../mac/dgVoodoo.conf).*
 
 ## What changed in the Voodoo config
 
@@ -53,8 +53,8 @@ the 4:3 image for crisper edges. It needs **two** matching edits:
 
 1. `dgVoodoo.conf`: `Resolution = 3x` (1920×1440) or `max_isf` (largest integer 4:3 for your
    display — ~2560×1920 on the built-in Retina).
-2. [`i76-voodoo-stub.swift`](../i76-voodoo-stub.swift): change `/desktop=I76Voodoo,1280x960` to the
-   matching `WxH`, then rebuild with [`build-launchers.sh`](../build-launchers.sh).
+2. [`mac/i76-voodoo-stub.swift`](../mac/i76-voodoo-stub.swift): change `/desktop=I76Voodoo,1280x960` to the
+   matching `WxH`, then rebuild with [`mac/build-launchers.sh`](../mac/build-launchers.sh).
 
 Left at 2× by default because it's the safe, already-good size the user was happy with; the bump is
 a clean experiment when you want maximum sharpness.
@@ -79,7 +79,7 @@ understanding so we stop chasing "zero warmup":
   this simple '97 title ≈ **0.3–1.0 s of one-time compile per launch**. That's the irreducible
   minimum; it cannot reach zero and cannot carry across runs.
 
-**What we do about it (all now wired into [`i76-voodoo-stub.swift`](../i76-voodoo-stub.swift)):**
+**What we do about it (all now wired into [`mac/i76-voodoo-stub.swift`](../mac/i76-voodoo-stub.swift)):**
 - `MVK_CONFIG_USE_METAL_PRIVATE_API=1` **+** `MVK_CONFIG_SHOULD_MAXIMIZE_CONCURRENT_COMPILATION=1`
   — the private-API flag is *required* for the concurrent-compile knob to engage (we were setting
   the second without the first, so it was a no-op). Now first-seen pipelines compile in parallel.
@@ -91,7 +91,7 @@ understanding so we stop chasing "zero warmup":
 - **MSAA multiplies pipeline count → multiplies the per-launch Metal compile.** So `Antialiasing =
   off` (dgVoodoo CPL, Glide tab) gives the *smallest* warmup; 4× trades a bigger warmup for smoother
   edges. That's the real knob — now flip it live in the Control Panel
-  ([`open-dgvoodoo-settings.command`](../open-dgvoodoo-settings.command)).
+  ([`mac/open-dgvoodoo-settings.command`](../mac/open-dgvoodoo-settings.command)).
 
 Bottom line: the warmup is **reducible and front-loadable, not eliminable** — a Mac/MoltenVK
 limitation, not something we can patch away. The day MoltenVK lands MTLBinaryArchive persistence

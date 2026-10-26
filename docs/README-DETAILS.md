@@ -28,7 +28,7 @@ Options (original 1997 keys, 20 fps stock, widescreen, another folder) and undoi
 1. Build the Wine wrapper with the GOG game inside it: [docs/MAC-BUILD.md](MAC-BUILD.md), "The working recipe".
    This is the manual step.
 2. Double-click **`mac-install.command`**. It sets up DxWnd, the music, the controls and the launcher.
-3. Run **`setup-mac-glide.sh`** in Terminal for the 120 fps Glide renderer
+3. Run **`mac/setup-mac-glide.sh`** in Terminal for the 120 fps Glide renderer
    ([tools/openglide-hd/MAC-BUILD.md](../tools/openglide-hd/MAC-BUILD.md) section 11). It needs `brew install mingw-w64`.
 4. Open **`~/Applications/Sikarugir/Interstate 76 Gold.app`**. The first start asks for microphone access. The game never
    records anything; macOS asks any app that opens an audio output unit on some Macs (section 12 of the same file).
@@ -62,7 +62,7 @@ their own car, sharing the enemies, radio and progress: [docs/COOP.md](COOP.md).
 | **Sit down and play: the controls** | [docs/CONTROLS.md](CONTROLS.md) — one page for all keyboard, keyboard and mouse, gamepad, and wheel and stick (HOWAS): the keys, how to turn each on, what to do when it misbehaves |
 | **Edit your saves** (no install) | **[Open the save editor in your browser →](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)** — drag a save in, download it back out. Details: [the save editor](#the-save-editor) |
 | **A printable key sheet** | [docs/Interstate76-Controls-Quick-Reference.pdf](Interstate76-Controls-Quick-Reference.pdf): five pages (keyboard and mouse, gamepad, wheel, flight stick, 1997 keys vs ours; the pad, wheel and stick drawn with every button labelled), generated from the shipped map by [tools/controls-sheet](../tools/controls-sheet/README.md). **This project installs its own WASD-style control map, not the 1997 layout**; `-Controls stock` keeps the original keys ([docs/CONTROLS.md](CONTROLS.md)) |
-| **Understand the file formats** | [i76-save-editor.py](../i76-save-editor.py) docstring (save format) + [docs/HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md) (ZFS/VQM/M16) |
+| **Understand the file formats** | [i76-save-editor.py](../tools/save-editor/i76-save-editor.py) docstring (save format) + [docs/HD-TEXTURES-RESEARCH.md](HD-TEXTURES-RESEARCH.md) (ZFS/VQM/M16) |
 | **Know what's already settled** | [docs/README.md](README.md) — the doc map: what works, what's a parked dead end. **Read before re-chasing anything** |
 | **Every fix, one table** | [docs/VERIFIED-FIXES.md](VERIFIED-FIXES.md) — symptom → root cause → fix, all verified in play |
 | **The 60 fps lab and its test harness** | [lab/](../lab/README.md) — public snapshot of <lab> (2026-10-03): the engine reference, frame-rate work, autotest scripts |
@@ -90,9 +90,9 @@ Many items are opt-in or sandbox-only; the catalogue's evidence column says whic
 ## Playing at 60 / 120 fps
 
 The game is 20 fps as GOG ships it. The music-fix proxy (`music-fix/Strlkup.dll`) carries an
-opt-in switch set that makes it play well above that; `PLAY-i76.ps1 -Preset <name>` applies a
+opt-in switch set that makes it play well above that; `windows/PLAY-i76.ps1 -Preset <name>` applies a
 named set from [`presets/`](../presets/) to the game process only (`-Preset ?` lists them,
-`-DryRun` shows what the game would get without starting it; `LAUNCHER.ps1` has the same
+`-DryRun` shows what the game would get without starting it; `windows/LAUNCHER.ps1` has the same
 drop-down). The default, `stock`, sets nothing.
 
 | preset | what it sets | status |
@@ -106,7 +106,7 @@ drop-down). The default, `stock`, sets nothing.
 | `lab-all` | smooth-60-bugfixes + `I76_FAR_CLIP=1800 I76_TELEMETRY=1` (TEST-FRAMERATE mode 5) | [console-verified 2026-10-02, sandbox] n = 1 |
 
 **Widescreen:** `best-wide` widens the camera to the display's shape instead of stretching a 4:3 view. The
-game still renders 640x480, so dgVoodoo must present it stretched to that shape. `setup-windows.ps1 -Preset
+game still renders 640x480, so dgVoodoo must present it stretched to that shape. `windows/setup-windows.ps1 -Preset
 best-wide` writes that conf and this display's width x height into the installed preset
 ([INSTALL.md](../INSTALL.md#presets-best-120-stock-and-best-wide)). The menus, cutscenes and in-mission text stay
 stretched ([docs/ENHANCEMENTS.md](ENHANCEMENTS.md#5-graphics) says why). The other presets in
@@ -118,12 +118,12 @@ preset (since promotion 2 that day, `best-wide`; `PLAY-16x10.bat` keeps `best-12
 until the A/B in [docs/RELEASE-PLAN.md](RELEASE-PLAN.md) section 7 is done. 120 fps is the ceiling of every
 renderer tested ([docs/records/RENDERER-ALTERNATIVES.md](records/RENDERER-ALTERNATIVES.md) section 11). Two things have to
 be true for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
-(the launcher compares it and tells you to run `setup-windows.ps1` if not; it copies nothing), and
+(the launcher compares it and tells you to run `windows/setup-windows.ps1` if not; it copies nothing), and
 GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so;
-`setup-windows.ps1` does it).
+`windows/setup-windows.ps1` does it).
 
 **Installing on Windows from your own GOG copy** ([INSTALL.md](../INSTALL.md)): since 2026-10-03 `INSTALL.bat`
-(`Setup-From-GOG.ps1` -> `install.ps1` -> `setup-windows.ps1`) sets a fresh install up like that daily driver:
+(`windows/Setup-From-GOG.ps1` -> `windows/install.ps1` -> `windows/setup-windows.ps1`) sets a fresh install up like that daily driver:
 the daily-driver `dgVoodoo.conf`, the music-fix proxy, `u32x.dll`, `I76PATCH.DLL` renamed, and `PLAY-i76.bat`
 starting `-Preset best-120`, with `PLAY-stock.bat` beside it. `-Preset stock` on any of the three scripts
 installs the earlier 20 fps recipe instead. Evidence: the apply step was run on an unpacked copy of GOG's
@@ -164,7 +164,7 @@ and show native button bindings the shipped Windows map does not have.
 The full controller scheme — native `input.map` bindings plus the AutoHotkey/XInput
 layer (shift layer, look-back fire, rumble). These render from the **live configs**
 via [tools/pad-diagram.py](../tools/pad-diagram.py); regenerate after any binding change
-(`open-pad-diagram.command` also gives an interactive HTML with the mouse/keyboard
+(`mac/open-pad-diagram.command` also gives an interactive HTML with the mouse/keyboard
 tables) — never hand-edit them.
 
 ![Controller layout — base layer](pad-layout.svg)
@@ -180,11 +180,11 @@ A single self-contained web page styled after the game's garage paperwork.
 **Zero-install:** [use it right now in any browser](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)
 — drag a save file in, edit, download it back out (nothing is uploaded; it all runs locally in the page).
 
-- `./i76-save-editor.command` (Mac) — opens the editor with your saves auto-loaded and
+- `./tools/save-editor/i76-save-editor.command` (Mac) — opens the editor with your saves auto-loaded and
   **writes edits straight back** (timestamped backups on every write; deletes are recoverable)
 - `i76-save-editor.html` — the same page anywhere (Windows/Deck browser): drag saves in,
   download edits out
-- `i76-save-editor.py` — the same parser as a terminal tool
+- `tools/save-editor/i76-save-editor.py` — the same parser as a terminal tool
 
 What it edits: equipped parts (any weapon on any mount — off-spec swaps clearly marked),
 armor (the DEFENSE panel numbers), every part's state (car/van/bench/salvage), condition, part

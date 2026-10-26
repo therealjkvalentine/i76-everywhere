@@ -47,11 +47,11 @@ Rules for ANY control change:
 Full control-design doctrine: docs/CONTROL-DOCTRINE.md. Binding reference:
 controls/input.map (the map the Windows installer writes: the owner's WASD-style map plus `1` / `J` / `L`
 fire keys since 2026-10-03, see controls/README.md; not the 1997
-layout; `setup-windows.ps1 -Controls stock` keeps GOG's keys), docs/input.map.reference (the Mac
+layout; `windows/setup-windows.ps1 -Controls stock` keeps GOG's keys), docs/input.map.reference (the Mac
 installer's map; not yet converged with the Windows one), docs/GAMEPAD-PC-MAC.md, docs/CONTROLS.md.
 
-6. After ANY change to controls/input.map, i76-remap.ahk, i76-ch-fighterstick.ahk or the mouse-wheel
-   defaults in PLAY-i76.ps1, run `tools\controls-sheet\build.ps1`. It lints the map, checks the map
+6. After ANY change to controls/input.map, windows/i76-remap.ahk, windows/i76-ch-fighterstick.ahk or the mouse-wheel
+   defaults in windows/PLAY-i76.ps1, run `tools\controls-sheet\build.ps1`. It lints the map, checks the map
    and the layers against each other, and regenerates the printable sheet
    (docs/Interstate76-Controls-Quick-Reference.pdf) and the table in docs/CONTROLS.md, or lists what is
    inconsistent. `tests/test_controls.py` runs the same check.
@@ -228,7 +228,7 @@ Traps that produce **wrong data rather than errors** (full list in the README):
   36 bytes short, scene not recoverable" entry that stood here was the save editor's
   misframed model reading each record's scene from the record after it. Never shrink
   the file (the launchers' zero slack is harmless: the reader stops at `count`), edit it
-  only with the game closed, and use `i76-save-editor.py --check` on any set before
+  only with the game closed, and use `tools/save-editor/i76-save-editor.py --check` on any set before
   committing it. The `.cmp` had the same bug: records are PartNode (0x20) then PartRec
   (0x54); the old name-first frame read every part's condition/location from the next
   record (docs/records/SAVE-EDITOR-STATUS-2026-10-02.md).

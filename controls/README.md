@@ -1,6 +1,6 @@
 # controls/: the control map this project installs
 
-`input.map` here is the map `setup-windows.ps1` writes into a Windows game folder by default
+`input.map` here is the map `windows/setup-windows.ps1` writes into a Windows game folder by default
 (`-Controls i76e`). It is the owner's daily-driver map, copied on 2026-10-03 from
 `<games>\Interstate76-2026-10-03\Interstate 76\input.map`, plus the three keys below. It is a
 WASD layout, **not** the 1997 key layout; how to keep the original keys is at the top of
@@ -25,15 +25,15 @@ The difference is added bindings and a corrected header comment; nothing was rem
   not yet pad-tested on Windows.
 
 The daily driver gets this map **by promotion after a pad test** (`tools\Promote-To-Driver.ps1`), together with
-the changed `i76-remap.ahk`. Until then the driver has the old map and the old pad layer.
+the changed `windows/i76-remap.ahk`. Until then the driver has the old map and the old pad layer.
 
 **2026-10-17: one map for every machine (game night, docs/GAME-NIGHT.md).** The Mac's live map has had the
 home-row hardpoints on `J` `K` `L` `;` (1-4) since 2026-10-03; this file now does the same, so a keyboard plays
 identically on the PC and the Macs. To free the keys: `RADAR_CAMERA_TOGGLE` `K` -> `O` (and `gWheelAlt` 11 `"k"`
--> `"o"` in `i76-remap.ahk`), `show_team_scores` `;` -> `Shift+'` (`show_player_scores` stays on `'` without
+-> `"o"` in `windows/i76-remap.ahk`), `show_team_scores` `;` -> `Shift+'` (`show_player_scores` stays on `'` without
 Shift). `C` is added as a second `weapon_cycle` key because the Mac pad layer types `C`. Nothing else moved.
 The 2026-10-03 layout (`J` = hardpoint 1, `L` = hardpoint 2, `K` radar camera) is what the Windows daily driver
-still has; giving it this map is the owner's promotion (with the changed `i76-remap.ahk`).
+still has; giving it this map is the owner's promotion (with the changed `windows/i76-remap.ahk`).
 
 - **Printable sheet:** [docs/Interstate76-Controls-Quick-Reference.pdf](../docs/Interstate76-Controls-Quick-Reference.pdf),
   generated from this file by [tools/controls-sheet](../tools/controls-sheet/README.md).
@@ -49,7 +49,7 @@ What is specific to the owner's machine, checked 2026-10-03:
 - There are **no native `joystick1` button or hat bindings**. They were removed on 2026-08-08 because the
   AutoHotkey wheel layer types keys for every button and a native binding beside it fires twice
   ([docs/WHEEL-T300.md](../docs/WHEEL-T300.md)). For a gamepad this means the buttons work only through
-  the AutoHotkey layer (`i76-remap.ahk`), which the installer deploys.
+  the AutoHotkey layer (`windows/i76-remap.ahk`), which the installer deploys.
 - No paths, device names or other machine data are in the file.
 
 `C` is not bound. The pad layer's B button typed `C` for "cycle weapon" until 2026-10-03; it types `Tab` now.

@@ -11,11 +11,11 @@ five US Letter landscape pages: keyboard and mouse, gamepad, wheel (T300RS), fli
    | What | Where |
    |---|---|
    | A key, a mouse button, an analog axis | [`controls/input.map`](../../controls/input.map) |
-   | A wheel button | `gWheelBase` / `gWheelAlt` / `gWheelHat` / `gWheelHatAlt` / `gWheelHoldSet` in [`i76-remap.ahk`](../../i76-remap.ahk) |
-   | A gamepad button | the `XIPoll` code and its `@pad` comment line in `i76-remap.ahk`, **and** the matching entry under `gamepad.entries` in `controls-sheet.json` (the pad layer is code, not a table) |
-   | Mouse buttons 4 / 5 | the `XButton1::` / `XButton2::` lines in `i76-remap.ahk` |
-   | The mouse wheel | the `-WheelUp` / `-WheelDown` defaults in [`PLAY-i76.ps1`](../../PLAY-i76.ps1) |
-   | A Fighterstick control | the `BTN` / `POV` / `AXIS` tables in [`i76-ch-fighterstick.ahk`](../../i76-ch-fighterstick.ahk) |
+   | A wheel button | `gWheelBase` / `gWheelAlt` / `gWheelHat` / `gWheelHatAlt` / `gWheelHoldSet` in [`windows/i76-remap.ahk`](../../windows/i76-remap.ahk) |
+   | A gamepad button | the `XIPoll` code and its `@pad` comment line in `windows/i76-remap.ahk`, **and** the matching entry under `gamepad.entries` in `controls-sheet.json` (the pad layer is code, not a table) |
+   | Mouse buttons 4 / 5 | the `XButton1::` / `XButton2::` lines in `windows/i76-remap.ahk` |
+   | The mouse wheel | the `-WheelUp` / `-WheelDown` defaults in [`windows/PLAY-i76.ps1`](../../windows/PLAY-i76.ps1) |
+   | A Fighterstick control | the `BTN` / `POV` / `AXIS` tables in [`windows/i76-ch-fighterstick.ahk`](../../windows/i76-ch-fighterstick.ahk) |
    | A label, a group, a physical button name, what a control is meant to do | [`controls-sheet.json`](controls-sheet.json) |
 
 2. Run one command from the repo folder:
@@ -58,7 +58,7 @@ four has been played yet; the daily driver gets the map and the script by promot
 
 A mismatch that has to stay for a while goes under `known_mismatches` with id `<layer>:<control>:<key sent>`;
 it is then printed on its page with a dagger. To close one, bind the key in `controls/input.map` or change the
-key in `i76-remap.ahk`, remove the entry, and run the build.
+key in `windows/i76-remap.ahk`, remove the entry, and run the build.
 
 ## Files
 

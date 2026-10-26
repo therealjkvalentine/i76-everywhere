@@ -10,14 +10,14 @@ found and they're experiments, not guarantees.*
 > for what's verified (dgVoodoo recipe, LSFG 20→40, M16 format crack, texture pipeline),
 > what's dead (wrapper-level texture replacement), and what's open.
 >
-> **Scripted:** [`setup-windows.ps1`](../setup-windows.ps1) automates §1 plus the input.map
+> **Scripted:** [`windows/setup-windows.ps1`](../windows/setup-windows.ps1) automates §1 plus the input.map
 > fixes (§4): retires GOG's OpenGLide, deploys dgVoodoo2 x86 Glide DLLs, installs
-> [`dgVoodoo.windows.conf`](../dgVoodoo.windows.conf) (20 FPS cap, Voodoo1 2MB/1TMU, 3x res,
+> [`windows/dgVoodoo.windows.conf`](../windows/dgVoodoo.windows.conf) (20 FPS cap, Voodoo1 2MB/1TMU, 3x res,
 > 8x MSAA, windowed), installs the control map, writes `PLAY-i76.bat` +
 > desktop shortcut. *2026-10-03:* the control map is now this project's own WASD-style map
 > ([`controls/input.map`](../controls/input.map)); `-Controls stock` keeps GOG's keys with the
 > joystick5→joystick1 patch ([CONTROLS.md](CONTROLS.md)). Mouse steering is no longer offered. Force
-> feedback needs no step on the Gold exe: [`enable-force-feedback.bat`](../enable-force-feedback.bat) is not
+> feedback needs no step on the Gold exe: [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) is not
 > needed per the disassembly in WHEEL-T300.md (harmless; not re-tested without it).
 > Note for 2.87.x: `WatermarkDisplayDuration = 0` now means *infinite* — the real watermark
 > switches are `3DfxWatermark = false` (Glide) / `dgVoodooWatermark = false` (DirectX).
@@ -120,10 +120,10 @@ motion is frame interpolation on top:
   I76's is `Interstate '76 Gold Edition`. A profile with that title plus `<AutoScale>true</AutoScale>`
   engages frame-gen on its own when the game window appears. Added 2026-08-01 alongside the stock
   `Default` profile (leave the app closed while editing — it rewrites the file on exit).
-- **Wired into the launcher.** [`PLAY-i76.ps1`](../PLAY-i76.ps1) starts Lossless Scaling with the
+- **Wired into the launcher.** [`windows/PLAY-i76.ps1`](../windows/PLAY-i76.ps1) starts Lossless Scaling with the
   game and stops it on exit — but only if it wasn't already running, so it won't kill a session you
   had open for something else. Pass `-LosslessScaling ""` to skip it.
-- **Scripted:** [`Setup-FrameGen.ps1`](../Setup-FrameGen.ps1) finds the exe across your Steam
+- **Scripted:** [`windows/Setup-FrameGen.ps1`](../windows/Setup-FrameGen.ps1) finds the exe across your Steam
   libraries, writes the profile (idempotent, backs up first), and with `-FixShortcut` swaps the
   `steam://` desktop shortcut for a direct one. `-Revert` undoes the profile. Refuses to run while
   Lossless Scaling is open, because it rewrites `Settings.xml` on exit.
@@ -135,7 +135,7 @@ motion is frame interpolation on top:
 
 - *2026-10-03: WHEEL-T300.md's later disassembly found force-feedback start-up unconditional on the Gold
   exe and this registry key irrelevant, so this step is not needed (harmless; nobody re-tested without it).*
-  The original step: run [`enable-force-feedback.bat`](../enable-force-feedback.bat) **as Administrator** — it
+  The original step: run [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) **as Administrator** — it
   `reg copy`s `HKLM\SOFTWARE\ACTIVISION\Interstate'76FRC` → `Interstate '76` (WOW6432Node-aware,
   reversible). The Gold Edition ships the Nitro-Pack FFB code but reads the un-suffixed key
   ([PCGW](https://www.pcgamingwiki.com/wiki/Interstate_'76)).
@@ -162,7 +162,7 @@ motion is frame interpolation on top:
   The game is **winmm-native** (joyGetPosEx; no DirectInput for input) and has **native mouse
   driving**: analog channels `mouse Left/Right` / `mouse Down/Up`, buttons
   LeftBtn/RightBtn/MiddleBtn (exactly three — weapon 4 can't live on a mouse button).
-  [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) documents the exact `input.map` blocks —
+  [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh) documents the exact `input.map` blocks —
   the same edits apply verbatim on Windows.
 - GOG shipped `input.map` bound to a phantom **joystick5** (the packager's machine) — fix to
   your actual stick number (usually joystick1).

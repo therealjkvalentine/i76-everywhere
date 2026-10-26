@@ -28,24 +28,24 @@ Double-click **`INSTALL.bat`**.
 That's it. Or, from PowerShell in this folder:
 
 ```powershell
-./Setup-From-GOG.ps1
+./windows/Setup-From-GOG.ps1
 ```
 
 Useful switches:
 
 | Command | Does |
 |---|---|
-| `./Setup-From-GOG.ps1` | Auto-find the GOG `.exe`(s) in Downloads, install to `C:\GOG Games\Interstate 76`, apply everything |
-| `./Setup-From-GOG.ps1 -GameDir "D:\Games\I76"` | Install somewhere else |
-| `./Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe"` | Point at a specific installer |
-| `./Setup-From-GOG.ps1 -SkipNitro` | Base game only |
-| `./Setup-From-GOG.ps1 -Force` | Reinstall even if a game is already there |
-| `./Setup-From-GOG.ps1 -Preset stock` | The recipe from before 2026-10-03: 20 fps, no engine switches (see [Presets](#presets-best-120-stock-and-best-wide)) |
-| `./Setup-From-GOG.ps1 -NoShortcut` | No desktop shortcut |
-| `./Setup-From-GOG.ps1 -Display 3440x1440` (or `INSTALL.bat -Display 3440x1440`) | Size the dgVoodoo confs (and best-wide's presets) for this monitor instead of the display the setup reads. Needed when installing over Remote Desktop: there the display read is the RDP desktop, and the setup says so in red. `install.ps1` and `setup-windows.ps1` take the same switch |
-| `./Setup-From-GOG.ps1 -Controls stock` (or `INSTALL.bat -Controls stock`) | Keep GOG's 1997 keys. The default installs this project's own WASD-style control map (see [Controls](#controls-this-projects-map-or-the-1997-keys)) |
-| `./setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly` | On an install already made: switch the controls back to the 1997 keys and touch nothing else (`-Controls i76e` switches forward again) |
-| `./install.ps1 -GameDir "D:\Games\I76" -NoShortcut -SkipNitro` | Configure a game that is already installed, writing nothing outside that folder (once `C:\Games\_tools` holds dgVoodoo and AutoHotkey) |
+| `./windows/Setup-From-GOG.ps1` | Auto-find the GOG `.exe`(s) in Downloads, install to `C:\GOG Games\Interstate 76`, apply everything |
+| `./windows/Setup-From-GOG.ps1 -GameDir "D:\Games\I76"` | Install somewhere else |
+| `./windows/Setup-From-GOG.ps1 -GogExe "C:\path\setup_interstate76_2.1.0.17.exe"` | Point at a specific installer |
+| `./windows/Setup-From-GOG.ps1 -SkipNitro` | Base game only |
+| `./windows/Setup-From-GOG.ps1 -Force` | Reinstall even if a game is already there |
+| `./windows/Setup-From-GOG.ps1 -Preset stock` | The recipe from before 2026-10-03: 20 fps, no engine switches (see [Presets](#presets-best-120-stock-and-best-wide)) |
+| `./windows/Setup-From-GOG.ps1 -NoShortcut` | No desktop shortcut |
+| `./windows/Setup-From-GOG.ps1 -Display 3440x1440` (or `INSTALL.bat -Display 3440x1440`) | Size the dgVoodoo confs (and best-wide's presets) for this monitor instead of the display the setup reads. Needed when installing over Remote Desktop: there the display read is the RDP desktop, and the setup says so in red. `windows/install.ps1` and `windows/setup-windows.ps1` take the same switch |
+| `./windows/Setup-From-GOG.ps1 -Controls stock` (or `INSTALL.bat -Controls stock`) | Keep GOG's 1997 keys. The default installs this project's own WASD-style control map (see [Controls](#controls-this-projects-map-or-the-1997-keys)) |
+| `./windows/setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly` | On an install already made: switch the controls back to the 1997 keys and touch nothing else (`-Controls i76e` switches forward again) |
+| `./windows/install.ps1 -GameDir "D:\Games\I76" -NoShortcut -SkipNitro` | Configure a game that is already installed, writing nothing outside that folder (once `C:\Games\_tools` holds dgVoodoo and AutoHotkey) |
 
 ### What it does
 
@@ -60,7 +60,7 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    **one UAC prompt** for the GOG installer — click **Yes** (that's normal; it's
    the only click in the whole process).
 2. Downloads **dgVoodoo2** 2.87.3 into `C:\Games\_tools` and installs
-   `dgVoodoo.daily-driver-2026-10-03.conf` as the game's `dgVoodoo.conf`: no dgVoodoo frame cap
+   `windows/dgVoodoo.daily-driver-2026-10-03.conf` as the game's `dgVoodoo.conf`: no dgVoodoo frame cap
    (the preset paces the game), 16:10 picture in a borderless window, 2× internal resolution,
    4× MSAA. On a display 1440 lines tall or taller the file is copied byte for byte; on a
    smaller one only the digits of the two `Resolution` lines change (1080 lines:
@@ -81,20 +81,20 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    [Controls](#controls-this-projects-map-or-the-1997-keys) just below.
    *Never rebind via the in-game menu — it corrupts the file.*
 7. Deploys the **controller layers** — downloads AutoHotkey 1.1 (pinned +
-   sha256-checked) and puts `i76-remap.ahk` and `i76-ch-fighterstick.ahk` in `<game>\_ahk\`:
+   sha256-checked) and puts `windows/i76-remap.ahk` and `windows/i76-ch-fighterstick.ahk` in `<game>\_ahk\`:
    **LB shift layer, right-stick glance, independent triggers, look-back rear gun, camera
    cycle**, the wheel's buttons, the flight stick. The launcher starts/stops them with the game.
    Not with `-Controls stock`: the layers type this project's keys.
 8. Installs the **cutscene-music fix** (if the proxy DLL has been built) and the
    mouse-wheel helper (wheel up = cycle weapon, wheel down = hardpoint 5).
-9. Copies the launcher (`PLAY-i76.ps1`) and `presets\*.psd1`, writes **`PLAY-i76.bat`**
+9. Copies the launcher (`windows/PLAY-i76.ps1`) and `presets\*.psd1`, writes **`PLAY-i76.bat`**
    (`-Preset best-120`) and **`PLAY-stock.bat`** (`-Preset stock`) in the game folder, and makes a
    **desktop shortcut** ("Interstate '76") to `PLAY-i76.bat`. Base game: also **`DEBUG.bat`** /
    **`TRAINER.bat`** and I76 Debug in `_tools\` (the daily driver's, promotion 16; Python 3 needed).
 10. Copies the repo's **mission bookmarks** (`saves\save*.cmp` + `savegame.dir`: 13 bookmarks of a Mac campaign
    run, [saves/README.md](saves/README.md)) into the game folder, **only if it has no `save*.cmp` yet**.
 
-The Nitro Pack, if installed, gets the earlier recipe unchanged (`dgVoodoo.windows.conf` with the
+The Nitro Pack, if installed, gets the earlier recipe unchanged (`windows/dgVoodoo.windows.conf` with the
 19.2 fps cap, no proxy, no preset).
 
 ### Play
@@ -113,12 +113,12 @@ For the game as it was installed before 2026-10-03 (20 fps: dgVoodoo's 19.2 fps 
 active, no switches), run the setup again with **`-Preset stock`**:
 
 ```powershell
-./install.ps1 -GameDir "C:\GOG Games\Interstate 76" -Preset stock
+./windows/install.ps1 -GameDir "C:\GOG Games\Interstate 76" -Preset stock
 ```
 
 That swaps the conf, renames `I76PATCH.DLL.disabled` back, rewrites `PLAY-i76.bat` without a preset
 and removes `PLAY-stock.bat`. Running it once more without `-Preset stock` returns to `best-120`.
-`PLAY-i76.ps1 -Preset ?` lists the other presets. **Play multiplayer on the `-Preset stock` install**:
+`windows/PLAY-i76.ps1 -Preset ?` lists the other presets. **Play multiplayer on the `-Preset stock` install**:
 no other preset has been tested between two machines.
 
 **Widescreen (opt-in): `-Preset best-wide`.** The owner's daily driver has run this since 2026-10-03: the
@@ -149,7 +149,7 @@ Trainer tab; `--classic` = the old window) in the game folder. Start the game fi
 Tested on 2026-10-03, **without starting the game**:
 
 - GOG's `setup_interstate76_2.1.0.17.exe` was unpacked with innoextract 1.9 into a scratch folder (the
-  installer itself was not run), and `install.ps1 -NoShortcut -SkipNitro` was run on it. That installer
+  installer itself was not run), and `windows/install.ps1 -NoShortcut -SkipNitro` was run on it. That installer
   yields `i76.exe` md5 `9a232dcc`, `i76shell.dll` `deb41008`, **no `I76PATCH.DLL`**, and an `input.map`
   with no analog `steer` / `throttle` block.
 - Result, by file listing and md5: `dgVoodoo.conf` identical to the daily-driver conf (`fd68005a`, on a
@@ -158,7 +158,7 @@ Tested on 2026-10-03, **without starting the game**:
   installer's default of the day; since later on 2026-10-03 the default is `u32x\u32x_full.dll`, `054fb411`, rebuilt that evening as `696577dc`:
   see the not-tested list); six preset files
   identical to the repo's; `PLAY-i76.bat` and `PLAY-stock.bat` as described; `tools\lint-input-map.py`
-  OK; `PLAY-i76.ps1 -Preset best-120 -DryRun` prints the eleven `I76_*` values and the game folder as
+  OK; `windows/PLAY-i76.ps1 -Preset best-120 -DryRun` prints the eleven `I76_*` values and the game folder as
   working directory.
 - A second run changed 0 files. `-Preset stock` and back was run. The `I76PATCH.DLL` rename and its
   undo were run with a dummy file, because this installer ships none. The `Resolution` rewrite was run
@@ -186,7 +186,7 @@ Tested on 2026-10-03, **without starting the game**:
   (`9a232dcc`) and `i76shell.dll` accepts it (every imported USER32 name is exported), changes exactly 10
   bytes in each file, and `-Restore` returns both to their original md5. Its gate ran on the lab sandbox
   and the daily driver, not on a fresh GOG folder, and the whole installer was not re-run with it.
-  `setup-windows.ps1 -U32xDll u32x\u32x.dll` installs the minimal build (`a5927cea`) instead.
+  `windows/setup-windows.ps1 -U32xDll u32x\u32x.dll` installs the minimal build (`a5927cea`) instead.
 - The installed map on a fresh install. It is the daily driver's map (md5 `a937f36d`), which the owner plays
   on, plus three fire keys added 2026-10-03 (`1`, `J`, `L`; md5 `90122d37`, `controls/README.md`); no game was
   started from an installer-made folder, and the three keys have not been played.
@@ -215,7 +215,7 @@ in [docs/CONTROLS.md](docs/CONTROLS.md); the printable sheet is
 | Gamepad | left stick native, everything else through the layer | native only: left stick, A fire, X cycle weapon, Y handbrake, D-pad glance (button numbers assumed) |
 | Wheel, flight stick | steering and pedals native, buttons through the layers | steering and pedals only |
 
-- **Going back on an installed game:** `setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly`.
+- **Going back on an installed game:** `windows/setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly`.
   It needs the `input.map.stock-<timestamp>` file the first install left; without it (a portable zip, or a
   folder whose first map was already hand-tuned) it says so and changes nothing.
 - The choice is written to `<game>\i76e-controls.txt`. A later run without `-Controls` keeps it, so updating
@@ -227,7 +227,7 @@ in [docs/CONTROLS.md](docs/CONTROLS.md); the printable sheet is
 Tested offline on a copy of the unpacked GOG 2.1.0.17 tree (`controls-test`), the game never started:
 fresh -> i76e (md5 of the result = the repo's map, lint OK, GOG's map kept); -> stock (GOG's map restored and
 patched, lint OK, layer scripts moved out of `_ahk\`); -> i76e -> stock again (no second backup); a re-run with
-no `-Controls` (stays stock); `install.ps1 -Controls i76e` end to end; a hand-tuned map in place (kept as
+no `-Controls` (stays stock); `windows/install.ps1 -Controls i76e` end to end; a hand-tuned map in place (kept as
 `.before-i76e-*`, and `-Controls stock` then refuses for lack of a stock backup). The launcher's `input.map`
 guard was run in isolation on both results: it does nothing on either, and on a map wrecked by the in-game
 menu it restores `input.map.as-installed`. **Not tested:** any of it in play, and the Nitro Pack with the
@@ -239,7 +239,7 @@ joysticks at startup.
 ### Optional extras
 - **Force feedback** (wheels / FFB sticks): nothing to switch on. Start-up of the game's force feedback is
   unconditional on the Gold exe ([docs/WHEEL-T300.md](docs/WHEEL-T300.md), from disassembly), so
-  `enable-force-feedback.bat` is not needed; it is harmless. Nobody has re-tested a wheel on a PC where it was
+  `windows/enable-force-feedback.bat` is not needed; it is harmless. Nobody has re-tested a wheel on a PC where it was
   never run. Close the wheel's control panel before launching.
 - **Save editing:** open `i76-save-editor.html` in any browser, or use the
   [hosted editor](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html)
@@ -253,8 +253,8 @@ Once one PC is set up, you don't reinstall on the next — you carry the whole
 configured game in a zip.
 
 ### Make the zip
-On the working PC, double-click **`MAKE-PORTABLE.bat`** (or run
-`./Make-Portable-Zip.ps1`). It:
+On the working PC, double-click **`windows/MAKE-PORTABLE.bat`** (or run
+`./windows/Make-Portable-Zip.ps1`). It:
 - copies your configured game folder (dgVoodoo, patched `input.map`, launcher and
   all) minus backup cruft,
 - adds `PLAY.bat`, a per-machine `Setup-This-PC.bat`, the browser save editor, and
@@ -294,7 +294,7 @@ force feedback as above.
 | "Couldn't find a GOG installer" | Put `setup_interstate76_*.exe` in Downloads, or pass `-GogExe "…"`. |
 | `i76.exe still not found after install` | The GOG installer needed elevation — re-run in an **Administrator** PowerShell, or install to a user-writable folder: `-GameDir "$env:USERPROFILE\Interstate 76"`. |
 | Installer log | Each GOG install writes `%TEMP%\i76-gog-install-*.log`. |
-| Cars flip on small bumps / can't make scene 5's jump / everything runs too fast | The game is running faster than its physics are stepped. Open `mciproxy.log` in the game folder: it lists every switch of the preset as applied or skipped. If patches were skipped (an exe build the proxy does not know), run `./install.ps1 -GameDir "<game>" -Preset stock` for the 20 fps recipe. On a `-Preset stock` install: confirm dgVoodoo's `Glide2x.dll` is in the game folder and `dgVoodoo.conf` has `FPSLimit = 19.2`. |
+| Cars flip on small bumps / can't make scene 5's jump / everything runs too fast | The game is running faster than its physics are stepped. Open `mciproxy.log` in the game folder: it lists every switch of the preset as applied or skipped. If patches were skipped (an exe build the proxy does not know), run `./windows/install.ps1 -GameDir "<game>" -Preset stock` for the 20 fps recipe. On a `-Preset stock` install: confirm dgVoodoo's `Glide2x.dll` is in the game folder and `dgVoodoo.conf` has `FPSLimit = 19.2`. |
 | Still 20 fps after installing | `I76PATCH.DLL` is active in the game folder (the setup renames it to `.disabled`), or the launcher was started without a preset: use `PLAY-i76.bat`. |
 | A dgVoodoo / 3dfx watermark, or a 4:3 picture | dgVoodoo rejected the game folder's `dgVoodoo.conf` and is using `%APPDATA%\dgVoodoo\dgVoodoo.conf`. Re-run the setup to restore the conf; do not hand-edit keys into other sections. |
 | Game never gets past "PLEASE STAND BY" | You are connected over Remote Desktop. Start it at the PC itself. |

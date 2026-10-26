@@ -8,9 +8,9 @@
 > **To keep the original keys:**
 >
 > - on a new install, add `-Controls stock`: `INSTALL.bat -Controls stock` (or the same switch on
->   `Setup-From-GOG.ps1`, `install.ps1`, `setup-windows.ps1`);
+>   `windows/Setup-From-GOG.ps1`, `windows/install.ps1`, `windows/setup-windows.ps1`);
 > - on an install already made, from the repo folder:
->   `powershell -ExecutionPolicy Bypass -File setup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly`
+>   `powershell -ExecutionPolicy Bypass -File windowssetup-windows.ps1 -GameDir "<game folder>" -Controls stock -ControlsOnly`
 >   It puts GOG's map back from the `input.map.stock-<timestamp>` copy the installer kept, and changes nothing
 >   else. `-Controls i76e -ControlsOnly` switches back.
 >
@@ -40,7 +40,7 @@ checked by md5 and lint, not by play.
 | All keyboard | A keyboard | `INSTALL.bat`; section 2 | The owner's daily-driver map. Fresh install: "the game was not started from it" (INSTALL.md) |
 | Keyboard and mouse | Plus a three-button mouse | The same map binds the three mouse buttons; the launcher adds the wheel and buttons 4 / 5; section 3 | Same as above. Mouse wheel helper: "status not recorded" (ENHANCEMENTS) |
 | Gamepad | An Xbox-style pad, **connected before launch** | `INSTALL.bat`, then `PLAY-i76.bat` (starts the AutoHotkey layer); section 4 | Layer: "deployed, verified on Mac/Windows" (RELEASE-PLAN section 1). No play test of the pad on this map is recorded; four pad controls were changed 2026-10-03 and are not yet played (section 4) |
-| HOWAS | Thrustmaster T300RS + CH Fighterstick, Windows | Driver, pedals COMBINED, `PLAY-i76.ps1`; section 5 | Wheel: "STATUS 2026-08-01: WORKING AND PLAYED". Stick: "Field-confirmed working 2026-08-08". Both on this map |
+| HOWAS | Thrustmaster T300RS + CH Fighterstick, Windows | Driver, pedals COMBINED, `windows/PLAY-i76.ps1`; section 5 | Wheel: "STATUS 2026-08-01: WORKING AND PLAYED". Stick: "Field-confirmed working 2026-08-08". Both on this map |
 | Steam Deck | The Deck | The installer pre-applies the layout | "INSTALLED on this user's Deck (2026-07-11)"; see [DECK-CONTROLS.md](DECK-CONTROLS.md) |
 | Mac | | The Mac installer copies a different map, [`input.map.reference`](input.map.reference) | Not compared with this page; see "Mac: converge later" at the end |
 
@@ -109,7 +109,7 @@ The Special 1 / 2 / 3 keys fire whatever special sits in that slot, and only thr
 the Radar Jammer, Nitrous and the X-Aust Brake. The other specials work on their own. What each one does, with
 its numbers: [PARTS-REFERENCE.md](PARTS-REFERENCE.md#specials-spc01spc09).
 
-Not in `input.map` at all (engine keys, from the comments in [`i76-remap.ahk`](../i76-remap.ahk)): `F1` cockpit,
+Not in `input.map` at all (engine keys, from the comments in [`windows/i76-remap.ahk`](../windows/i76-remap.ahk)): `F1` cockpit,
 `F3` chase camera, `F2` `F7` `F8` `F9` `F10` other views, `Esc` pause menu and skip a cutscene.
 
 What to know about our map:
@@ -126,13 +126,13 @@ What to know about our map:
 - `C` is unbound. The file's header comment said `Space fire` and `C handbrake` until 2026-10-03; it now says
   what the bindings are (`Enter` fire, `Space` handbrake).
 
-**What the installer does to `input.map`** ([`setup-windows.ps1`](../setup-windows.ps1) step 5):
+**What the installer does to `input.map`** ([`windows/setup-windows.ps1`](../windows/setup-windows.ps1) step 5):
 
 | | `-Controls i76e` (default) | `-Controls stock` |
 |---|---|---|
 | The map | `controls\input.map` written whole, checked by md5 and by the lint when Python is installed | GOG's keyboard keys, plus the minimal patch below |
 | Backup | The map that was there, once, as `input.map.stock-<timestamp>` (GOG's untouched map; on a folder an earlier run patched, that is `input.map.pre-windows-setup`). Any other map in place is kept as `input.map.before-i76e-<timestamp>` | `input.map.pre-windows-setup`; coming from i76e, the current map as `input.map.before-stock-<timestamp>` if no identical copy exists |
-| AutoHotkey layers in `_ahk\` | `i76-remap.ahk` and `i76-ch-fighterstick.ahk` copied in | Not copied; copies from an earlier run are moved to `_ahk\off-stock-controls\` |
+| AutoHotkey layers in `_ahk\` | `windows/i76-remap.ahk` and `windows/i76-ch-fighterstick.ahk` copied in | Not copied; copies from an earlier run are moved to `_ahk\off-stock-controls\` |
 | Mouse wheel (launcher) | up = `Tab`, down = `5` | up = `Enter` (stock's cycle weapon), down = `5` |
 
 Both modes write `input.map.as-installed` (what the launcher's guard restores first, section 7) and record the
@@ -145,7 +145,7 @@ hardpoints 1 to 4 (all four are unbound in GOG's 2.1.0.17 map). It moves the han
 line is skipped.
 
 Tested offline on a copy of the unpacked GOG 2.1.0.17 tree, the game never started: fresh to i76e, i76e to stock
-and back twice, a re-run with no `-Controls`, and `install.ps1 -Controls`; each result checked by md5 and lint.
+and back twice, a re-run with no `-Controls`, and `windows/install.ps1 -Controls`; each result checked by md5 and lint.
 
 ## 2. All keyboard
 
@@ -171,9 +171,9 @@ From [`controls/input.map`](../controls/input.map) and the launcher:
 - **Left button**: fire the selected weapon (also the handgun on foot). **Right button**: hardpoint 2.
   **Middle button**: look left.
 - **Mouse wheel**: up = `Tab` (cycle weapon), down = `5` (hardpoint 5, where the dropper usually sits).
-  `PLAY-i76.ps1` starts `i76wheel.exe` for this, because the engine has no wheel input; `-WheelUp` /
+  `windows/PLAY-i76.ps1` starts `i76wheel.exe` for this, because the engine has no wheel input; `-WheelUp` /
   `-WheelDown` change the keys.
-- **Buttons 4 and 5** (through `i76-remap.ahk`): 4 (back) = `6`, special 1, the nitrous slot;
+- **Buttons 4 and 5** (through `windows/i76-remap.ahk`): 4 (back) = `6`, special 1, the nitrous slot;
   5 (forward) = `3`, hardpoint 3.
 
 The mouse does not steer. Mouse steering is not offered by this project (owner decision 2026-10-03); the mouse
@@ -185,9 +185,9 @@ Connect the pad **before** launching: the engine lists joysticks once, at startu
 
 1. **Native** (`input.map`): the left stick steers and is the throttle (`joystick1`, `Left/Right` and
    `Down/Up`). Our map binds **no pad button**.
-2. **The AutoHotkey layer** ([`i76-remap.ahk`](../i76-remap.ahk)) does the rest by typing keys: triggers as two
+2. **The AutoHotkey layer** ([`windows/i76-remap.ahk`](../windows/i76-remap.ahk)) does the rest by typing keys: triggers as two
    separate buttons, right-stick look, an LB shift layer, look-back fire, camera cycle. `PLAY-i76.bat` /
-   `PLAY-i76.ps1` starts it from `<game>\_ahk\` and stops it with the game. Without it (AutoHotkey could not be
+   `windows/PLAY-i76.ps1` starts it from `<game>\_ahk\` and stops it with the game. Without it (AutoHotkey could not be
    downloaded, or the game was started by `i76.exe` directly) a pad has the left stick and nothing else.
 
 The layout, every button and the LB layer, is page 2 of the
@@ -246,7 +246,7 @@ is the gearbox, the handbrake and the weapons. Pages 3 (wheel) and 4 (stick) of 
 around a labelled picture of the device.
 
 **Wheel** ([WHEEL-T300.md](WHEEL-T300.md), "The layout"; "Rebalanced 2026-08-08"). `input.map` carries only
-`steer { - joystick1 Left/Right }` and `throttle { - joystick1 Down/Up }`; every button is typed by `i76-remap.ahk`.
+`steer { - joystick1 Left/Right }` and `throttle { - joystick1 Down/Up }`; every button is typed by `windows/i76-remap.ahk`.
 
 | # | Physical | Base | Hold 6 = shift |
 |---|---|---|---|
@@ -301,15 +301,15 @@ changed 2026-10-24 (owner: "can flightstick trigger fire linked and 1 and handgu
 
 **Force feedback.** The game's own 1997 effects need no switch on the Gold exe: force-feedback start-up is
 unconditional there (from disassembly, [WHEEL-T300.md](WHEEL-T300.md)), so with the two rules above the effects
-engage at startup. `enable-force-feedback.bat` is therefore **not needed per the disassembly, and harmless**;
+engage at startup. `windows/enable-force-feedback.bat` is therefore **not needed per the disassembly, and harmless**;
 nobody has re-tested a wheel on a PC where it was never run. The custom force model (self-aligning weight,
-slip, road texture) is opt-in: `PLAY-i76.ps1 -Ffb`, after `tools\ffb\ffb-calibrate.ps1`; status "Feel tuning:
+slip, road texture) is opt-in: `windows/PLAY-i76.ps1 -Ffb`, after `tools\ffb\ffb-calibrate.ps1`; status "Feel tuning:
 not started" ([tools/ffb/README.md](../tools/ffb/README.md)). Leave `-Ffb` off and it is off. Read
 [FFB-STACKS.md](FFB-STACKS.md) before running any of it. 2026-10-03 daily driver: "Not verified: force feedback
 (module loads; no wheel was attached during the gate)".
 
-**How the launcher starts the layers.** [`PLAY-i76.ps1`](../PLAY-i76.ps1) starts, from `<game>\_ahk\`,
-`i76-remap.ahk` (pad, wheel buttons, mouse 4/5), `i76-ch-fighterstick.ahk` unless `-NoStick` (it exits by itself
+**How the launcher starts the layers.** [`windows/PLAY-i76.ps1`](../windows/PLAY-i76.ps1) starts, from `<game>\_ahk\`,
+`windows/i76-remap.ahk` (pad, wheel buttons, mouse 4/5), `windows/i76-ch-fighterstick.ahk` unless `-NoStick` (it exits by itself
 when no stick is found), the cursor overlay unless `-NoCursorOverlay`, opentrack and the head-look script unless
 `-OpenTrack ""`, and the custom force feedback only with `-Ffb`. A script that is not in `_ahk\` is not started,
 which is how `-Controls stock` leaves the two control layers out. The game starts **last**, because the engine
@@ -319,7 +319,7 @@ every key they can hold. The installer puts only the first two scripts in `_ahk\
 ## 6. Head look
 
 Set opentrack's Output to **freetrack 2.0 Enhanced** once, then launch with `PLAY-WITH-HEADLOOK.bat` /
-`PLAY-i76.ps1 -HeadTrack`: it starts opentrack, tracking begins by itself when the game starts (opentrack's game
+`windows/PLAY-i76.ps1 -HeadTrack`: it starts opentrack, tracking begins by itself when the game starts (opentrack's game
 detection, plus a UI-Automation press of Start as the fallback), and the head-look layer runs (when the script is in
 `_ahk\`; the installer does not put it there). It starts in **ANALOG**; **Ctrl+Alt+H** cycles ANALOG -> DIGITAL -> OFF,
 each change shown on screen. Holding any glance key or button (arrows, middle mouse, pad right stick, stick cone hat)
@@ -337,13 +337,13 @@ python tools\lint-input-map.py "<game folder>"
 | Symptom | Cause | Fix |
 |---|---|---|
 | Stick or wheel steering does nothing, or sits dead-centre | The analog chord trap: two analog sources in one `steer` / `throttle` block (an install patched before 2026-10-03 has a `- mouse` line beside `joystick1`) | Keep one line per block; re-running the installer with the default controls replaces the map ([VERIFIED-FIXES.md](VERIFIED-FIXES.md), WHEEL-T300 section 3) |
-| A controller that worked is dead; `steer` / `throttle` blocks gone, file smaller | The in-game **Control Configuration** menu rewrote `input.map`. Never open it: it appends chords, drops the analog blocks and re-points buttons at other joystick slots | `PLAY-i76.ps1` notices the missing analog blocks at the next start and restores `input.map.as-installed` (else the newest other backup with both blocks). By hand: copy that file over `input.map`, lint, restart ([AGENTS.md](../AGENTS.md)) |
+| A controller that worked is dead; `steer` / `throttle` blocks gone, file smaller | The in-game **Control Configuration** menu rewrote `input.map`. Never open it: it appends chords, drops the analog blocks and re-points buttons at other joystick slots | `windows/PLAY-i76.ps1` notices the missing analog blocks at the next start and restores `input.map.as-installed` (else the newest other backup with both blocks). By hand: copy that file over `input.map`, lint, restart ([AGENTS.md](../AGENTS.md)) |
 | Wheel or pad not detected | Plugged in after launch; or the wheel is on the generic driver or pedals on SEPARATE | Connect first, then launch. "Perfect in the vendor panel, dead in game" means the game's own config: lint before touching drivers ([WHEEL-T300.md](WHEEL-T300.md)) |
 | Wheel buttons do two things at once | Native `joystick1` button and hat blocks beside the AutoHotkey wheel layer (a map patched by an older installer, or `-Controls stock` with the layer started by hand) | Install the default controls; `joystick1` must be only on `steer` and `throttle` (WHEEL-T300, "Buttons: strip the NATIVE joystick1 bindings") |
-| Pad buttons, wheel buttons or the stick type the wrong things | The folder has the 1997 keys (`-Controls stock`) and a layer was started anyway, or the other way round | `<game>\i76e-controls.txt` says which mode the folder is in; re-run `setup-windows.ps1 -Controls <mode> -ControlsOnly` |
-| A key is stuck: car crawls, view jammed sideways, hang at PLEASE STAND BY | An AutoHotkey layer was killed while holding a key | Start and stop through `PLAY-i76.ps1` (it sends the key-ups); quit the Fighterstick script from its tray icon ([FIGHTERSTICK.md](FIGHTERSTICK.md), "If a key sticks") |
+| Pad buttons, wheel buttons or the stick type the wrong things | The folder has the 1997 keys (`-Controls stock`) and a layer was started anyway, or the other way round | `<game>\i76e-controls.txt` says which mode the folder is in; re-run `windows/setup-windows.ps1 -Controls <mode> -ControlsOnly` |
+| A key is stuck: car crawls, view jammed sideways, hang at PLEASE STAND BY | An AutoHotkey layer was killed while holding a key | Start and stop through `windows/PLAY-i76.ps1` (it sends the key-ups); quit the Fighterstick script from its tray icon ([FIGHTERSTICK.md](FIGHTERSTICK.md), "If a key sticks") |
 
-**The launcher's guard and the two control modes.** `PLAY-i76.ps1` restores a backup only when `steer` or
+**The launcher's guard and the two control modes.** `windows/PLAY-i76.ps1` restores a backup only when `steer` or
 `throttle` has no joystick line. Both modes leave both lines, so it does not act on a healthy install of either.
 When it does act it takes `input.map.as-installed` first and never one of the mode-switch backups
 (`input.map.stock-*`, `.before-i76e-*`, `.before-stock-*`), so it cannot put back a map of the other mode.
@@ -359,7 +359,7 @@ separate blocks ([I76-GAMEPLAY-REFERENCE.md](I76-GAMEPLAY-REFERENCE.md)). The de
 The Mac build may have grown a different two-handed keyboard layout. It has not been examined against this page:
 the Mac installer copies [`input.map.reference`](input.map.reference) (2026-09-06), which differs from
 `controls/input.map` (gears on `-` / `=`, which the pad layer no longer types since 2026-10-03; home-row hardpoints `L` `O` `[` `]`, weapon link on Shift + left
-click, bare `Joystick` hat blocks), and `setup-mouse-and-pad.sh` still writes mouse steering there. Converging
+click, bare `Joystick` hat blocks), and `mac/setup-mouse-and-pad.sh` still writes mouse steering there. Converging
 the two maps is open work; until then this page and the PDF describe Windows.
 
 ## Where the docs disagreed: resolved 2026-10-03
@@ -385,7 +385,7 @@ two docs or a doc and a script; the source docs were corrected the same day.
    its prose still had link fire on R2.
 8. **Stick pinky.** Look at target (`E`). The script's header comment said weapon link.
    Pad gear shift on `-` / `=` was a real mismatch, not a doc error; fixed in the pad layer (section 4).
-9. **`enable-force-feedback.bat`.** Not settled by the configuration. Printed as current: force-feedback start
+9. **`windows/enable-force-feedback.bat`.** Not settled by the configuration. Printed as current: force-feedback start
    is unconditional on the Gold exe, the registry key is irrelevant (WHEEL-T300, from disassembly); the bat is
    not needed and harmless. Nobody has re-tested without it.
 10. **Re-running the installer.** It does not append the pad bindings again: the stock patch skips a map that

@@ -199,7 +199,7 @@ prints `d628160`.
 Counts: 84 distinct `I76_*` names in the C (81 `GetEnvironmentVariableA` sites in strlkproxy.c, 4 in cursormap.c);
 the README switch table names 63; **24 in C and not in the README**; 3 in the README and not in C (`I76_CD1` is a CD
 label, `I76_GAME_DIR` is the launcher's, `I76_U32X_MENU` is u32x's). 29 names appear in no preset
-(`presets\*.psd1`, the driver's, the twin's), no `PLAY*.bat`/`TEST*.bat`, no `PLAY-i76.ps1`/`LAUNCHER.ps1`, no lab
+(`presets\*.psd1`, the driver's, the twin's), no `PLAY*.bat`/`TEST*.bat`, no `windows/PLAY-i76.ps1`/`windows/LAUNCHER.ps1`, no lab
 `autotest\` or `tools\` script. No `#if 0` blocks; every one of the 282 static functions is referenced at least
 twice (no unreferenced helpers); the four names that appear twice (`coop_ai_log`, `fp_log_download`,
 `install_frame_hook`, `hook_LoadLibraryA`) are forward declarations, not duplicates.
@@ -301,7 +301,7 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
   variants (`ensure-mute`, `ensure-muted`, `getmute`, `setmute`) live outside every repo (4.1). Cursor: the
   `autotest\calibrate\*cursor*` seven are one pipeline (probe -> solve -> validate), `lib\uiclick.ps1` is the click
   primitive 59 scripts dot-source, `log-clicks.ps1` the recorder; i76-everywhere's `tools\cursor-mode.ps1` and
-  `i76-cursor-overlay.ahk` are player-facing. Nothing to fold.
+  `windows/i76-cursor-overlay.ahk` are player-facing. Nothing to fold.
 - `flash-probe-20261005\drive-run.ps1` is a declared copy of `twin-sync-20261005\drive-run.ps1` (+`-God`, `-Probe`);
   both `drive_stats.py` copies: run records, leave.
 - Public snapshots inside i76-everywhere are behind their sources: `lab/` (last refresh `c81181f` 2026-10-05) differs
@@ -356,7 +356,7 @@ Alternative with zero edits: a `SCRATCHPAD-NOTE.md` beside each run folder namin
    `autotest\lib` already exists (10 files, 59 dot-sourcing scripts), so no new lib is needed.
 6. **i76-everywhere root clutter** (20+ `setup-*.sh`, `i76-*.ahk`, `*.swift` stubs at the root):
    `docs/REPO-ORGANIZATION-PROPOSAL.md` rows 2-8 are **deferred with stated reasons** (the Deck installer fetches
-   `dgVoodoo.conf` by raw URL from main; `PLAY-i76.ps1` runs from two places; Mac/Deck scripts need one run each).
+   `dgVoodoo.conf` by raw URL from main; `windows/PLAY-i76.ps1` runs from two places; Mac/Deck scripts need one run each).
    Not re-proposed here.
 
 ## 8. Game folders (git-ignored lab state: PROPOSE ONLY; the owner acts)

@@ -93,24 +93,24 @@ MoltenVK and is force-disabled by the async patch).
 
 ## Un-parking
 
-> **Note:** [`slim-wrapper.sh`](../slim-wrapper.sh) now removes the **Voodoo GPU stack**
+> **Note:** [`mac/slim-wrapper.sh`](../mac/slim-wrapper.sh) now removes the **Voodoo GPU stack**
 > (`Contents/Frameworks/renderer/` + `libMoltenVK.dylib` + `moltenvkcx`, ~140 MB) since the
 > software renderer doesn't use it. If you slimmed the wrapper, un-parking also needs that stack
-> back — either `slim-wrapper.sh --restore` (if the quarantine still exists) or a fresh Sikarugir
+> back — either `mac/slim-wrapper.sh --restore` (if the quarantine still exists) or a fresh Sikarugir
 > wrapper clone. By the time Voodoo is worth un-parking (a new MoltenVK), you'd rebuild the wrapper
 > on a current Wine/MoltenVK anyway.
 
-The build side is one line. Restore this in [`build-launchers.sh`](../build-launchers.sh) (kept as a
+The build side is one line. Restore this in [`mac/build-launchers.sh`](../mac/build-launchers.sh) (kept as a
 comment) and run it:
 
 ```sh
 make_app "Interstate 76 - Glide-dgVoodoo-DXVK-Metal" "com.jkv.i76.voodoo" "i76-voodoo-stub.swift" "Interstate 76 - Glide-dgVoodoo-DXVK-Metal"
 ```
 
-Preserved in the repo: [`i76-voodoo-stub.swift`](../i76-voodoo-stub.swift) (the launcher, with all
-the MVK/DXVK env), [`setup-voodoo.sh`](../setup-voodoo.sh), [`dgVoodoo.conf`](../dgVoodoo.conf) +
-[`dxvk.conf`](../dxvk.conf) (the tuned graphics config), [`open-dgvoodoo-settings.command`](../open-dgvoodoo-settings.command)
-+ [`setup-dgvoodoo-cpl.sh`](../setup-dgvoodoo-cpl.sh) (the dgVoodoo GUI), and the whole
+Preserved in the repo: [`mac/i76-voodoo-stub.swift`](../mac/i76-voodoo-stub.swift) (the launcher, with all
+the MVK/DXVK env), [`mac/setup-voodoo.sh`](../mac/setup-voodoo.sh), [`dgVoodoo.conf`](../mac/dgVoodoo.conf) +
+[`dxvk.conf`](../mac/dxvk.conf) (the tuned graphics config), [`mac/open-dgvoodoo-settings.command`](../mac/open-dgvoodoo-settings.command)
++ [`mac/setup-dgvoodoo-cpl.sh`](../mac/setup-dgvoodoo-cpl.sh) (the dgVoodoo GUI), and the whole
 [`tools/dxvk-pipeline-cache-persist/`](../tools/dxvk-pipeline-cache-persist/) patch. On the game
 side the dgVoodoo `Glide2x.dll` + engine DXVK swap are still in place.
 

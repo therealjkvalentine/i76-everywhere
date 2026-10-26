@@ -11,7 +11,7 @@ transfers — minus the one layer that caused us the most pain.*
 > state, rumble evidence and the "felt it" checklist: [records/DECK-2026-10-25.md](records/DECK-2026-10-25.md).
 
 > **STATUS: INSTALLED on this user's Deck (2026-07-11).** The game (511 MB), dgVoodoo 2.78.2 +
-> our [`dgVoodoo.conf`](../dgVoodoo.conf) (gamma + 4× MSAA + 32-bit), a Deck-tuned `input.map`,
+> our [`dgVoodoo.conf`](../mac/dgVoodoo.conf) (gamma + 4× MSAA + 32-bit), a Deck-tuned `input.map`,
 > a full [controller config](../deck/controller_neptune_i76.vdf), and 5 pieces of
 > [library artwork](../deck/artwork/) were pushed over SSH to `~/Games/Interstate76/game`, added
 > to Steam as a non-Steam game (**GE-Proton10-12**, launch option `-glide`) alongside the existing
@@ -95,7 +95,7 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 >
 > **2026-10-07, later: two control profiles.** `./deck/deck-push-pad.sh` adds a second library entry,
 > **"Interstate 76 (pad layer)"**: Steam layout v9 (`deck/controller_neptune_i76_pad.vdf`, a plain gamepad
-> plus the grips, the trackpad menu and the trackpad mouse) with the shared `i76-remap.ahk` running in the
+> plus the grips, the trackpad menu and the trackpad mouse) with the shared `windows/i76-remap.ahk` running in the
 > prefix and the shared `controls/input.map` live, so the Deck plays with the Windows/Mac pad controls (Y
 > view cycle, LB shift layer). The normal entry keeps layout v8.1 and the Deck's own map; the wrapper copies
 > `input.map.profile-pad` or `input.map.profile-deck` into place per launch. Smoke-tested: each entry
@@ -267,7 +267,7 @@ pads connected; no `cursor-map: client` lines because `I76_CURSOR_LOG` was never
 or Wine error lines in that session's logs.
 
 **1. Rumble: found from the code, fixed by config (not deployed: Deck offline).** On the Deck the only rumble source is
-the pad layer (`i76-remap.ahk`, started by the launcher in the game's prefix). Its mixer (nitrous kick, handbrake thud,
+the pad layer (`windows/i76-remap.ahk`, started by the launcher in the game's prefix). Its mixer (nitrous kick, handbrake thud,
 gear click, mine thud, ignition crank, fire buzz, engine growl) has been **gated off since 2026-07-19**
 (`gShimOwnsRumble := true`) because on the Mac the ffb-shim (`ffb-shim/`, a replacement `i7_sfrce.dll`) drives the motor
 from the game's own FFB stream. **No Deck script installs the shim** (setup-deck-wide / -pad / -tv / -baseline,
@@ -275,7 +275,7 @@ deck-install.sh: none touch `i7_sfrce.dll`), and the stock `i7_sfrce.dll` speaks
 (FFB-DEEP-DIVE.md), which Proton offers for FFB wheels; for the rumble-only Steam Input pad it is not expected to find a
 device (inference, not observed on the Deck). So nothing on the Deck ever called `XInputSetState`. (The pad menu thread in the proxy only reads XInput; it never writes vibration.) Fix:
 
-- `i76-remap.ahk`: `I76_AHK_RUMBLE` = `1` (the layer drives the pad it reads), `all` (every connected pad: docked, the
+- `windows/i76-remap.ahk`: `I76_AHK_RUMBLE` = `1` (the layer drives the pad it reads), `all` (every connected pad: docked, the
   Deck's own controller and a TV pad), `0` (the shim owns it). Unset = as before, so Windows and Mac are unchanged.
   Parse-checked with AutoHotkeyU32 `/iLib NUL` (exit 0).
 - `i76-deck-launch.sh`: `I76_AHK_RUMBLE=auto` picks `0` when the game folder's `i7_sfrce.dll` is the shim (it carries the
@@ -371,9 +371,9 @@ management). You install the real game through Heroic, drop a Glide wrapper into
 and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on the Mac.
 
 **The repo files that transfer to the Deck unchanged:**
-- [`dgVoodoo.conf`](../dgVoodoo.conf) — same graphics config; the gamma/MSAA/32-bit wins apply
+- [`dgVoodoo.conf`](../mac/dgVoodoo.conf) — same graphics config; the gamma/MSAA/32-bit wins apply
   natively (and should be *smoother* than Mac since there's no MoltenVK compile tax).
-- [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) → the `input.map` it produces (mouse +
+- [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh) → the `input.map` it produces (mouse +
   `joystick1` bindings; fixes GOG's phantom `joystick5`).
 - The **FFB registry rename** (below) — works for real here.
 - The **20 FPS** knowledge — the GOG exe's built-in `I76PATCH.DLL` limiter runs the same under
@@ -395,7 +395,7 @@ and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on th
    - From dgVoodoo's `MS/x86/` drop **`Glide2x.dll`** (and `dgVoodoo.cpl` if you want the GUI) into
      the **game install dir**, next to `i76.exe`. **Delete GOG's bundled OpenGLide** `glide2x.dll`
      first so dgVoodoo's wins ([CahootsMalone guide](https://github.com/CahootsMalone/interstate-76-stuff/blob/master/running-interstate-76-gog-release-using-dgvoodoo.md)).
-   - Copy our [`dgVoodoo.conf`](../dgVoodoo.conf) into the same dir.
+   - Copy our [`dgVoodoo.conf`](../mac/dgVoodoo.conf) into the same dir.
    - *Alternative, zero-download:* keep GOG's **OpenGLide** (Glide→OpenGL). Simpler, but softer
      image and no MSAA/gamma levers — dgVoodoo is the quality path.
 4. **Launch flag:** set the game's launch to `i76.exe -glide` (Heroic: "Alternative Exe" / launch
@@ -414,7 +414,7 @@ and copy in the exact `dgVoodoo.conf` and `input.map` we already validated on th
 
 ## Graphics config on the Deck
 
-Use our [`dgVoodoo.conf`](../dgVoodoo.conf) as-is. The three wins we found for the Mac apply here
+Use our [`dgVoodoo.conf`](../mac/dgVoodoo.conf) as-is. The three wins we found for the Mac apply here
 and should look *better* (native Vulkan, no MoltenVK quirks):
 
 - `EnableGlideGammaRamp = true` — the bright 3dfx gamma (the "darker than Windows" fix).
@@ -438,7 +438,7 @@ get the Deck's controls into it is to let **Steam Input** present a virtual pad:
 
 1. Add the game (or Heroic) to Steam as a **Non-Steam Game** so Steam Input applies its controller
    layer. (Heroic can auto-add via its "Add to Steam" option.)
-2. Apply our `input.map` (run [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh) against the
+2. Apply our `input.map` (run [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh) against the
    Deck's game dir, or hand-copy the `joystick1` bindings) — it fixes GOG's phantom `joystick5`
    and binds left-stick steer/throttle, buttons → weapons/e-brake, hat → glances.
 3. Pick a **driving template** in Steam Input: left stick = steer, **right trigger = throttle,
@@ -461,7 +461,7 @@ The Deck has no built-in FFB, but **dock a USB force-feedback wheel** and it wor
 1. Enable the dormant FFB (same registry key as Windows) — run against the game's prefix:
    `HKLM\SOFTWARE\ACTIVISION\Interstate'76FRC` → copy to `Interstate '76` (with the space). Do it
    via Heroic → Winetricks → `regedit`, or `protontricks`, or our
-   [`enable-force-feedback.bat`](../enable-force-feedback.bat) run in the prefix.
+   [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) run in the prefix.
    *(2026-07-19 disassembly note: the Gold `i76.exe` FFB init is unconditional — no registry gate
    was found in the binary ([FFB-DEEP-DIVE.md](records/FFB-DEEP-DIVE.md) §2). The community rename step is
    likely harmless cargo cult on Gold; keep doing it until a Deck run confirms, since it costs
@@ -476,7 +476,7 @@ This is the one feature that's *better* on the Deck than any Mac path.
 
 - **Mission music.** I76's mission soundtrack is **CD redbook audio**; GOG ships it as MP3s and
   there's no CD, so it's silent under Wine unless emulated. On the Mac we fixed this with **DxWnd's
-  virtual CD audio** ([setup-music.sh](../setup-music.sh)). On the Deck's dgVoodoo path (no DxWnd)
+  virtual CD audio** ([setup-music.sh](../mac/setup-music.sh)). On the Deck's dgVoodoo path (no DxWnd)
   the same silence likely occurs. Two options to test on device: (a) layer DxWnd on the Deck too
   (it's a Windows app, runs under Proton — then our TrackNN.mp3 trick applies), or (b) check
   whether Proton's MCI/`winegstreamer` plays the GOG MP3s directly. **Untested — flag for the first
@@ -524,9 +524,9 @@ The cross-platform two-tier directive from that handoff shipped as
 
 ## Deliverable in this repo
 
-- [`dgVoodoo.conf`](../dgVoodoo.conf), [`setup-mouse-and-pad.sh`](../setup-mouse-and-pad.sh),
-  [`enable-force-feedback.bat`](../enable-force-feedback.bat) — all transfer to the Deck.
-- [`setup-steamdeck.sh`](../setup-steamdeck.sh) — a helper that, run in Desktop Mode against your
+- [`dgVoodoo.conf`](../mac/dgVoodoo.conf), [`mac/setup-mouse-and-pad.sh`](../mac/setup-mouse-and-pad.sh),
+  [`windows/enable-force-feedback.bat`](../windows/enable-force-feedback.bat) — all transfer to the Deck.
+- [`deck/setup-steamdeck.sh`](../deck/setup-steamdeck.sh) — a helper that, run in Desktop Mode against your
   Heroic game dir + prefix, drops the config, applies the input.map, does the FFB registry rename,
   and checks the Glide wrapper. It guides rather than downloads (no game/binary redistribution —
   same rule as the Mac side).

@@ -22,7 +22,7 @@ evidence; **[folklore]** = repeated claim nobody has measured.*
 
 **The question:** can the engine's real frame rate be doubled/tripled (20 → 40–60) by
 scaling the physics so it doesn't break? Frame generation (LSFG x2, see
-[Setup-FrameGen.ps1](../../Setup-FrameGen.ps1)) already fakes 40 at the display; this is
+[Setup-FrameGen.ps1](../../windows/Setup-FrameGen.ps1)) already fakes 40 at the display; this is
 about real frames.
 
 > **Update 2026-09-26 (static, <re-archive> `subsystems/simclock.md`).** The first true unknown below is answered: a

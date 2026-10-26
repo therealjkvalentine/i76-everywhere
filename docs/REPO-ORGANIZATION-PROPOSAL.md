@@ -1,5 +1,7 @@
 # Repo organisation proposal
 
+> **Update 2026-10-26:** stages 2 to 6 below were done in one pass (`windows/`, `mac/`, `tools/save-editor/`, `deck/setup-steamdeck.sh`; the AutoHotkey sources and the dgVoodoo confs sit in `windows/` and `mac/` instead of `ahk/` and `config/`). `re/`, `texture-lab/` and the proxy folders stayed where they are. The root keeps `INSTALL.bat`, `mac-install.command` (a one-line shim), `index.html` and `i76-save-editor.html`.
+
 Written 2026-10-03. **Status, later on 2026-10-03: the owner approved it; stage 1 (lab residue) and the
 "records only" docs move are done, everything else is deferred. Section 8 at the end is the done / deferred table
 and the move table.** Sections 1 to 7 and the appendices are the proposal as written, before anything moved: the

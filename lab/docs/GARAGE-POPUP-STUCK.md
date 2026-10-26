@@ -214,7 +214,7 @@ redraws its cursor.
   through dgVoodoo DirectDraw, `primary->Blt`, WIDESCREEN-2D.md).
 - Whether `PeekMessage` with `PM_QS_POSTMESSAGE|PM_QS_PAINT` would skip activation events. That is a reason Fix 1
   gates the whole pump instead of narrowing its flags.
-- The daily driver carries the same u32x (`054fb411`, installed by `setup-windows.ps1`), so it should behave the
+- The daily driver carries the same u32x (`054fb411`, installed by `windows/setup-windows.ps1`), so it should behave the
   same. It was not tested there and must not be.
 
 ## 6. Live test plan (about 5 minutes, lab sandbox only, physical console)

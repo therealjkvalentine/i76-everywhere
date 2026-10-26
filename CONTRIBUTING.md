@@ -14,7 +14,7 @@ in the local, gitignored `game-data/` folder. PRs that add game content will be 
 Two standing exceptions, so the rule above is not read as contradicting the tree:
 
 - **`saves/`** holds the owner's own bookmark files (`save*.cmp`, `savegame.dir`). They are user-generated
-  data, not Activision assets; `setup-windows.ps1` installs them when a game folder has no saves, and the save
+  data, not Activision assets; `windows/setup-windows.ps1` installs them when a game folder has no saves, and the save
   editor's tests use them as byte-exact fixtures. Do not add anyone else's saves, and do not add saves of your
   own unless a test needs that exact file (say which in the commit message).
 - **Binaries of this project's own code** that the installers copy: `music-fix/Strlkup.dll`, `u32x/u32x.dll`,

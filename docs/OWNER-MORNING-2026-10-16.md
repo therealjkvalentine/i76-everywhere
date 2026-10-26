@@ -188,7 +188,7 @@ At the console, not over Remote Desktop, with no `C:\GOG Games\Interstate 76`: d
 installer; `-SkipNitro` skips the Nitro Pack), then `PLAY-i76.bat`: STAND BY, no watermark, pointer on target, TRIP > garage >
 popup (the installer makes `PLAY-i76.bat` and a desktop shortcut), a bookmark into a mission at 120 fps, **music in the mission**, Esc > Save Bookmark > Y/N. Boot already passed 7/7
 (overnight P6); yours are the real installer, music on GOG exe `9a232dcc` (no WINMM import: GOG's WIN32.dll plays it), best-wide,
-a save. Undo: `install.ps1 -GameDir "C:\GOG Games\Interstate 76" -Preset stock`. About 30 min.
+a save. Undo: `windows/install.ps1 -GameDir "C:\GOG Games\Interstate 76" -Preset stock`. About 30 min.
 
 ### B14. Older taste calls still queued (backlog C-6 to C-8)
 

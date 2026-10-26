@@ -11,6 +11,8 @@ written inside a record dated before 2026-10-03 is the path before the move**: `
 table is in [REPO-ORGANIZATION-PROPOSAL.md](REPO-ORGANIZATION-PROPOSAL.md). Links were updated; plain-text paths
 inside records were not.
 
+**Root cleanup, 2026-10-26.** The Windows scripts moved to [`windows/`](../windows/) (installer chain, `windows/PLAY-i76.ps1`, the AutoHotkey layers, the dgVoodoo confs), the Mac scripts and stubs to [`mac/`](../mac/), the save editor to `tools/save-editor/`, `deck/setup-steamdeck.sh` to `deck/`, and `reports/`, `research_notes/` and `lab-residue/` under `docs/`. A path in a record or in the CHANGELOG that names one of these at the repository root is the path before that move. `INSTALL.bat` and `mac-install.command` stay at the root as the two entry points.
+
 **How to read the tag in front of each entry**
 
 - **living**: kept current. If it disagrees with a record, the living doc should win, and if it does not, fix it.
@@ -161,7 +163,7 @@ Binding rules are in [`../AGENTS.md`](../AGENTS.md): `input.map` is the only liv
 | living | [MISSION-LAUNCH.md](MISSION-LAUNCH.md) | Booting straight into a mission with `I76_MISSION` |
 
 The editors themselves are at the repo root: [`../i76-save-editor.html`](../i76-save-editor.html),
-[`../i76-save-editor.py`](../i76-save-editor.py), [`../i76-save-editor.command`](../i76-save-editor.command).
+[`../i76-save-editor.py`](../tools/save-editor/i76-save-editor.py), [`../i76-save-editor.command`](../tools/save-editor/i76-save-editor.command).
 
 ## 8. Platforms and setup
 

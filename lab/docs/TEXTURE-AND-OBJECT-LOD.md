@@ -73,7 +73,7 @@ turns on.
 
 **dgVoodoo.** The stock dgVoodoo.conf (`i76-everywhere\dgVoodoo.conf`, Version 0x278) documents these `[Glide]`
 texture keys only: `TMUFiltering` ("appdriven", "pointsampled", "bilinear") and `DisableMipmapping` (bool). The daily
-driver conf (`dgVoodoo.daily-driver-2026-10-03.conf`, Version 0x287) has `TMUFiltering = bilinear` and no
+driver conf (`windows/dgVoodoo.daily-driver-2026-10-03.conf`, Version 0x287) has `TMUFiltering = bilinear` and no
 `DisableMipmapping` line. There is no documented `[Glide]` key for LOD bias, forced mipmaps or anisotropy, and
 `DisableMipmapping` can only remove mipmaps. Since the game uploads a single level and disables mipmapping itself,
 dgVoodoo has nothing to work with: **no conf change can make far textures more detailed.**

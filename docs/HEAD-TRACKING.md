@@ -3,19 +3,19 @@
 Turn your head, the view turns. **Working and field-confirmed** on the GOG Gold
 build (`i76.exe` MD5 `60abf7bc699da72476128ddce991a3d1`).
 
-Script: [`../i76-opentrack-headlook.ahk`](../i76-opentrack-headlook.ahk) ·
-Test harness: [`../i76-opentrack-headlook-test.ahk`](../i76-opentrack-headlook-test.ahk)
+Script: [`../i76-opentrack-headlook.ahk`](../windows/i76-opentrack-headlook.ahk) ·
+Test harness: [`../i76-opentrack-headlook-test.ahk`](../windows/i76-opentrack-headlook-test.ahk)
 
-> **Opt-in since 2026-10-08.** `PLAY-i76.ps1` no longer starts opentrack, its auto-start helper or the
+> **Opt-in since 2026-10-08.** `windows/PLAY-i76.ps1` no longer starts opentrack, its auto-start helper or the
 > head-look layer by default, and no longer waits for tracking before launching the game. Pass
-> **`-HeadTrack`** (e.g. a `HEADTRACK.bat` that calls `PLAY-i76.ps1 ... -HeadTrack`) to get all three back.
+> **`-HeadTrack`** (e.g. a `HEADTRACK.bat` that calls `windows/PLAY-i76.ps1 ... -HeadTrack`) to get all three back.
 
 ---
 
 ## Quick start
 
 1. opentrack: Output = **freetrack 2.0 Enhanced** (once).
-2. Run **`PLAY-WITH-HEADLOOK.bat`** (or `PLAY-i76.ps1 ... -HeadTrack`). It starts opentrack and
+2. Run **`PLAY-WITH-HEADLOOK.bat`** (or `windows/PLAY-i76.ps1 ... -HeadTrack`). It starts opentrack and
    **tracking starts on its own** when the game starts - no click (since 2026-10-24, below).
 3. Head look starts in **ANALOG** and says so over the game. **Ctrl+Alt+H** cycles
    **ANALOG -> DIGITAL -> OFF -> ANALOG**; every change shows a toast at the top of the game window
@@ -35,7 +35,7 @@ Test harness: [`../i76-opentrack-headlook-test.ahk`](../i76-opentrack-headlook-t
 
 ### Tracking starts by itself (2026-10-24)
 
-The old `i76-opentrack-autostart.ahk` never pressed Start: opentrack 2026.1 is a Qt 6 application and
+The old `windows/i76-opentrack-autostart.ahk` never pressed Start: opentrack 2026.1 is a Qt 6 application and
 Qt widgets are not windows, so `ControlClick ... Start` found nothing; it waited 20 s and gave up
 (owner: "works fine after you click it"; reproduced). Two mechanisms replace it:
 

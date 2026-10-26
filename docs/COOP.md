@@ -13,7 +13,7 @@ On **every** machine (each needs the same game data: stock GOG files, stock car)
    campaign files and installs them as their own multiplayer arenas, `ADDON\coop01.lvl .. coop17.lvl`, listed as
    "Co-op Scene 1" .. "Co-op Scene 17" after the stock arenas (`--remove` takes them out; the older layout that
    replaced The Crater is undone by both). Since 2026-10-18, records/COOP-LIST-ENTRIES-2026-10-18.md.
-3. Start the game with these environment switches (Windows: `PLAY-i76.ps1` / a .bat `set`; Mac: the wrapper's
+3. Start the game with these environment switches (Windows: `windows/PLAY-i76.ps1` / a .bat `set`; Mac: the wrapper's
    `HKCU\Environment`, as for the other `I76_*` switches):
 
    | switch | what it does |

@@ -293,7 +293,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
     deployed to the playable install (corrected 2026-10-02: this said "not yet console-verified").
 - **Wheel buttons moved to the AHK layer, with a shift layer (~27 actions from 13
   buttons).** `input.map` now carries only the analog sinks; every button and the hat are
-  emitted as stock keys by [i76-remap.ahk](i76-remap.ahk). **Retraction:** an earlier commit
+  emitted as stock keys by [i76-remap.ahk](windows/i76-remap.ahk). **Retraction:** an earlier commit
   claimed AHK could not read this wheel's buttons. It reads all 13 fine, headless, both
   `GetKeyState("Joy1")` and `1Joy1` forms — the finding came from a bug in the probe scripts
   (`FileAppend, % text, f` treats `f` as a literal filename; AHK needs `%f%`), so three probes
@@ -338,7 +338,7 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   exe": **input is winmm, FFB output is DirectInput.** Both were true. The registry
   gate was already satisfied on this GOG install — no admin step needed.
 - **Fixed: a latent AHK bug that hangs the game with ANY wheel or stick, on every
-  platform.** `RStickGlance` in [i76-remap.ahk](i76-remap.ahk) guarded on `u = ""`, but a
+  platform.** `RStickGlance` in [i76-remap.ahk](windows/i76-remap.ahk) guarded on `u = ""`, but a
   device with no U axis returns **`0.0`, not empty** — which reached the hysteresis,
   computed `+50`, and **held the Left arrow key down from the moment AHK started**. The
   game booted into a jammed glance-left and never reached the menu, looking exactly like
@@ -375,10 +375,10 @@ md5 `a5927cea02697657ce2102be766b5616` (`cl /nologo /O2 /LD u32x_min.c /link /DE
   down (verified 2026-08-01). Only the Steam-installed desktop shortcut
   (`steam://rungameid/...`) was pulling Steam in. Added an `Interstate '76 Gold Edition`
   profile with `AutoScale=true` + fixed 2× so frame-gen engages by itself — no Ctrl+Alt+S —
-  and [`PLAY-i76.ps1`](PLAY-i76.ps1) now starts/stops it with the game (only if it wasn't
+  and [`PLAY-i76.ps1`](windows/PLAY-i76.ps1) now starts/stops it with the game (only if it wasn't
   already running). Physics stay at the 20 FPS base; these are interpolated *display*
   frames only. Details in [docs/WINDOWS-PLAYBOOK.md](docs/WINDOWS-PLAYBOOK.md) sec 2.
-  [`Setup-FrameGen.ps1`](Setup-FrameGen.ps1) scripts the whole thing (profile +
+  [`Setup-FrameGen.ps1`](windows/Setup-FrameGen.ps1) scripts the whole thing (profile +
   `-FixShortcut` + `-Revert`) so a second PC is one command.
 - **Steam Deck: baseline control tier — rumble parity with Mac/Windows (untested on
   device).** The Deck ran Steam Input keyboard emulation and so never got the pad layer

@@ -8,7 +8,7 @@ relates to the Deck's convenience layer.*
 > **Windows, 2026-10-03:** the map the Windows installer writes by default
 > ([`controls/input.map`](../controls/input.map)) has the two analog lines below and **no native pad buttons**;
 > the buttons come from the AutoHotkey layer. The native button table on this page applies to
-> `setup-windows.ps1 -Controls stock` and to the Mac. See [CONTROLS.md](CONTROLS.md) section 4.
+> `windows/setup-windows.ps1 -Controls stock` and to the Mac. See [CONTROLS.md](CONTROLS.md) section 4.
 
 > **Status (2026-07-14, field-tested):** the `joystick1` device token is **confirmed** (Xbox pad on
 > Mac — steering responded) and button A=1 is confirmed (A fired). X=3 was reported confirmed here (X cycled);

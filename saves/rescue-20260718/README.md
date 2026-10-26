@@ -13,7 +13,7 @@ Contents:
 - `save-01.cmp` — the known engine-bug orphan: a fresh-slot save writes the dir
   entry as `saveNNN` but the file as `save-01.cmp` (`sprintf("save%03d", -1)` —
   the slot allocator returned not-found). Kept as the live specimen of that bug
-  (documented in `i76-save-editor.py`).
+  (documented in `tools/save-editor/i76-save-editor.py`).
 - `savegame.dir.bak-*` / `.pre-edit` — the editor's timestamped backups from the
   13th–15th; gitignored by the repo's `*.bak-*`/`*.pre-*` rules, present only in
   the local copy.

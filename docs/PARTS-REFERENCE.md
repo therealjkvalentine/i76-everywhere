@@ -2,8 +2,8 @@
 
 This page explains what each part in the garage actually changes in the game. The save editor shows the same
 information: [`../i76-save-editor.html`](../i76-save-editor.html) puts it after every part in the dropdowns and
-the inventory list (hover a part for the full text), and `python i76-save-editor.py --parts` prints it in a
-terminal. Both editors read it from one table, `PARTS_INFO` in [`../i76-save-editor.py`](../i76-save-editor.py).
+the inventory list (hover a part for the full text), and `python tools/save-editor/i76-save-editor.py --parts` prints it in a
+terminal. Both editors read it from one table, `PARTS_INFO` in [`../i76-save-editor.py`](../tools/save-editor/i76-save-editor.py).
 The HTML page carries a copy of that table, and `tests/test_save_editor.py` fails if the copy and the original
 differ.
 

@@ -2,7 +2,7 @@
 
 > **ARCHIVED (2026-07-27).** The full-game enhanced-texture pack this pipeline
 > produced was built, shipped, and then **retired** - marginal in-game gain, and
-> palette-indexed tiles broke on night missions. `install.ps1` no longer builds
+> palette-indexed tiles broke on night missions. `windows/install.ps1` no longer builds
 > or installs it. These scripts are kept only as the reference implementation
 > behind the writeup; nothing else in the repo points here.
 > **Read the verdict and the lessons first:**
@@ -46,7 +46,7 @@ python3 tools/i76img.py makepak texture-lab/build/zdash101 texture-lab/src/t01.a
 
 # 4. install (loose-file override - no repacking) and restart the game
 cp texture-lab/build/zdash101.pak texture-lab/build/zdash101.pix texture-lab/build/hdt1.cbk "$GAME/ADDON/"
-./play.sh
+./mac/play.sh
 
 # undo: delete those files from "$GAME/ADDON/"
 ```

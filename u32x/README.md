@@ -116,9 +116,9 @@ exe was `60abf7bc`), the Nitro Pack, Wine / Proton. Checked on 2026-10-03 withou
 the pristine GOG `i76.exe` and `i76shell.dll`, `deploy-u32x.ps1 -U32xDll u32x\u32x_full.dll` passes the
 import/export guard, changes 10 bytes in each file, `-Status` reads it back, `-Restore` returns both md5s.
 
-**Where it is installed.** `setup-windows.ps1` installs `u32x_full.dll` by default since 2026-10-03 (it hands
+**Where it is installed.** `windows/setup-windows.ps1` installs `u32x_full.dll` by default since 2026-10-03 (it hands
 the DLL to `deploy-u32x.ps1`, which accepts only an md5 on its `$KnownGood` list; both builds are on it).
-`-U32xDll u32x\u32x.dll` installs the minimal build. `Make-Portable-Zip.ps1` and `tools\Make-Daily-Driver.ps1`
+`-U32xDll u32x\u32x.dll` installs the minimal build. `windows/Make-Portable-Zip.ps1` and `tools\Make-Daily-Driver.ps1`
 default to `u32x_full.dll` too since `21b1676` (2026-10-03 12:41; both check it against `$KnownGood`); pass
 `-U32xDll u32x\u32x.dll` to them for the minimal build. (Until 2026-10-10 this paragraph said they defaulted to
 `u32x.dll`, which was true only before `21b1676`.) Whatever md5 `u32x_full.dll` has at the time is what they
@@ -266,7 +266,7 @@ conf in); garage popup repro arrow on the mapped point 5/5 (delta 0), closed 4/4
 
 ## The minimal build: notes
 
-**Not yet done for the committed build (`a5927cea`):** a run on the daily driver, and a fresh-install run of `setup-windows.ps1` on a
+**Not yet done for the committed build (`a5927cea`):** a run on the daily driver, and a fresh-install run of `windows/setup-windows.ps1` on a
 clean GOG folder (RELEASE-PLAN section 7 item 3). `deploy-u32x.ps1` was exercised offline on 2026-10-02 against
 scratch copies of the pristine GOG binaries (`..\<re-archive>\sandbox-gog\main\app`, `i76.exe` md5 `9a232dcc`):
 install changes exactly 10 bytes in each of `i76.exe` and `i76shell.dll` (the import-descriptor name),
@@ -301,10 +301,10 @@ that the DLL exports every function the two binaries import from USER32 (one mis
 not load), that the DLL is 32-bit, and that its md5 is in the script's `$KnownGood` list; every write is read
 back. `-U32xDll <path> -AllowUnverified` installs a test build, for the sandbox only.
 
-`setup-windows.ps1` runs this for the base game (`-U32xDll`, `-NoU32x`; not for the Nitro Pack, whose imports
-were never checked against the export list) and `Make-Portable-Zip.ps1` runs it on the staged copy, so a fresh
+`windows/setup-windows.ps1` runs this for the base game (`-U32xDll`, `-NoU32x`; not for the Nitro Pack, whose imports
+were never checked against the export list) and `windows/Make-Portable-Zip.ps1` runs it on the staged copy, so a fresh
 install and the portable zip both carry a recorded build (by default the full one and the minimal one
-respectively). `LAUNCHER.ps1` shows the installed DLL's size class.
+respectively). `windows/LAUNCHER.ps1` shows the installed DLL's size class.
 
 ## Promoting a rebuild
 

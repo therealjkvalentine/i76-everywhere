@@ -4,7 +4,7 @@
 natively (Windows) — so instead of a per-OS tool (Karabiner on Mac, Steam Input on Deck,
 X-Mouse on Windows), we run a single **Windows-native** remapper INSIDE the same prefix
 everywhere: **AutoHotkey v1.1.37.02**, config checked into this repo as
-[`../i76-remap.ahk`](../i76-remap.ahk). Status 2026-07-14: installed, verified headlessly, and
+[`../i76-remap.ahk`](../windows/i76-remap.ahk). Status 2026-07-14: installed, verified headlessly, and
 **confirmed in-game by the user — mouse button 5 (forward) fires nitrous** (button N>3 → special
 slot works end-to-end). *Corrected 2026-10-03 against the script: since 2026-07-18 nitrous (special 1, key `6`)
 is on button **4**, and button 5 sends `3` (hardpoint 3); the table below is the script's.* A wheel remap shipped briefly and was **removed after a field regression**
@@ -30,14 +30,14 @@ suppression ever failed, nothing double-triggers.
 | X-Mouse Button Control | Mouse-only, closed, GUI-config. |
 | reWASD / Interception / vJoy / ViGEm / HidHide | Kernel drivers — can't load under Wine/Proton at all. |
 
-## Current bindings (`i76-remap.ahk`)
+## Current bindings (`windows/i76-remap.ahk`)
 
 | Physical input | Sends key | input.map action |
 |---|---|---|
 | Mouse button 4 ("back") | `6` | `special1` — the default nitrous slot |
 | Mouse button 5 ("forward") | `3` | `hardpoint3_fire` |
 
-Edit the `.ahk`, re-run `./setup-input-remapper.sh`, relaunch the game. Keys on the right are
+Edit the `.ahk`, re-run `./mac/setup-input-remapper.sh`, relaunch the game. Keys on the right are
 engine key names already bound in the installed map: [`../controls/input.map`](../controls/input.map) on Windows,
 [`input.map.reference`](input.map.reference) on the Mac. `tools\controls-sheet\build.ps1` checks every key the
 script sends against the Windows map.
@@ -67,7 +67,7 @@ injections never reach a real game.
 
 - **AHK 1.1.37.02 U32 runs clean under the wrapper's Wine 10 wow64** (`A_PtrSize=4`).
 - **Keyboard AND mouse LL hooks install and see injected events in this prefix** — proven by
-  `./setup-input-remapper.sh --test` (SendLevel-1 `SendEvent` triggers level-0 `$F13::` and
+  `./mac/setup-input-remapper.sh --test` (SendLevel-1 `SendEvent` triggers level-0 `$F13::` and
   `XButton2::` hotkeys, including an injected `{Click X2}`).
 - **`SendEvent` only.** AHK uninstalls its own hooks during `SendInput` playback, so
   SendInput can never self-trigger — and it's the mode with Wine quirks. The shipped config
@@ -84,25 +84,25 @@ injections never reach a real game.
 
 ### Mac (the Sikarugir wrapper) — automated
 ```sh
-./setup-input-remapper.sh          # download (sha256-pinned) + install + deploy config
-./setup-input-remapper.sh --test   # syntax check + hook smoke test under Wine
-./setup-input-remapper.sh --revert # remove; the launcher then skips it
+./mac/setup-input-remapper.sh          # download (sha256-pinned) + install + deploy config
+./mac/setup-input-remapper.sh --test   # syntax check + hook smoke test under Wine
+./mac/setup-input-remapper.sh --revert # remove; the launcher then skips it
 ```
-The launcher stub ([`../i76-launch-stub.swift`](../i76-launch-stub.swift)) auto-starts
+The launcher stub ([`../i76-launch-stub.swift`](../mac/i76-launch-stub.swift)) auto-starts
 `C:\AutoHotkey\AutoHotkeyU32.exe C:\AutoHotkey\i76-remap.ahk` right after DxWnd when both
 files exist, and its `reap()` kills it with the rest of the session (verified: 0 leftovers).
 Rebuilding stubs re-signs the app → macOS re-asks the microphone question once — deny again.
 
 ### Steam Deck (Heroic + Proton)
-1. Copy `AutoHotkeyU32.exe` + `i76-remap.ahk` into the game prefix at
+1. Copy `AutoHotkeyU32.exe` + `windows/i76-remap.ahk` into the game prefix at
    `drive_c/AutoHotkey/` (same layout as the Mac wrapper).
-2. Copy [`../i76-with-remap.bat`](../i76-with-remap.bat) next to `i76.exe` and point Heroic
+2. Copy [`../i76-with-remap.bat`](../windows/i76-with-remap.bat) next to `i76.exe` and point Heroic
    at it (game settings → select alternative exe). The bat starts AHK, runs the game,
    and kills AHK on exit. (`start` resolves through Wine's cmd, which Proton ships.)
 
 ### Native Windows
 Same two options: install AutoHotkey v1.1 (or drop the portable exe in `C:\AutoHotkey`) and
-either launch via `i76-with-remap.bat` or run the script globally with the `#IfWinActive`
+either launch via `windows/i76-with-remap.bat` or run the script globally with the `#IfWinActive`
 guard noted above.
 
 ## Future: force feedback injection
