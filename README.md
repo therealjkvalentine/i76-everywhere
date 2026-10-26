@@ -1,4 +1,10 @@
-# i76-everywhere: Interstate '76 at 120 fps with the 1997 physics
+# i76-everywhere: 1997 Engine with Graphics Fixes
+
+https://github.com/user-attachments/assets/142f4ab5-9621-416e-8ded-88c4f78b33e0
+https://github.com/user-attachments/assets/2dcbda05-8b7c-4e75-8e2c-9152ad87091c
+https://github.com/user-attachments/assets/64656d27-0cd8-4b4f-8920-c9492c417174
+https://github.com/user-attachments/assets/0f6263d3-80f7-427f-8011-fb32f486f094
+https://github.com/user-attachments/assets/cf391c16-4322-4dda-ada7-45ff458712e4
 
 <p align="center"><a href="https://github.com/therealjkvalentine/i76-everywhere/releases/download/v0.8.0/i76-everywhere-launch-video.mp4"><img src="docs/media/launch-teaser.gif" width="640" alt="Interstate '76: the stock 1997 game beside i76-everywhere on the same route"></a><br>
 <b><a href="https://github.com/therealjkvalentine/i76-everywhere/releases/download/v0.8.0/i76-everywhere-launch-video.mp4">Watch the 83-second video</a></b> (draft, 1997 vs ours side by side). Original 1997 footage in the video: <a href="https://www.youtube.com/@LocalDitchGaming">Local Ditch Gaming</a>, used with permission.</p>
@@ -13,6 +19,10 @@ Nothing of the game is in this repo or the kit, and every file the kit changes i
 ## What you get
 
 | | GOG as shipped | with the kit |
+
+https://github.com/user-attachments/assets/8ad6c220-358d-482d-9b54-61b1c69a9a9a
+
+
 |---|---|---|
 | frame rate | 20 fps | **120 fps**, the car still simulated 24 times a second as on a 1997 Pentium 166 (jumps and AI as tuned) |
 | draw distance | 600 m | **1.8 km**; **2.3 km** fading out at the far edge in the preview launcher |
