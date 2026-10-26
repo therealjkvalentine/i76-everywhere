@@ -1,0 +1,75 @@
+{
+  "name": "draft-v4 (2026-10-25: v3 with the owner's jump, head-look and terrain-pop takes)",
+  "bg": "0x140c08",
+  "music_in": 0,
+  "theme_in": 0,
+  "segments": [
+    { "type": "card", "dur": 3.0, "lines": [["INTERSTATE '76", "Title"], ["EVERYWHERE", "Big"], ["the 1997 game, fixed for 2026", "Sub"]] },
+
+    { "type": "sbs", "title": "1997 vs 2026: THE T05 OPENING",
+      "credit": "Original footage: Local Ditch Gaming, youtube.com/@LocalDitchGaming, used with permission",
+      "caption": "The mission's own fly-in, 1997 game on the left (not tick-locked: lined up by eye on the cut to the cockpit)\\N600 m and coarse terrain   vs   2300 m, full-detail cliffs, morphing terrain",
+      "a": { "src": "${LAB}\\captures\\launch-video\\raw\\localditch\\localditch-t05-720.mp4", "in": 4.2, "out": 11.6, "label": "THE 1997 GAME", "sub": "600\\hM" },
+      "b": { "src": "shot:opening-all", "in": 58.0, "out": 65.4, "label": "I'76 EVERYWHERE", "counters": true, "tag": "2300\\hM" } },
+
+    { "type": "sbs", "title": "SAME ROUTE. SAME CAR. SAME 1997 TICK.",
+      "caption": "Both sides start on the first moment the car moves; the MPH counters agree because the sim is the 1997 one\\N{\\fs28}counters = each recording's own telemetry (screen capture costs ~25 % of the frame rate)",
+      "a": { "src": "shot:route-stock43", "align": "move", "in": 1.0, "out": 11.0, "label": "STOCK 1997 (640x480, 20 FPS)", "counters": true, "tag": "600\\hM" },
+      "b": { "src": "shot:route-all",     "align": "move", "in": 1.0, "out": 11.0, "label": "I'76 EVERYWHERE (PLAY.BAT)",  "counters": true, "tag": "2300\\hM" } },
+
+    { "type": "sbs", "title": "SMOOTHNESS: 20 FPS vs THE TICK, DRAWN AT DISPLAY RATE",
+      "caption": "A fast weave at half speed: the same 41.667 ms physics step, every display frame in between interpolated",
+      "a": { "src": "shot:slalom-stock43", "align": "move", "in": 1.5, "out": 5.0, "speed": 0.5, "label": "20 FPS", "counters": true, "tag": "" },
+      "b": { "src": "shot:slalom-all",     "align": "move", "in": 1.5, "out": 5.0, "speed": 0.5, "label": "OURS", "counters": true, "tag": "" } },
+
+    { "type": "clip", "src": "${LAB}/captures/launch-video/raw/owner-headlook/20261025-193143/video - Trim - jump.mp4", "in": 3.0, "out": 12.0, "title": "THE JUMP, AS IN 1997",
+      "caption": "Canyon ramp: take-off 49.9 vs 50.0 m/s, apex 10.0 m as retail; the nose-dive off the lip eased 9 %" },
+
+    { "type": "sbs", "title": "THE FAR EDGE FADES INTO THE SKY",      "caption": "The last 25 % of the 2300 m view feathers to transparent instead of a hard wall (zoomed, half speed)",
+      "a": { "src": "shot:fade-before", "align": "move", "in": 1.5, "out": 5.0, "speed": 0.5, "crop": [400, 330, 960, 540], "label": "HARD EDGE", "sub": "fog\\hoff" },
+      "b": { "src": "shot:route-all",   "align": "move", "in": 1.5, "out": 5.0, "speed": 0.5, "crop": [400, 330, 960, 540], "label": "FEATHERED", "sub": "I76_GLIDE_FOG\\h0.75" } },
+
+    { "type": "sbs", "title": "TERRAIN THAT MORPHS INSTEAD OF POPPING",
+      "caption": "Level-of-detail splits blend in over 25 % of their ring; shading steps 16 -> 32-40 grey levels (zoomed, half speed)",
+      "a": { "src": "shot:morph-before", "align": "move", "in": 2.0, "out": 6.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "STOCK SPLITS" },
+      "b": { "src": "shot:route-all",    "align": "move", "in": 2.0, "out": 6.0, "speed": 0.5, "crop": [480, 300, 960, 540], "label": "GEOMORPH" } },
+
+    { "type": "clip", "src": "${LAB}/captures/launch-video/raw/owner-headlook/20261025-193143/video - Trim - Terrain pop and render distance.mp4", "in": 0.0, "out": 5.1, "title": "NO POP, LONG VIEW",
+      "caption": "Owner's drive through the canyon: terrain morphs in and the far edge stays soft at 2300 m" },
+
+    { "type": "sbs", "title": "LOOK AROUND WHILE YOU DRIVE",
+      "caption": "Glance left, right and back (keys, pad or opentrack head tracking) - same drive, same moment",
+      "a": { "src": "shot:route-all",  "align": "move", "in": 2.5, "out": 10.5, "label": "FIXED VIEW" },
+      "b": { "src": "shot:glance-all", "align": "move", "in": 2.5, "out": 10.5, "label": "GLANCES" } },
+
+    { "type": "clip", "src": "${LAB}/captures/launch-video/raw/owner-headlook/20261025-193143/video - headlook.mp4", "in": 0.0, "out": 3.9, "title": "HEAD TRACKING",
+      "caption": "opentrack head look (camera at 30 fps): look into the corner, check the mirror - a held glance key still wins" },
+
+    { "type": "sbs", "title": "A REAR MIRROR THAT SEES",      "caption": "Mirror far clip 100 m -> 1000 m, drawn with the main view's terrain art (cost 1.2 %), zoomed, half speed",
+      "a": { "src": "shot:mirror-before", "align": "move", "in": 1.0, "out": 4.5, "speed": 0.5, "crop": [1290, 262, 504, 168], "label": "STOCK MIRROR" },
+      "b": { "src": "shot:mirror-after",  "align": "move", "in": 1.0, "out": 4.5, "speed": 0.5, "crop": [1290, 262, 504, 168], "label": "OURS" } },
+
+    { "type": "still", "dur": 5.5, "img": "${LAB}\\captures\\coop-list-20261018\\a-list12.png",
+      "zoom_to": [0.2, 0.42, 2.0], "x": 0, "title": "LAN NIGHT, FIXED",
+      "notes": ["CO-OP SCENES", "AI CARS IN\\NEVERY ARENA", "JOINERS SPAWN\\N27 M FROM THE HOST", "CANCEL: 5 S -> 1.4-2.1 S"] },
+
+    { "type": "clip", "src": "shot:owner-combat", "in": 10.0, "out": 24.0, "title": "FIGHT",
+      "caption": "Computer cars in every arena, respawning in 5 s  -  wheel force feedback on every shot, hit and landing" },
+
+    { "type": "panel", "title": "WHEEL FORCE FEEDBACK, REBUILT",      "caption": "14 channels from the engine's own state  -  live tuning page beside the game",
+      "game":  { "src": "shot:route-all", "align": "move", "in": 4.0, "out": 12.0, "counters": true, "tag": "" },
+      "panel": { "src": "${LAB}\\captures\\launch-video\\raw\\ffb-panel\\panel.mp4", "in": 0.5 } },
+
+    { "type": "crawl", "dur": 8.0, "file": "data/improvements.txt", "title": "ALSO IN THIS BUILD",
+      "aside": "(pause to read. we did.)" },
+
+    { "type": "card", "dur": 6.0, "lines": [
+      ["THANK YOU", "Head"],
+      ["Original 1997 footage: Local Ditch Gaming, youtube.com/@LocalDitchGaming (used with permission)", "Small"],
+      ["Community map authors  -  Dege (dgVoodoo 2)  -  IPXWrapper", "Sub"],
+      ["opentrack  -  AutoHotkey  -  vahokif (I26, prior art)", "Sub"],
+      ["Interstate '76 (c) 1997 Activision. Fan project, not affiliated.", "Small"]] },
+
+    { "type": "card", "dur": 3.5, "lines": [["INTERSTATE '76 EVERYWHERE", "Big"], ["github.com/therealjkvalentine/i76-everywhere", "Sub"]] }
+  ]
+}
