@@ -22,7 +22,7 @@
         I76_GLIDE_FOG       = '0.75,hzd'
         I76_GLIDE_FOG_ALPHA = '1'
         I76_GLIDE_REFRESH   = '120'    # 120 Hz
-        I76_TERRAIN_MORPH   = '0.25'
+        I76_TERRAIN_MORPH   = '0.5'   # 0.5: carried snaps >4 px halved vs 0.25 (TERRAIN-STATIC-PLAN s.4.1, laptop n 2), fps same
         I76_TERRAIN_MORPH_STATELESS = '1'
         I76_TERRAIN_MORPH_SHADE = '3'
         I76_TERRAIN_MORPH_NEAR = '100'

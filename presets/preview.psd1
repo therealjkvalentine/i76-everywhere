@@ -48,7 +48,7 @@
         I76_SHADOW_DIST     = '4'    # shadow distance x4 (daily driver)
         I76_ROAD_TEX        = '8'    # road texture distance x8 (daily driver)
         # ---- owner A/B 2026-10-22 (main): built 449237d6 = i76-everywhere 05c5681
-        I76_TERRAIN_MORPH   = '0.25'   # blend split vertices in over 25 % of their ring
+        I76_TERRAIN_MORPH   = '0.5'   # 0.5: carried snaps >4 px halved vs 0.25 (TERRAIN-STATIC-PLAN s.4.1, laptop n 2), fps same; blend split vertices in over 50 % of their ring
         I76_TERRAIN_MORPH_STATELESS = '1'   # no tables (terrainmorph.c)
         I76_SKY_MIRROR      = '0'   # owner's pick 2026-10-23: one-pass sky (skymirror.c)
         I76_TERRAIN_MORPH_SHADE = '3'   # the shade fades over 3x the height band (terrainmorph.c 7dd568c)
