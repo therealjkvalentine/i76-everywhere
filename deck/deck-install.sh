@@ -33,7 +33,7 @@ for f in add-to-steam.py controller_neptune_i76.vdf controller_neptune_i76_opt2.
          first-launch-fix.sh; do
   curl -fsSL "$REPO_RAW/deck/$f" -o "$WORK/$f" || die "network: couldn't fetch $f"
 done
-curl -fsSL "$REPO_RAW/dgVoodoo.conf" -o "$WORK/dgVoodoo.conf" || die "couldn't fetch dgVoodoo.conf"
+curl -fsSL "$REPO_RAW/mac/dgVoodoo.conf" -o "$WORK/dgVoodoo.conf" || die "couldn't fetch dgVoodoo.conf"
 mkdir -p "$WORK/artwork"
 for a in capsule_p header hero logo icon; do
   curl -fsSL "$REPO_RAW/deck/artwork/authentic/$a.png" -o "$WORK/artwork/$a.png" \

@@ -78,7 +78,7 @@ param(
     # (u32x\u32x_full.dll, built from u32x\u32x_full.c; also maps the Esc menu; the daily driver of
     # 2026-10-03 runs its 054fb411 build, the md5 of the current one is in deploy-u32x.ps1's KnownGood). The minimal build is still here: -U32xDll u32x\u32x.dll (md5 a5927cea).
     # deploy-u32x.ps1 accepts only an md5 on its KnownGood list.
-    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x_full.dll'),
+    [string]$U32xDll = (Join-Path $(if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }) 'u32x\u32x_full.dll'),
     [switch]$NoU32x,
     # Which presets\<name>.psd1 the installed PLAY-i76.bat hands to PLAY-i76.ps1 (base game only;
     # the Nitro Pack has no proxy and always gets the stock recipe). best-120 is the owner's
@@ -120,22 +120,24 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoGameDir = $PSScriptRoot
+# This script lives in windows\ in a clone of the repo and flat in the Patch Kit's _i76e\repo\; $repoRoot is the folder that holds presets\, tools\, u32x\ ...
+$winDir = $PSScriptRoot
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
 $isNitro = ($Exe -ieq 'nitro.exe')
 # Nitro: stock unless a preset is named (2026-10-23, tools\Build-From-GOG.ps1 -Game Nitro: the proxy runs on nitro.exe since the
 # nitro-port lane, docs\records\NITRO-PORT-2026-10-21.md; a Nitro preset carries only the switches ported there)
 if ($isNitro -and -not $PSBoundParameters.ContainsKey('Preset')) { $Preset = 'stock' }
-if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoGameDir "presets\$Preset.psd1"))) {
-    Write-Host "Unknown -Preset '$Preset' (no presets\$Preset.psd1 in $repoGameDir)." -ForegroundColor Red
+if ($Preset -notmatch '^[\w-]+$' -or -not (Test-Path (Join-Path $repoRoot "presets\$Preset.psd1"))) {
+    Write-Host "Unknown -Preset '$Preset' (no presets\$Preset.psd1 in $repoRoot)." -ForegroundColor Red
     exit 1
 }
 $fastPreset = ($Preset -ne 'stock')   # a preset that needs the 20 fps caps out of the way
 # a preset that carries I76_ASPECT needs dgVoodoo.wide.conf sized for the display (best-wide, best-wide-balanced, and since
 # 2026-10-23 the tick presets tick19-42 / preview: read from the preset itself)
 $presetHasAspect = $false
-try { $pe0 = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoGameDir "presets\$Preset.psd1")).Env; $presetHasAspect = [bool]"$($pe0['I76_ASPECT'])" } catch { }
+try { $pe0 = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot "presets\$Preset.psd1")).Env; $presetHasAspect = [bool]"$($pe0['I76_ASPECT'])" } catch { }
 $widePreset = ($Preset -eq 'best-wide' -or $Preset -eq 'best-wide-balanced' -or $presetHasAspect)
-$wideTool = Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1'
+$wideTool = Join-Path $repoRoot 'tools\Make-Wide-Conf.ps1'
 # The display every conf step below sizes for (step 4's 16:10 / stock conf, step 6's wide conf and
 # presets): -Display, else $env:I76_WIDE_DISPLAY, else the primary display. 0x0 = could not be read
 # (the conf steps then keep their files' own Resolution lines, as they always did).
@@ -287,7 +289,7 @@ Write-Host "dgVoodoo Glide + DirectDraw DLLs + control panel deployed."
 
 # --- 4. config ---------------------------------------------------------------
 $confPath = Join-Path $GameDir 'dgVoodoo.conf'
-$driverConf = Join-Path $repoGameDir 'dgVoodoo.daily-driver-2026-10-03.conf'
+$driverConf = Join-Path $winDir 'dgVoodoo.daily-driver-2026-10-03.conf'
 if ($fastPreset -and (Test-Path $driverConf)) {
     # The daily driver's conf (2026-10-03). dgVoodoo 2.87.3 REJECTS a whole conf over one line it
     # does not like and then silently uses %APPDATA%\dgVoodoo\dgVoodoo.conf instead, so this file
@@ -306,7 +308,7 @@ if ($fastPreset -and (Test-Path $driverConf)) {
     # is this file with that one line changed). 4096+ WITHOUT the TMUFIX switch corrupts textures (promotion 5R),
     # so presets without it keep 2048. One line, read back.
     $presetEnv = @{}
-    try { $presetEnv = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoGameDir "presets\$Preset.psd1")).Env } catch { }
+    try { $presetEnv = (Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot "presets\$Preset.psd1")).Env } catch { }
     if ($presetEnv -and "$($presetEnv['I76_ZGLIDE_TMUFIX'])" -eq '1') {
         $tmuRx = New-Object regex '(?m)^(MemorySizeOfTMU\s*=\s*)2048(\s*)$'
         if ($tmuRx.Matches($proven).Count -ne 1) { Write-Host "$driverConf : expected exactly one 'MemorySizeOfTMU = 2048' line; conf left as it is." -ForegroundColor Yellow }
@@ -348,7 +350,7 @@ if ($fastPreset -and (Test-Path $driverConf)) {
         Write-Host "  note: a global $env:APPDATA\dgVoodoo\dgVoodoo.conf exists on this PC. dgVoodoo uses it, silently, if it ever rejects the game folder's conf (a watermark or a 4:3 picture is the sign)." -ForegroundColor Yellow
     }
 } else {
-Copy-Item (Join-Path $repoGameDir 'dgVoodoo.windows.conf') $confPath -Force
+Copy-Item (Join-Path $winDir 'dgVoodoo.windows.conf') $confPath -Force
 
 # Window size is DISPLAY-DEPENDENT and dgVoodoo SNAPS it to a real enumerated
 # display mode - an exact-14:9 computed size (1605x1032) silently became
@@ -385,7 +387,7 @@ if ($dispW -gt 0 -and $dispH -gt 0) {   # the display chosen above (-Display / I
 
 # --- 5. input.map: -Controls i76e (the shipped map, wholesale) or stock (minimal patch) ---
 $mapPath = Join-Path $GameDir 'input.map'
-$shippedMap = Join-Path $repoGameDir 'controls\input.map'
+$shippedMap = Join-Path $repoRoot 'controls\input.map'
 $mapStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 function Get-Md5([string]$p) { (Get-FileHash $p -Algorithm MD5).Hash.ToLower() }
 # --- the player's control files (2026-10-25, kit-controls lane, docs/records/KIT-CONTROLS-UPDATER-2026-10-25.md) ---
@@ -399,7 +401,7 @@ $manifestPath = Join-Path $GameDir 'i76e-installed.md5'
 $legacyFolder = -not (Test-Path $manifestPath)   # set up before the manifest existed (or never): see Test-KitOwned
 # every version of the control files the kit ever shipped (tools\package-patch-kit.ps1 writes the list from git history)
 $knownKit = @{}
-$knownFile = Join-Path $repoGameDir 'tools\patch-kit\known-kit-md5.txt'
+$knownFile = Join-Path $repoRoot 'tools\patch-kit\known-kit-md5.txt'
 if (Test-Path $knownFile) { foreach ($ln in (Get-Content $knownFile)) { if ($ln -match '^([0-9a-f]{32})\s+\*?(.+)$') { $knownKit["$($Matches[2].Trim())|$($Matches[1])"] = 1 } } }
 $manifest = @{}
 if (Test-Path $manifestPath) {
@@ -448,7 +450,7 @@ function Save-MapOnce([string]$tag) {
 # tools\lint-input-map.py on the game folder's map. $true = clean, $false = findings (printed),
 # $null = no Python on this PC (the lint is then skipped and said so).
 function Test-MapLint {
-    $lint = Join-Path $repoGameDir 'tools\lint-input-map.py'
+    $lint = Join-Path $repoRoot 'tools\lint-input-map.py'
     if (-not (Test-Path $lint)) { return $null }
     foreach ($cand in @(@('py','-3'), @('python'), @('python3'))) {
         $cmd = Get-Command $cand[0] -ErrorAction SilentlyContinue
@@ -571,7 +573,7 @@ if ($Controls -eq 'own') {
 } elseif (-not (Test-Path $mapPath) -and -not ($Controls -eq 'i76e' -and (Test-Path $shippedMap))) {
     Write-Host "input.map not found - run the game once to generate it, then rerun this script." -ForegroundColor Yellow
 } elseif ($Controls -eq 'i76e' -and -not (Test-Path $shippedMap)) {
-    Write-Host "controls\input.map is missing from $repoGameDir - falling back to -Controls stock (GOG's keys + the minimal patch)." -ForegroundColor Yellow
+    Write-Host "controls\input.map is missing from $repoRoot - falling back to -Controls stock (GOG's keys + the minimal patch)." -ForegroundColor Yellow
     $Controls = 'stock'
     Add-StockPatch
 } elseif ($Controls -eq 'i76e') {
@@ -664,7 +666,7 @@ if (-not $ControlsOnly) {   # steps 5a - 5a3 (closed before step 5b)
 # install has none, so we never clobber real in-progress saves on a re-run.
 # (Nitro has its own campaign/saves - the base-game saves don't apply there.)
 if (-not $isNitro) {
-    $repoSaves = Join-Path $repoGameDir 'saves'
+    $repoSaves = Join-Path $repoRoot 'saves'
     $haveSaves = Get-ChildItem $GameDir -Filter 'save*.cmp' -ErrorAction SilentlyContinue
     if ((Test-Path $repoSaves) -and -not $haveSaves) {
         Copy-Item (Join-Path $repoSaves 'save*.cmp') $GameDir -Force -ErrorAction SilentlyContinue
@@ -681,7 +683,7 @@ if (-not $isNitro) {
 # proxy Strlkup.dll (a 5-export DLL i76.exe imports statically) to IAT-hook the
 # game's mciSendCommandA and play GOG's music\N.mp3 through the mpegvideo device
 # instead. See music-fix/README.md. Nitro uses audiere.dll and needs none of this.
-$musicProxy = Join-Path $repoGameDir 'music-fix\Strlkup.dll'
+$musicProxy = Join-Path $repoRoot 'music-fix\Strlkup.dll'
 $strlk = Join-Path $GameDir 'Strlkup.dll'
 if ((-not $isNitro -or $fastPreset) -and (Test-Path $musicProxy) -and (Test-Path $strlk)) {   # Nitro: with a preset (the engine switches; its music is audiere's)
     $orig = Join-Path $GameDir 'strlkup_orig.dll'
@@ -748,7 +750,7 @@ if (-not $isNitro) {
 # and reads each write back. Undo: u32x\deploy-u32x.ps1 -GameDir <dir> -Restore.
 # NOT YET PROVEN on a fresh GOG install end to end (needs a console run of
 # Setup-From-GOG.ps1 on a clean folder; RELEASE-PLAN section 7 item 3).
-$u32xDeploy = Join-Path $repoGameDir 'u32x\deploy-u32x.ps1'
+$u32xDeploy = Join-Path $repoRoot 'u32x\deploy-u32x.ps1'
 if ($NoU32x) {
     Write-Host "u32x (menu/save-screen mouse fix) skipped (-NoU32x)."
 } elseif ($isNitro) {
@@ -780,7 +782,7 @@ if ($NoU32x) {
 # We keep the layer in the GAME FOLDER (not C:\AutoHotkey) so the portable zip carries
 # it; PLAY-i76.ps1 starts/stops it with the game.
 $ahkOut = Join-Path $GameDir '_ahk'
-$remapSrc = Join-Path $repoGameDir 'i76-remap.ahk'
+$remapSrc = Join-Path $winDir 'i76-remap.ahk'
 $layerScripts = 'i76-remap.ahk', 'i76-ch-fighterstick.ahk'
 $haveAhkSrc = ($AhkDir -and (Test-Path (Join-Path $AhkDir 'AutoHotkeyU32.exe')))
 if ($Controls -ne 'i76e') {
@@ -833,7 +835,7 @@ if ($Controls -ne 'i76e') {
     # script works - and that is precisely how _ahk\i76-remap.ahk sat three weeks
     # stale while the repo's copy grew a whole wheel layer nobody was running.
     # Add new AHK layers here (and to $layerScripts above) or they silently never ship.
-    $stickSrc = Join-Path $repoGameDir 'i76-ch-fighterstick.ahk'
+    $stickSrc = Join-Path $winDir 'i76-ch-fighterstick.ahk'
     if (Test-Path $stickSrc) { Install-Layer $stickSrc }
     Save-Manifest
     Write-Host "Controller layer deployed (_ahk\AutoHotkeyU32.exe + i76-remap.ahk + i76-ch-fighterstick.ahk; starts with the game)."
@@ -855,14 +857,14 @@ if ($ControlsOnly) {
 # PLAY-i76.ps1 just launches the game plus i76wheel.exe (mouse wheel ->
 # keys: up = cycle weapon, down = hardpoint 5; the engine has no wheel tokens - see tools/i76wheel.c;
 # build: gcc -O2 -s -mwindows -o i76wheel.exe i76wheel.c -luser32).
-Copy-Item (Join-Path $repoGameDir 'PLAY-i76.ps1') $GameDir -Force
+Copy-Item (Join-Path $winDir 'PLAY-i76.ps1') $GameDir -Force
 # The render scale / antialiasing keys (I76_RENDER_SCALE, I76_AA; docs/records/RENDER-KEYS-2026-10-25.md) make PLAY-i76.ps1 rewrite
 # dgVoodoo.wide.conf through tools\Make-Wide-Conf.ps1; the installed launcher looks for it in <game>\_tools\.
 New-Item -ItemType Directory -Force (Join-Path $GameDir '_tools') | Out-Null
-Copy-Item (Join-Path $repoGameDir 'tools\Make-Wide-Conf.ps1') (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1') -Force
+Copy-Item (Join-Path $repoRoot 'tools\Make-Wide-Conf.ps1') (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1') -Force
 # The frame-rate presets PLAY-i76.ps1 -Preset reads (presets\*.psd1, data files). Copied beside
 # the launcher so the installed copy finds them. PLAY-i76.bat below names the one to apply.
-$presetSrc = Join-Path $repoGameDir 'presets'
+$presetSrc = Join-Path $repoRoot 'presets'
 if (Test-Path $presetSrc) {
     New-Item -ItemType Directory -Force (Join-Path $GameDir 'presets') | Out-Null
     Copy-Item (Join-Path $presetSrc '*.psd1') (Join-Path $GameDir 'presets') -Force
@@ -879,7 +881,7 @@ if ($widePreset) {
     }
     Copy-Item (Join-Path $GameDir 'dgVoodoo.wide.conf') (Join-Path $GameDir 'dgVoodoo.conf') -Force
 }
-$wheelExe = Join-Path $repoGameDir 'tools\i76wheel.exe'
+$wheelExe = Join-Path $repoRoot 'tools\i76wheel.exe'
 if (Test-Path $wheelExe) {
     Copy-Item $wheelExe $GameDir -Force
     $wheelUpIs = if ($Controls -ne 'i76e') { 'Enter' } else { 'Tab' }
@@ -900,7 +902,7 @@ if (-not $isNitro) {
     $dbgMissing = @()
     foreach ($dir in $dbgFiles.Keys) {
         foreach ($n in $dbgFiles[$dir]) {
-            $from = Join-Path $repoGameDir "$dir\$n"
+            $from = Join-Path $repoRoot "$dir\$n"
             if (-not (Test-Path -LiteralPath $from)) { $dbgMissing += "$dir\$n"; continue }
             $to = Join-Path $GameDir ('_tools\' + (Split-Path $dir -Leaf) + "\$n")
             New-Item -ItemType Directory -Force (Split-Path $to) | Out-Null
@@ -908,7 +910,7 @@ if (-not $isNitro) {
         }
     }
     foreach ($n in 'DEBUG.bat', 'TRAINER.bat') {
-        $from = Join-Path $repoGameDir "tools\driver\$n"
+        $from = Join-Path $repoRoot "tools\driver\$n"
         if (Test-Path -LiteralPath $from) { Copy-Item -LiteralPath $from -Destination (Join-Path $GameDir $n) -Force } else { $dbgMissing += "tools\driver\$n" }
     }
     if ($dbgMissing.Count) { Write-Host "I76 Debug: not found in the repo, not installed: $($dbgMissing -join ', ')" -ForegroundColor Yellow }

@@ -18,6 +18,8 @@
 # Deck / native Windows: docs/INPUT-REMAPPER.md (+ i76-with-remap.bat).
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$HERE/.." && pwd)"   # the repo root: this script lives in mac/
+AHKSRC="$REPO/windows"   # the AutoHotkey sources are shared with Windows
 AHK_URL="https://github.com/AutoHotkey/AutoHotkey/releases/download/v1.1.37.02/AutoHotkey_1.1.37.02.zip"
 AHK_SHA256="6f3663f7cdd25063c8c8728f5d9b07813ced8780522fd1f124ba539e2854215f"
 
@@ -61,7 +63,7 @@ if [ "$1" = "--decode" ]; then
         [ "$got" = "$AHK_SHA256" ] || { echo "sha256 mismatch ($got) - aborting"; exit 1; }
         unzip -o -q -j "$ZIP" AutoHotkeyU32.exe license.txt -d "$D"
     fi
-    cp -f "$HERE/i76-xinput-pad-decode.ahk" "$D/i76-xinput-pad-decode.ahk"
+    cp -f "$AHKSRC/i76-xinput-pad-decode.ahk" "$D/i76-xinput-pad-decode.ahk"
     rm -f "$D/joymap.txt"
     export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
     export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/SharedSupport/wine/lib"
@@ -85,7 +87,7 @@ if [ "$1" = "--axes" ]; then
     APP="$(app_of "$g")"; D="$(drive_c_of "$g")/AutoHotkey"
     mkdir -p "$D"
     [ -f "$D/AutoHotkeyU32.exe" ] || { echo "run without --axes first to install AutoHotkey"; exit 1; }
-    cp -f "$HERE/i76-xinput-pad-axistest.ahk" "$D/i76-xinput-pad-axistest.ahk"
+    cp -f "$AHKSRC/i76-xinput-pad-axistest.ahk" "$D/i76-xinput-pad-axistest.ahk"
     rm -f "$D/axistest.txt"
     export WINEPREFIX="$APP/Contents/SharedSupport/prefix" WINEESYNC=1 WINEMSYNC=1 WINEDEBUG=-all
     export DYLD_FALLBACK_LIBRARY_PATH="$APP/Contents/Frameworks:$APP/Contents/SharedSupport/wine/lib"
@@ -102,7 +104,7 @@ fi
 # destination key goes down and NEVER comes up. Field regression 2026-07-14:
 # one trackpad scroll notch left '=' (shift_up) stuck -> WASD dead. Explicit
 # hotkeys with a full press+release (WheelUp::SendEvent {F6}) are allowed.
-if grep -qE '^[[:space:]]*[*~$]*Wheel(Up|Down|Left|Right)::[^[:space:]]+[[:space:]]*$' "$HERE/i76-remap.ahk"; then
+if grep -qE '^[[:space:]]*[*~$]*Wheel(Up|Down|Left|Right)::[^[:space:]]+[[:space:]]*$' "$AHKSRC/i76-remap.ahk"; then
     echo "FATAL: i76-remap.ahk contains a bare wheel remap (WheelUp::key)."
     echo "AHK cannot remap the wheel (no release event) - the key sticks down."
     exit 1
@@ -125,7 +127,7 @@ echo "$GAMES" | while read -r g; do
         fetch_ahk
         unzip -o -q -j "$ZIP" AutoHotkeyU32.exe license.txt -d "$D"
     fi
-    cp -f "$HERE/i76-remap.ahk" "$D/i76-remap.ahk"
+    cp -f "$AHKSRC/i76-remap.ahk" "$D/i76-remap.ahk"
     echo "installed -> $D (config: i76-remap.ahk)"
 done
 

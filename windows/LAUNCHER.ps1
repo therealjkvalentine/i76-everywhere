@@ -32,7 +32,7 @@ if (-not $GameDir) {
     # Order: $env:I76_GAME_DIR, the folder this script sits in or beside (an installed copy),
     # then the lab sandbox. Anything else has to be named with -GameDir.
     $cands = @($env:I76_GAME_DIR, $PSScriptRoot, (Join-Path $PSScriptRoot 'Interstate 76'),
-               (Join-Path $PSScriptRoot '..\i76-uncap-lab\game'))
+               (Join-Path $PSScriptRoot '..\..\i76-uncap-lab\game'))
     $GameDir = $cands | Where-Object { $_ -and (Test-Path (Join-Path $_ 'i76.exe')) } | Select-Object -First 1
     if (-not $GameDir) { throw "No game folder: pass -GameDir <folder with i76.exe> or set I76_GAME_DIR." }
     $GameDir = (Resolve-Path $GameDir).Path
@@ -40,7 +40,8 @@ if (-not $GameDir) {
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-$RepoRoot = $PSScriptRoot
+$RepoRoot = $PSScriptRoot   # windows\ : PLAY-i76.ps1 is beside this script
+$RepoTop = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }   # presets\
 $script:GameDir = $GameDir
 
 # ---------------------------------------------------------------- reading the real state ---
@@ -271,7 +272,7 @@ $gPlay.Controls.Add($cbPreset)
 $lblPreset = New-Label $gPlay '' 320 162 505
 $lblPreset.ForeColor = [Drawing.Color]::DimGray
 $presetInfo = @{}
-foreach ($f in (Get-ChildItem (Join-Path $RepoRoot 'presets\*.psd1') -ErrorAction SilentlyContinue | Sort-Object Name)) {
+foreach ($f in (Get-ChildItem (Join-Path $RepoTop 'presets\*.psd1') -ErrorAction SilentlyContinue | Sort-Object Name)) {
     try { $d = Import-PowerShellDataFile $f.FullName } catch { continue }
     if (-not $d.Env) { $d.Env = @{} }
     $vars = if ($d.Env.Count) { ($d.Env.Keys | Sort-Object | ForEach-Object { "$_=$($d.Env[$_])" }) -join ' ' } else { 'no engine switches' }

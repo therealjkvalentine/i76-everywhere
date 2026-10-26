@@ -16,7 +16,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 RELAY = os.path.join(REPO, "tools", "relay", "pyrelay.py")
-LAUNCHER = os.path.join(REPO, "PLAY-i76.ps1")
+LAUNCHER = os.path.join(REPO, "windows", "PLAY-i76.ps1")
 POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
 DLL_DIR = os.environ.get("I76_RELAY_DLL_DIR", os.path.join(os.path.expanduser("~"), "i76-uncap-lab", "builds", "ipxwrapper-master-20261025", "out"))
 HAVE_DLLS = all(os.path.exists(os.path.join(DLL_DIR, n)) for n in ("ipxwrapper.dll", "wsock32.dll", "mswsock.dll"))

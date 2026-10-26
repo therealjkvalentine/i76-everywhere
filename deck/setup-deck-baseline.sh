@@ -78,14 +78,16 @@ else
     say "AutoHotkeyU32.exe already staged"
 fi
 
-# Lint carried over from setup-input-remapper.sh: a bare wheel remap sticks the
+# The pad layer: beside the deploy folder when pushed (deck-push.sh), windows/ in a clone of the repo.
+AHK_SRC="$REPO/i76-remap.ahk"; [ -f "$AHK_SRC" ] || AHK_SRC="$REPO/windows/i76-remap.ahk"
+# Lint carried over from mac/setup-input-remapper.sh: a bare wheel remap sticks the
 # destination key down forever (AHK gives the wheel no release event). This bit
 # us once already - never ship a config that has one.
-if grep -qE '^[[:space:]]*[*~$]*Wheel(Up|Down|Left|Right)::[^[:space:]]+[[:space:]]*$' "$REPO/i76-remap.ahk"; then
+if grep -qE '^[[:space:]]*[*~$]*Wheel(Up|Down|Left|Right)::[^[:space:]]+[[:space:]]*$' "$AHK_SRC"; then
     echo "FATAL: i76-remap.ahk contains a bare wheel remap (WheelUp::key) - the key would stick."
     exit 1
 fi
-cp -f "$REPO/i76-remap.ahk" "$STAGE/i76-remap.ahk"
+cp -f "$AHK_SRC" "$STAGE/i76-remap.ahk"
 say "i76-remap.ahk staged (shared with Mac/Windows - one source of truth)"
 
 # ------------------------------------------------------------ 2. wrapper ----

@@ -110,7 +110,7 @@ try {
         Write-Host "  launching through PLAY-i76.ps1 (pad, wheel, stick and head-look layers as in the daily driver)"
         # PLAY-i76.ps1 returns when the game has exited (it waits, then stops its helpers)
         $play = Start-Process powershell -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-            "`"$env:USERPROFILE\i76-everywhere\PLAY-i76.ps1`"", "-GameDir", "`"$G`"", "-Exe", $Exe, "-Preset", $Preset, "-LosslessScaling", "none", "-OpenTrack", "`"`"" -PassThru -NoNewWindow
+            "`"$env:USERPROFILE\i76-everywhere\windows\PLAY-i76.ps1`"", "-GameDir", "`"$G`"", "-Exe", $Exe, "-Preset", $Preset, "-LosslessScaling", "none", "-OpenTrack", "`"`"" -PassThru -NoNewWindow
         $p = $null
         for ($i = 0; $i -lt 40 -and -not $p; $i++) { Start-Sleep -Seconds 1; $p = Get-Process i76 -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$G\*" } | Select-Object -First 1 }
         if (-not $p) { $play.WaitForExit(); throw "the game did not start through PLAY-i76.ps1" }

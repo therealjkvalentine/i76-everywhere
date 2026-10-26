@@ -313,9 +313,12 @@ if ($RelayRestore) {
 # process, which is the user's shell when the script is run by hand).
 $gameEnv = [ordered]@{}
 
+# In a clone of the repo this script is in windows\ and presets\, tools\, music-fix\ are one folder up ($repoRoot); installed copies and
+# the Patch Kit's _i76e\repo\ have them beside the script.
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
 # presets\ lives beside this script in the repo; setup-windows.ps1 and the portable zip copy it
 # beside the installed PLAY-i76.ps1, and the game folder is tried too.
-$presetDirs = @((Join-Path $PSScriptRoot 'presets'), (Join-Path $GameDir 'presets')) | Where-Object { Test-Path $_ } | Select-Object -Unique
+$presetDirs = @((Join-Path $repoRoot 'presets'), (Join-Path $GameDir 'presets')) | Where-Object { Test-Path $_ } | Select-Object -Unique
 
 function Read-Preset([string]$path) {
     # Data file only: Import-PowerShellDataFile evaluates no code, so a preset cannot do
@@ -712,7 +715,7 @@ function Get-SettingNow($e) {
 }
 function Get-FfbTuneFile {
     # the interposer reads ffb-tune-owner.json beside itself (tools\ffb in the repo, _ffb in a game folder)
-    $d = Join-Path $PSScriptRoot 'tools\ffb'
+    $d = Join-Path $repoRoot 'tools\ffb'
     if (-not (Test-Path (Join-Path $d 'ffb-interposer.ps1'))) { $d = Join-Path $GameDir '_ffb' }
     if (-not (Test-Path -LiteralPath $d)) { return $null }
     return (Join-Path $d 'ffb-tune-owner.json')
@@ -905,7 +908,7 @@ if (-not $sameFile) {
                 Remove-Item -LiteralPath $wideOrig -Force
                 $how = 'the installed dgVoodoo.wide.conf put back'
             } else {
-                $mwc = @((Join-Path $PSScriptRoot 'tools\Make-Wide-Conf.ps1'), (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1'),
+                $mwc = @((Join-Path $repoRoot 'tools\Make-Wide-Conf.ps1'), (Join-Path $GameDir '_tools\Make-Wide-Conf.ps1'),
                          (Join-Path $GameDir '_i76e\repo\tools\Make-Wide-Conf.ps1')) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
                 if (-not $mwc) { Write-LaunchLog "render keys NOT applied: tools\Make-Wide-Conf.ps1 is not beside PLAY-i76.ps1, in _tools\ or in _i76e\repo\tools\" 'Yellow'; $renderFailed = $true }
                 else {
@@ -1100,7 +1103,7 @@ if ($collWindow -and $collWindow -ne '0' -and -not (Get-GameVar 'I76_FIXED_STEP'
 # install the owner plays on is its own deliberate step (setup-windows.ps1 / the deploy step).
 if ($gameEnv.Count) {
     $installed = Join-Path $GameDir 'Strlkup.dll'
-    $reference = Join-Path $PSScriptRoot 'music-fix\Strlkup.dll'
+    $reference = Join-Path $repoRoot 'music-fix\Strlkup.dll'
     if (-not (Test-Path (Join-Path $GameDir 'strlkup_orig.dll'))) {
         Write-Host "WARNING: the music-fix proxy is not deployed in $GameDir (no strlkup_orig.dll) - every I76_* switch in this preset is a NO-OP. Run setup-windows.ps1 (it deploys Strlkup.dll)." -ForegroundColor Red
     } elseif (Test-Path $reference) {
@@ -1601,7 +1604,7 @@ if (-not $proc) {
 # player entity only exists in one), so starting it here rather than making the
 # user launch it by hand mid-mission is safe. Own window so the panel is visible.
 $ffbProc = $null
-$ffbDir = Join-Path $PSScriptRoot 'tools\ffb'
+$ffbDir = Join-Path $repoRoot 'tools\ffb'
 if (-not (Test-Path (Join-Path $ffbDir 'ffb-interposer.ps1'))) { $ffbDir = Join-Path $GameDir '_ffb' }
 $ffbScript = Join-Path $ffbDir 'ffb-interposer.ps1'
 $ffbStatus = ''
@@ -1710,7 +1713,7 @@ if ($Panel) {
 # folder next to the exe. It exits on its own when the game exits.
 $music = $null
 if (-not $NoMusic) {
-    $musicScript = Join-Path $PSScriptRoot 'tools\i76-music.ps1'
+    $musicScript = Join-Path $repoRoot 'tools\i76-music.ps1'
     if (-not (Test-Path $musicScript)) { $musicScript = Join-Path $GameDir '_ffb\i76-music.ps1' }
     if ((Test-Path $musicScript) -and (Test-Path (Join-Path $GameDir 'music'))) {
         $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',"`"$musicScript`"",

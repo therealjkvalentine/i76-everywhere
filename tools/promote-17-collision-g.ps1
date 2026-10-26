@@ -70,7 +70,7 @@ $GateText = 'lab twin game-dd-20261003 with this staged set, P8 2026-10-12 (runs
 # ---- fixed sources (md5 pinned)
 $bins = [ordered]@{
     'Interstate 76\STRLKUP.DLL'        = @((Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\terrain-probe-20261012\STRLKUP-drawprobe-v2tel.dll'), '509c6df0')
-    'Interstate 76\PLAY-i76.ps1'       = @((Join-Path $repo 'PLAY-i76.ps1'), '2020e2bf')
+    'Interstate 76\PLAY-i76.ps1'       = @((Join-Path $repo 'windows\PLAY-i76.ps1'), '2020e2bf')
     'Interstate 76\dgVoodoo.wide.conf' = @((Join-Path $repo 'tools\conf\dgVoodoo.daily-wide-ss2x-2026-10-12.conf'), 'dccd379a')
 }
 $files = [ordered]@{}

@@ -66,7 +66,7 @@ foreach ($p in 'best-wide.psd1', 'best-120.psd1') {
 }
 
 # trainer + save editor (the promotion-9 layout: code in _tools\trainer, save editor in the root)
-$files['i76-save-editor.py']               = Join-Path $repo 'i76-save-editor.py'
+$files['i76-save-editor.py']               = Join-Path $repo 'tools\save-editor\i76-save-editor.py'
 $files['_tools\trainer\i76trainer_gui.py'] = Join-Path $repo 'tools\trainer\i76trainer_gui.py'
 $files['_tools\trainer\i76trainer.py']     = Join-Path $repo 'tools\trainer\i76trainer.py'
 $files['_tools\trainer\i76trn.h']          = Join-Path $repo 'tools\trainer\i76trn.h'

@@ -25,12 +25,13 @@ param(
     # deploy-u32x.ps1 refuses any md5 not on its KnownGood list. The minimal build (md5 a5927cea;
     # source u32x\u32x_min.c): -U32xDll u32x\u32x.dll.
     # Applied to the STAGED copy only - the source install is never modified.
-    [string]$U32xDll = (Join-Path $PSScriptRoot 'u32x\u32x_full.dll'),
+    [string]$U32xDll = (Join-Path $(if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }) 'u32x\u32x_full.dll'),
     [switch]$NoU32x,          # leave the staged copy's u32x state exactly as the source install has it
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
-$repo = $PSScriptRoot
+$repo = $PSScriptRoot   # windows\ : the scripts and .ahk sources
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows') { Split-Path $PSScriptRoot } else { $PSScriptRoot }   # presets\, u32x\, the save editor page
 function Say($m,$c='Cyan'){ Write-Host $m -ForegroundColor $c }
 
 Say "`n=== Make a portable Interstate '76 zip ===`n" 'Green'
@@ -116,16 +117,16 @@ Write-Host "`nDone. Double-click PLAY.bat (or the desktop shortcut) to play." -F
 
 # carry the FFB enabler + the standalone browser save editor along for convenience
 Copy-Item (Join-Path $repo 'enable-force-feedback.bat') $gameOut -Force -ErrorAction SilentlyContinue
-Copy-Item (Join-Path $repo 'i76-save-editor.html') $staging -Force -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $repoRoot 'i76-save-editor.html') $staging -Force -ErrorAction SilentlyContinue
 
 # Refresh the launcher from the repo. The installed copy in the game folder can
 # predate repo changes (it did on 2026-08-01 - the bundle shipped a PLAY-i76.ps1
 # with no -LosslessScaling support), and the bundle should carry the current one.
 Copy-Item (Join-Path $repo 'PLAY-i76.ps1') $gameOut -Force -ErrorAction SilentlyContinue
 # ... and the frame-rate presets it reads (presets\*.psd1; -Preset stock, the default, uses none).
-if (Test-Path (Join-Path $repo 'presets')) {
+if (Test-Path (Join-Path $repoRoot 'presets')) {
     New-Item -ItemType Directory -Force (Join-Path $gameOut 'presets') | Out-Null
-    Copy-Item (Join-Path $repo 'presets\*.psd1') (Join-Path $gameOut 'presets') -Force -ErrorAction SilentlyContinue
+    Copy-Item (Join-Path $repoRoot 'presets\*.psd1') (Join-Path $gameOut 'presets') -Force -ErrorAction SilentlyContinue
 }
 
 # --- USER32 proxy (u32x.dll) in the bundle -----------------------------------
@@ -134,7 +135,7 @@ if (Test-Path (Join-Path $repo 'presets')) {
 # (import retarget of i76.exe + i76shell.dll, originals kept beside them; a different
 # u32x.dll already in the copy is kept as u32x.dll.pre-<md5>). u32x\README.md has the md5
 # and the source note; deploy-u32x.ps1 refuses a build that is not recorded as verified.
-$u32xDeploy = Join-Path $repo 'u32x\deploy-u32x.ps1'
+$u32xDeploy = Join-Path $repoRoot 'u32x\deploy-u32x.ps1'
 if ($NoU32x) {
     Say "u32x: left as the source install has it (-NoU32x)." 'Yellow'
 } elseif (-not (Test-Path $u32xDeploy) -or -not (Test-Path $U32xDll)) {

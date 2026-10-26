@@ -14,7 +14,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-spec = importlib.util.spec_from_file_location("i76_save_editor", os.path.join(REPO, "i76-save-editor.py"))
+spec = importlib.util.spec_from_file_location("i76_save_editor", os.path.join(REPO, "tools", "save-editor", "i76-save-editor.py"))
 ed = importlib.util.module_from_spec(spec); spec.loader.exec_module(ed)
 
 SAMPLE_DIRS = [os.path.join(REPO, "saves"), os.path.join(REPO, "saves", "lab-20261002"),
@@ -294,7 +294,7 @@ def test_html_catalog_defs_have_parts_info():
 # ---------------------------------------------------------------- calibration staging
 def test_calibration_staging(tmp_path):
     out = tmp_path / "staging"
-    subprocess.check_call([sys.executable, os.path.join(REPO, "i76-calibration-saves.py"),
+    subprocess.check_call([sys.executable, os.path.join(REPO, "tools", "save-editor", "i76-calibration-saves.py"),
                            "--game", LAB_FIX, "--staging", str(out)], stdout=subprocess.DEVNULL)
     game_dir = ed.SaveDir.load(os.path.join(LAB_FIX, "savegame.dir"))
     sd = ed.SaveDir.load(out / "savegame.dir")

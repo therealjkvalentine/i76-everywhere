@@ -12,7 +12,7 @@
 # saves/* into the game folder (Heroic: .../Interstate 76/, or the Proton prefix).
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SAVES="$HERE/saves"
+SAVES="$(cd "$HERE/.." && pwd)/saves"
 mkdir -p "$SAVES"
 
 find_games() {

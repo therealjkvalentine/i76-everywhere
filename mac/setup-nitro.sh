@@ -34,6 +34,7 @@
 set -eu
 
 DIR=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$DIR/.." && pwd)   # the repo root: this script lives in mac/
 SIK="$HOME/Applications/Sikarugir"
 APP="$SIK/Interstate 76 Gold.app"
 PFX="$APP/Contents/SharedSupport/prefix"
@@ -74,12 +75,12 @@ if [ -f "$NITRO/nitro.exe" ]; then
 else
     SETUP="${1:-}"
     if [ -z "$SETUP" ]; then
-        SETUP=$(ls "$DIR"/game-data/downloads/setup_interstate76_nitro_pack_*.exe \
+        SETUP=$(ls "$REPO"/game-data/downloads/setup_interstate76_nitro_pack_*.exe \
                    "$HOME"/Downloads/setup_interstate76_nitro_pack_*.exe 2>/dev/null | head -1 || true)
     fi
     [ -n "$SETUP" ] && [ -f "$SETUP" ] || { echo "GOG Nitro installer not found."; echo "Pass it: ./setup-nitro.sh /path/to/setup_interstate76_nitro_pack_X.exe"; exit 1; }
     command -v innoextract >/dev/null 2>&1 || { echo "Installing innoextract (brew)..."; brew install innoextract; }
-    STAGE="$DIR/game-data/nitro-extracted"
+    STAGE="$REPO/game-data/nitro-extracted"
     if [ ! -f "$STAGE/app/nitro.exe" ]; then
         echo "[0] Extracting $(basename "$SETUP") ..."
         rm -rf "$STAGE"; mkdir -p "$STAGE"
@@ -154,7 +155,7 @@ else
 fi
 
 # ---- 7. our known-good input.map -----------------------------------------
-SRC_IM="$BASE/input.map"; [ -f "$SRC_IM" ] || SRC_IM="$DIR/docs/input.map.reference"
+SRC_IM="$BASE/input.map"; [ -f "$SRC_IM" ] || SRC_IM="$REPO/docs/input.map.reference"
 if [ -f "$SRC_IM" ]; then
     echo "[7] Applying known-good input.map (source: $(basename "$(dirname "$SRC_IM")")/input.map)"
     [ -f "$NITRO/input.map.pre-i76fixes" ] || cp "$NITRO/input.map" "$NITRO/input.map.pre-i76fixes" 2>/dev/null || true
@@ -173,7 +174,7 @@ fi
 if [ -f "$NITRO/nitpatch.dll" ] && [ -d "$NITRO/.pre-aio" ]; then
     echo "[8] AiO patch already applied (skipping)"
 else
-    AIO=$(ls "$DIR"/game-data/downloads/Interstate76*Nitro*AiO*Patch*.zip \
+    AIO=$(ls "$REPO"/game-data/downloads/Interstate76*Nitro*AiO*Patch*.zip \
              "$HOME"/Downloads/Interstate76*Nitro*AiO*Patch*.zip 2>/dev/null | head -1 || true)
     if [ -n "$AIO" ] && [ -f "$AIO" ]; then
         echo "[8] Applying UCyborg AiO patch: $(basename "$AIO")"

@@ -55,7 +55,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path in ("/", "/index.html"):
             try:
-                body = open(os.path.join(HERE, "i76-save-editor.html"), "rb").read()
+                # the page is beside the script in a copied-out editor, at the repo root (two folders up) in a clone
+                page = next((c for c in (os.path.join(HERE, "i76-save-editor.html"), os.path.join(HERE, "..", "..", "i76-save-editor.html")) if os.path.isfile(c)), os.path.join(HERE, "i76-save-editor.html"))
+                body = open(page, "rb").read()
             except OSError:
                 return self._send(500, b"i76-save-editor.html not found next to the server script", "text/plain")
             return self._send(200, body, "text/html; charset=utf-8")

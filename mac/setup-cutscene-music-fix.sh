@@ -16,7 +16,8 @@
 # renaming the original SMACKW32.DLL to smackorg.dll (same two steps).
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-PROXY="$HERE/smack-music-fix/SMACKW32.DLL"
+REPO="$(cd "$HERE/.." && pwd)"   # the repo root: this script lives in mac/
+PROXY="$REPO/smack-music-fix/SMACKW32.DLL"
 # md5 of the original 71680-byte RAD Smacker 3.5 DLL that GOG ships
 REAL_MD5="b6bb89a764922f036cef0b53f5e839e2"
 

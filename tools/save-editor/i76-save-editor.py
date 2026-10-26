@@ -890,7 +890,9 @@ def find_save_dirs(explicit):
                 if glob.glob(os.path.join(root, "save*.cmp")):
                     dirs.append(root)
                 subdirs[:] = []
-    repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")
+    _here = os.path.dirname(os.path.abspath(__file__))
+    # the repo's saves/ is at the repo root: two folders up from tools/save-editor/ (beside the script in a copied-out editor)
+    repo = next((c for c in (os.path.join(_here, "saves"), os.path.join(_here, "..", "..", "saves")) if os.path.isdir(c)), os.path.join(_here, "saves"))
     if glob.glob(os.path.join(repo, "save*.cmp")):
         dirs.append(repo)
     seen, out = set(), []

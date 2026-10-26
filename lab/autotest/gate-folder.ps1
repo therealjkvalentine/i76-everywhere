@@ -168,7 +168,7 @@ function State-Diff([hashtable]$a, [hashtable]$b) {
 
 # ================================================================ bookmarks ============================================
 function Read-Bookmarks {
-    $o = Py "$Repo\i76-save-editor.py" --dir $Game --list
+    $o = Py "$Repo\tools\save-editor\i76-save-editor.py" --dir $Game --list
     $list = @()
     foreach ($l in $o) { if ("$l" -match '^\s*(\d+)\s+(save\d+)\s+scene\s+(\d+)\s+st\s+(\d+)') { $list += [pscustomobject]@{ Row = [int]$Matches[1]; File = $Matches[2]; Scene = [int]$Matches[3]; State = [int]$Matches[4]; Line = "$l".Trim() } } }
     return $list
@@ -207,7 +207,7 @@ if (-not $DryRun) {
     if (Test-Path "$Game\.console-test.lock") { throw "$Game\.console-test.lock exists (another test owns this folder): $(Get-Content "$Game\.console-test.lock" -Raw)" }
     if (Test-Path "$Game\STRLKUP.DLL.pretest") { throw "$Game\STRLKUP.DLL.pretest exists: a killed run left the test proxy installed. Restore it first (garage-ui.ps1 -Close -GameDir ...)." }
 }
-foreach ($need in "$Repo\i76-save-editor.py", "$Repo\tools\lint-input-map.py", "$Here\saves\leg-b.ps1", "$Here\saves\garage-ui.ps1", "$Here\option6-trip-test.ps1", "$Here\test-escmenu.ps1", "$Here\menu-route-test.ps1", "$Lab\tools\graphics\conf-probe.ps1") {
+foreach ($need in "$Repo\tools\save-editor\i76-save-editor.py", "$Repo\tools\lint-input-map.py", "$Here\saves\leg-b.ps1", "$Here\saves\garage-ui.ps1", "$Here\option6-trip-test.ps1", "$Here\test-escmenu.ps1", "$Here\menu-route-test.ps1", "$Lab\tools\graphics\conf-probe.ps1") {
     if (-not (Test-Path $need)) { throw "not found: $need" }
 }
 foreach ($f in "i76.exe", "i76shell.dll", "u32x.dll", "STRLKUP.DLL", "dgVoodoo.conf", "savegame.dir", "input.map") {
@@ -498,8 +498,8 @@ function Row4-Save {
         Get-ChildItem -LiteralPath $Game -File -Filter "save*.cmp" | ForEach-Object { Copy-Item $_.FullName $tmp }
         Copy-Item (Join-Path $tmp "$($scratch.SrcFile).cmp") (Join-Path $tmp "$($scratch.File).cmp")
         [IO.File]::WriteAllBytes((Join-Path $tmp "savegame.dir"), $scratch.Bytes)
-        $o = Py "$Repo\i76-save-editor.py" --dir $tmp --check; $rc = $script:PyRc
-        $l = @(Py "$Repo\i76-save-editor.py" --dir $tmp --list) | Select-Object -Last 1
+        $o = Py "$Repo\tools\save-editor\i76-save-editor.py" --dir $tmp --check; $rc = $script:PyRc
+        $l = @(Py "$Repo\tools\save-editor\i76-save-editor.py" --dir $tmp --list) | Select-Object -Last 1
         $sp = Row-Pos $scratch.Index $scratch.Records
         Check "4" "scratch bookmark set is valid (built beside the run, not installed)" ($rc -eq 0 -and "$l" -match "GATE SCRATCH") "--check exit $rc; last row: $l; save-board click (320,$($sp.Uy)) after $($sp.Scroll) scroll clicks"
         $o = Run-Child "$Here\saves\garage-ui.ps1" "-Start $Bookmark -Row $Row -RowUy $($pos.Uy) -Scroll $($pos.Scroll) $gd$keep -BackupDir `"$Run\legb-backup-save`" -OutDir `"$Run`" -DryRun" "4-garage-dryrun.out"
@@ -511,14 +511,14 @@ function Row4-Save {
     try {
         Copy-Item "$Game\$($scratch.SrcFile).cmp" "$Game\$($scratch.File).cmp"
         [IO.File]::WriteAllBytes("$Game\savegame.dir", $scratch.Bytes)
-        $o = Py "$Repo\i76-save-editor.py" --dir $Game --check; $rc = $script:PyRc
+        $o = Py "$Repo\tools\save-editor\i76-save-editor.py" --dir $Game --check; $rc = $script:PyRc
         if ($rc -ne 0) { Check "4" "scratch bookmark installed" $false "i76-save-editor.py --check exit $rc after adding the scratch record: $(@($o | Select-Object -Last 2) -join ' / ')"; return }
         Log "    scratch installed; --check OK"
         foreach ($answer in "NO", "YES") {
             if (Get-Process | Where-Object { $_.ProcessName -like "i76*" }) { Close-Game }
             Save-Session $answer $scratch
         }
-        $o = Py "$Repo\i76-save-editor.py" --dir $Game --check; $rc = $script:PyRc
+        $o = Py "$Repo\tools\save-editor\i76-save-editor.py" --dir $Game --check; $rc = $script:PyRc
         Check "4" "savegame.dir still exact after the save (i76-save-editor.py --check)" ($rc -eq 0) "exit $rc; savegame.dir $((Get-Item "$Game\savegame.dir").Length) B"
     } finally {
         if (Get-Process | Where-Object { $_.ProcessName -like "i76*" }) { Close-Game }

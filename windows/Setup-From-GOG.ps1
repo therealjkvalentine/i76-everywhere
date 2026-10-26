@@ -48,7 +48,9 @@ param(
     [switch]$Yes
 )
 $ErrorActionPreference = 'Stop'
-$repo = $PSScriptRoot
+# This script lives in windows\ in a clone of the repo and flat in the Patch Kit's _i76e\repo\; $repoRoot is the folder that holds presets\, tools\, u32x\ ...
+$repoRoot = if ((Split-Path $PSScriptRoot -Leaf) -eq 'windows' -and (Test-Path -LiteralPath (Join-Path (Split-Path $PSScriptRoot) 'presets'))) { Split-Path $PSScriptRoot } else { $PSScriptRoot }
+$repo = $PSScriptRoot   # sibling scripts (install.ps1 ...)
 function Say($m,$c='Cyan'){ Write-Host $m -ForegroundColor $c }
 function Ask($m){ if($Yes){return $true}; $r=Read-Host "$m [Y/n]"; return ($r -eq '' -or $r -match '^[Yy]') }
 
@@ -139,7 +141,7 @@ $global:LASTEXITCODE = 0
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
 # --- 3. cutscene-music fix (optional, if the proxy DLL has been built) --------
-$smack = Join-Path $repo 'smack-music-fix\SMACKW32.DLL'
+$smack = Join-Path $repoRoot 'smack-music-fix\SMACKW32.DLL'
 if (Test-Path $smack) {
     $dest = Join-Path $GameDir 'SMACKW32.DLL'
     if (Test-Path $dest) { Copy-Item $dest "$dest.gog-original" -Force -ErrorAction SilentlyContinue }

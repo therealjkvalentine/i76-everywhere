@@ -24,14 +24,15 @@ else
 fi
 
 echo "== 2. Graphics config =="
-cp "$HERE/dgVoodoo.conf" "$GAME/dgVoodoo.conf"
+CONF="$HERE/../mac/dgVoodoo.conf"; [ -f "$CONF" ] || CONF="$HERE/dgVoodoo.conf"
+cp "$CONF" "$GAME/dgVoodoo.conf"
 echo "   dgVoodoo.conf installed (gamma + MSAA 4x + 32-bit; edit Resolution to 'max' for 1280x800)."
 
 echo "== 3. Input map (mouse + gamepad, joystick1) =="
 if [ -f "$GAME/input.map" ]; then
   [ -f "$GAME/input.map.pre-steamdeck" ] || cp "$GAME/input.map" "$GAME/input.map.pre-steamdeck"
   # reuse the Mac script's logic if the file looks stock; otherwise just remind
-  echo "   input.map exists. To (re)apply mouse+pad bindings, run setup-mouse-and-pad.sh"
+  echo "   input.map exists. To (re)apply mouse+pad bindings, run mac/setup-mouse-and-pad.sh"
   echo "   pointed at this dir, or verify it binds joystick1 (NOT joystick5). See docs."
 else
   echo "   input.map not found yet - launch the game once to generate it, then re-run."
@@ -46,9 +47,9 @@ if [ -n "$PREFIX" ] && command -v wine >/dev/null 2>&1; then
     || WINEPREFIX="$PREFIX" wine reg copy \
         "HKLM\\SOFTWARE\\ACTIVISION\\Interstate'76FRC" \
         "HKLM\\SOFTWARE\\ACTIVISION\\Interstate '76" /s /f 2>/dev/null \
-        && echo "   FFB enabled." || echo "   FFB rename skipped (run enable-force-feedback.bat in-prefix)."
+        && echo "   FFB enabled." || echo "   FFB rename skipped (run windows/enable-force-feedback.bat in-prefix)."
 else
-  echo "   Pass the wineprefix as arg 2, or run enable-force-feedback.bat via Heroic/protontricks."
+  echo "   Pass the wineprefix as arg 2, or run windows/enable-force-feedback.bat via Heroic/protontricks."
 fi
 
 echo "== 5. 20 FPS cap =="

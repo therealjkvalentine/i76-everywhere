@@ -10,9 +10,9 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     -Files @{
         'TRAINER.bat'                       = (Join-Path $repo 'tools\driver\TRAINER.bat')
         'SAVE-EDITOR.bat'                   = (Join-Path $repo 'tools\driver\SAVE-EDITOR.bat')
-        'i76-save-editor-server.py'         = (Join-Path $repo 'i76-save-editor-server.py')
+        'i76-save-editor-server.py'         = (Join-Path $repo 'tools\save-editor\i76-save-editor-server.py')
         'i76-save-editor.html'              = (Join-Path $repo 'i76-save-editor.html')
-        'i76-save-editor.py'                = (Join-Path $repo 'i76-save-editor.py')
+        'i76-save-editor.py'                = (Join-Path $repo 'tools\save-editor\i76-save-editor.py')
         '_tools\trainer\i76trainer_gui.py'  = (Join-Path $repo 'tools\trainer\i76trainer_gui.py')
         '_tools\trainer\i76trainer.py'      = (Join-Path $repo 'tools\trainer\i76trainer.py')
         '_tools\trainer\i76trn.h'           = (Join-Path $repo 'tools\trainer\i76trn.h')

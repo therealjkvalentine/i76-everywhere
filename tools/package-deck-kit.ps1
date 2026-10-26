@@ -35,7 +35,7 @@ function Die([string]$m) { Write-Host "package-deck-kit: $m" -ForegroundColor Re
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- deck/kit deck/i76-deck-launch.sh deck/i76-deck-launch-mp.sh deck/add-to-steam.py deck/controller_neptune_i76_pad.vdf controls/input.map i76-remap.ahk u32x/u32x_full.dll tools/gpw-envelopes.py tools/zfs_extract.py)
+$dirty = @(git -C $repo status --porcelain -- deck/kit deck/i76-deck-launch.sh deck/i76-deck-launch-mp.sh deck/add-to-steam.py deck/controller_neptune_i76_pad.vdf controls/input.map windows/i76-remap.ahk u32x/u32x_full.dll tools/gpw-envelopes.py tools/zfs_extract.py)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files:`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not $Stage) { $Stage = Join-Path $env:TEMP "deck-kit-stage-$sha" }
 if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -Force }
@@ -62,7 +62,7 @@ PutLf (Join-Path $repo 'tools\zfs_extract.py') 'tools\zfs_extract.py'
 PutLf (Join-Path $repo 'deck\i76-deck-launch.sh') 'payload\deck\i76-deck-launch.sh'
 PutLf (Join-Path $repo 'deck\i76-deck-launch-mp.sh') 'payload\deck\i76-deck-launch-mp.sh'
 PutLf (Join-Path $repo 'deck\controller_neptune_i76_pad.vdf') 'payload\deck\controller_neptune_i76_pad.vdf'
-PutLf (Join-Path $repo 'i76-remap.ahk') 'payload\ahk\i76-remap.ahk'
+PutLf (Join-Path $repo 'windows\i76-remap.ahk') 'payload\ahk\i76-remap.ahk'
 Put (Join-Path $repo 'controls\input.map') 'payload\gold\input.map'
 foreach ($n in 'capsule_p.png', 'header.png', 'hero.png', 'logo.png', 'icon.png') { Put (Join-Path $repo "deck\artwork\$n") "artwork\$n" }   # generated art (deck\make-art.py), no game assets
 

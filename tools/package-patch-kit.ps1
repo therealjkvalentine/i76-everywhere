@@ -54,7 +54,7 @@ function Die([string]$m) { Write-Host "package-patch-kit: $m" -ForegroundColor R
 function Md5([string]$p) { (Get-FileHash -LiteralPath $p -Algorithm MD5).Hash.ToLower() }
 
 $sha = (git -C $repo rev-parse --short HEAD).Trim()
-$dirty = @(git -C $repo status --porcelain -- setup-windows.ps1 PLAY-i76.ps1 presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 tools/debug tools/driver i76-remap.ahk i76-ch-fighterstick.ahk i76-opentrack-headlook.ahk i76-opentrack-autostart.ahk i76-opentrack-autostart.ps1)
+$dirty = @(git -C $repo status --porcelain -- windows presets controls u32x tools/Make-Wide-Conf.ps1 tools/conf tools\patch-kit tools/i76wheel.exe tools/fix-shell-textentry.ps1 tools/debug tools/driver)
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files (commit first so VERSION.txt names what shipped):`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not (Test-Path -LiteralPath $Proxy)) { Die "proxy not found: $Proxy" }
 $proxyMd5 = Md5 $Proxy
@@ -86,9 +86,13 @@ $files = @(
     'tools\relay\README.md', 'tools\relay\JOIN-RELAY.md'
 )
 $files += @(Get-ChildItem -LiteralPath (Join-Path $repo 'saves') -Filter 'save*.cmp' -File | ForEach-Object { "saves\$($_.Name)" })
+# In the repo these live in windows\; the kit keeps them flat in _i76e\repo\ (setup-windows.ps1 and PLAY-i76.ps1 look for them beside themselves).
+$winFlat = @('setup-windows.ps1', 'PLAY-i76.ps1', 'dgVoodoo.daily-driver-2026-10-03.conf', 'dgVoodoo.windows.conf', 'i76-remap.ahk', 'i76-ch-fighterstick.ahk',
+             'i76-opentrack-headlook.ahk', 'i76-opentrack-autostart.ahk', 'i76-opentrack-autostart.ps1')
 foreach ($rel in $files) {
-    $from = Join-Path $repo $rel
-    if (-not (Test-Path -LiteralPath $from)) { Die "missing in the repo: $rel" }
+    $srcRel = if ($winFlat -contains $rel) { "windows\$rel" } else { $rel }
+    $from = Join-Path $repo $srcRel
+    if (-not (Test-Path -LiteralPath $from)) { Die "missing in the repo: $srcRel" }
     $to = Join-Path $sr $rel
     New-Item -ItemType Directory -Force (Split-Path -Parent $to) | Out-Null
     Copy-Item -LiteralPath $from -Destination $to -Force
@@ -101,12 +105,18 @@ foreach ($n in 'i76e-extras.ps1', 'extras.json', 'i76e-controls.ps1', 'i76e-upda
 # every version of the control files the kit ever shipped (from git history), so setup-windows.ps1 knows an unedited kit file from
 # a player's own in a folder an older kit set up (before i76e-installed.md5 existed); as stored, and with CRLF / LF line ends
 $known = @('# md5 *name: control files shipped by some version of this repo (tools\package-patch-kit.ps1); setup-windows.ps1 replaces these, keeps any other')
+# (the two .ahk files moved to windows/ on 2026-10-26: the history is under the old root path first, the new path after)
 foreach ($pair in @(@('controls/input.map', 'input.map'), @('i76-remap.ahk', '_ahk\i76-remap.ahk'), @('i76-ch-fighterstick.ahk', '_ahk\i76-ch-fighterstick.ahk'))) {
     $seen = @{}
-    foreach ($c in @(git -C $repo rev-list HEAD -- $pair[0])) {
+    $histPaths = @(if ($pair[0] -like "*.ahk") { $pair[0]; "windows/$($pair[0])" } else { $pair[0] })
+    foreach ($c in @(git -C $repo rev-list HEAD -- @histPaths)) {
         $tmp = Join-Path $env:TEMP 'kit-known.bin'
-        & cmd.exe /c "git -C `"$repo`" show $($c):$($pair[0]) > `"$tmp`"" 2>$null
-        if (-not (Test-Path -LiteralPath $tmp)) { continue }
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+        foreach ($hp in $histPaths) {
+            & cmd.exe /c "git -C `"$repo`" show $($c):$($hp) > `"$tmp`" 2>nul"
+            if ((Test-Path -LiteralPath $tmp) -and (Get-Item -LiteralPath $tmp).Length -gt 0) { break }
+        }
+        if (-not (Test-Path -LiteralPath $tmp) -or (Get-Item -LiteralPath $tmp).Length -eq 0) { continue }
         $raw = [IO.File]::ReadAllBytes($tmp); $txt = [Text.Encoding]::GetEncoding(28591).GetString($raw)
         $lf = $txt.Replace("`r`n", "`n"); $crlf = $lf.Replace("`n", "`r`n")
         foreach ($v in @($raw, [Text.Encoding]::GetEncoding(28591).GetBytes($lf), [Text.Encoding]::GetEncoding(28591).GetBytes($crlf))) {
@@ -114,7 +124,8 @@ foreach ($pair in @(@('controls/input.map', 'input.map'), @('i76-remap.ahk', '_a
             if (-not $seen[$m]) { $seen[$m] = 1; $known += "$m *$($pair[1])" }
         }
     }
-    $m = Md5 (Join-Path $repo $pair[0]); if (-not $seen[$m]) { $known += "$m *$($pair[1])" }
+    $cur = if ($pair[0] -like '*.ahk') { Join-Path $repo "windows\$($pair[0])" } else { Join-Path $repo $pair[0] }
+    $m = Md5 $cur; if (-not $seen[$m]) { $known += "$m *$($pair[1])" }
 }
 $known | Set-Content -LiteralPath (Join-Path $sr 'tools\patch-kit\known-kit-md5.txt') -Encoding ascii
 

@@ -90,7 +90,7 @@ def main():
         copy(src, os.path.join(win if name.lower() in WIN_ONLY else common, name))
     # the unified control map and the matching wheel/pad layer
     shutil.copy2(os.path.join(REPO, "controls", "input.map"), os.path.join(common, "input.map"))
-    shutil.copy2(os.path.join(REPO, "i76-remap.ahk"), os.path.join(win, "_ahk", "i76-remap.ahk"))
+    shutil.copy2(os.path.join(REPO, "windows", "i76-remap.ahk"), os.path.join(win, "_ahk", "i76-remap.ahk"))
     for f in IPX_FILES:
         shutil.copy2(os.path.join(IPX, f), os.path.join(common, f))
     # anti-cheat car check: stock car data only

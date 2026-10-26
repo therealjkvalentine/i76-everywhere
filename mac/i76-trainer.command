@@ -5,7 +5,7 @@ set -e
 APP="$HOME/Applications/Sikarugir/Interstate 76 Gold.app"
 PFX="$APP/Contents/SharedSupport/prefix"
 AHKDIR="$PFX/drive_c/AutoHotkey"
-HERE="$(cd "$(dirname "$0")" && pwd)"
+HERE="$(cd "$(dirname "$0")/.." && pwd)"   # the repo root (this script lives in mac/)
 
 if ! pgrep -f 'i76\.exe|nitro\.exe' >/dev/null; then
   echo "The game isn't running. Launch Interstate '76, enter a mission, then run this again."

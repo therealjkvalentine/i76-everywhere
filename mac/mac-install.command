@@ -19,6 +19,7 @@
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$HERE/.." && pwd)"   # the repo root: this script lives in mac/
 APP="$HOME/Applications/Sikarugir/Interstate 76 Gold.app"
 PFX="$APP/Contents/SharedSupport/prefix"
 GAMEDIR="$PFX/drive_c/GOG Games/Interstate 76"
@@ -101,9 +102,9 @@ say "Cutscene-music fix (SMACKW32 proxy)"
 step "install SMACKW32 proxy" sh "$HERE/setup-cutscene-music-fix.sh"
 
 say "Controls: known-good input map (WASD driving + mouse guns) & Mac arrows"
-if [ -f "$HERE/docs/input.map.reference" ]; then
+if [ -f "$REPO/docs/input.map.reference" ]; then
   [ -f "$GAMEDIR/input.map" ] && cp "$GAMEDIR/input.map" "$GAMEDIR/input.map.pre-install" 2>/dev/null
-  if cp "$HERE/docs/input.map.reference" "$GAMEDIR/input.map"; then ok "installed known-good input.map"
+  if cp "$REPO/docs/input.map.reference" "$GAMEDIR/input.map"; then ok "installed known-good input.map"
   else warn "couldn't write input.map"; fi
 else
   warn "docs/input.map.reference missing -- skipped"
@@ -120,8 +121,8 @@ cat <<EOF
      ~/Applications/Sikarugir/Interstate 76 Gold.app
 
    Optional next steps:
-     * Restore the maintainer's shared saves:  ./setup-saves.sh
-     * Edit your garage in a browser:          i76-save-editor.command
+     * Restore the maintainer's shared saves:  mac/setup-saves.sh
+     * Edit your garage in a browser:          tools/save-editor/i76-save-editor.command
      * Tweak the DxWnd profile:                "Interstate 76 - DxWnd Settings.app"
 
    In-game: set Options -> Graphic Detail -> Screen Resolution -> 1024x768 once.

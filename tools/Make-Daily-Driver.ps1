@@ -206,7 +206,7 @@ $overlays = New-Object System.Collections.ArrayList
 [void]$overlays.Add(@{ From = $U32xDll;    Name = 'u32x.dll';    Label = 'overlay: u32x' })
 if ($GameExe)            { [void]$overlays.Add(@{ From = $GameExe; Name = 'i76.exe'; Label = 'overlay: game exe' }) }
 if (-not $KeepSourceConf) { [void]$overlays.Add(@{ From = (Resolve-Path -LiteralPath $DgVoodooConf).Path; Name = 'dgVoodoo.conf'; Label = 'overlay: dgVoodoo conf' }) }
-[void]$overlays.Add(@{ From = (Join-Path $repo 'PLAY-i76.ps1'); Name = 'PLAY-i76.ps1'; Label = 'overlay: launcher (repo)' })
+[void]$overlays.Add(@{ From = (Join-Path $repo 'windows\PLAY-i76.ps1'); Name = 'PLAY-i76.ps1'; Label = 'overlay: launcher (repo)' })
 if ($WideConf) {
     [void]$overlays.Add(@{ From = $WideConf; Name = 'dgVoodoo.wide.conf'; Label = 'overlay: widescreen dgVoodoo conf' })
     [void]$overlays.Add(@{ From = (Resolve-Path -LiteralPath $DgVoodooConf).Path; Name = 'dgVoodoo.16x10.conf'; Label = 'overlay: 16:10 dgVoodoo conf (PLAY-16x10.bat)' })
@@ -290,7 +290,7 @@ if ($disablePatch) {
 
 # save editor (current repo build; the driver's top-level html is the 2026-07-21 pre-fix parser)
 foreach ($n in 'i76-save-editor.html', 'i76-save-editor.py', 'i76-save-editor-server.py') {
-    $p = Join-Path $repo $n
+    $p = if ($n -eq 'i76-save-editor.html') { Join-Path $repo $n } else { Join-Path $repo "tools\save-editor\$n" }
     if (Test-Path -LiteralPath $p) { CopyVerified $p (Join-Path $Dest $n) 'repo: save editor' }
 }
 # root launchers for the save editor, I76 Debug and the trainer (code in _tools; debug imports ..\trainer and ..\telemetry;
@@ -382,7 +382,7 @@ if ($py) {
     $env:PYTHONDONTWRITEBYTECODE = '1'
     $r = (& python (Join-Path $repo 'tools\lint-input-map.py') $dstGame 2>&1 | Out-String).Trim()
     [void]$checks.Add("lint-input-map: exit $LASTEXITCODE - " + ($r -split "`n")[-1].Trim())
-    $r = (& python (Join-Path $repo 'i76-save-editor.py') --dir $dstGame --check 2>&1 | Out-String).Trim()
+    $r = (& python (Join-Path $repo 'tools\save-editor\i76-save-editor.py') --dir $dstGame --check 2>&1 | Out-String).Trim()
     [void]$checks.Add("save editor --check: exit $LASTEXITCODE - " + ($r -split "`n")[0].Trim())
 } else { [void]$checks.Add('python not found: lint-input-map and save --check NOT run') }
 $sh = [IO.File]::ReadAllBytes((Join-Path $dstGame 'i76shell.dll'))

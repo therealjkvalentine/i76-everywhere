@@ -16,7 +16,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PREFIX = os.path.expanduser(
     "~/Applications/Sikarugir/Interstate 76 Gold.app/Contents/SharedSupport/prefix")
 IMAP = PREFIX + "/drive_c/GOG Games/Interstate 76/input.map"
-AHK = os.path.join(REPO, "i76-remap.ahk")
+AHK = os.path.join(REPO, "windows", "i76-remap.ahk")
 
 BTN_NAMES = {1: "A", 2: "B", 3: "X", 4: "Y", 5: "LB", 6: "RB", 7: "Select",
              8: "Start", 9: "L3", 10: "R3", 11: "Paddle 1", 12: "Paddle 2",
@@ -232,7 +232,7 @@ document.getElementById('shiftbtn').textContent=document.body.classList.contains
 </head><body>
 <h1>Interstate '76 — controller layout</h1>
 <p class="note">Generated {stamp} from the live input.map + i76-remap.ahk annotations.
-Element names per the generic gamepad template. Rerun <code>open-pad-diagram.command</code>
+Element names per the generic gamepad template. Rerun <code>mac/open-pad-diagram.command</code>
 any time — never edit this file.</p>
 <button id="shiftbtn" onclick="tg()">Showing: BASE — click to hold LB</button>
 <svg viewBox="-180 0 1280 420" xmlns="http://www.w3.org/2000/svg">{''.join(svg)}</svg>

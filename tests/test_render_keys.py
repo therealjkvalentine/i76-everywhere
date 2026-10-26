@@ -13,7 +13,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-LAUNCHER = os.path.join(REPO, "PLAY-i76.ps1")
+LAUNCHER = os.path.join(REPO, "windows", "PLAY-i76.ps1")
 TEMPLATE = os.path.join(REPO, "tools", "conf", "dgVoodoo.daily-wide-ss2x-2026-10-12.conf")
 POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
 pytestmark = pytest.mark.skipif(not POWERSHELL, reason="needs Windows PowerShell")

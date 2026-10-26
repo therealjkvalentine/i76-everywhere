@@ -19,6 +19,7 @@
 # already be a working DxWnd install (setup-dxwnd.sh / mac-install.command). Nitro is not touched.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$HERE/.." && pwd)"   # the repo root: this script lives in mac/
 APP="${1:-$HOME/Applications/Sikarugir/Interstate 76 Gold.app}"
 P="$APP/Contents/SharedSupport/prefix"
 G="$P/drive_c/GOG Games/Interstate 76"
@@ -45,7 +46,7 @@ mkdir -p "$CACHE"
 if [ ! -d "$OG/.git" ]; then git clone -q https://github.com/voyageur/openglide.git "$OG"; fi
 ( cd "$OG" && git am --abort >/dev/null 2>&1 || true
   git -c advice.detachedHead=false checkout -q ad9a3dd
-  git -c user.name=i76 -c user.email=i76@local am -q "$HERE"/tools/openglide-hd/*.patch
+  git -c user.name=i76 -c user.email=i76@local am -q "$REPO"/tools/openglide-hd/*.patch
   CXX=i686-w64-mingw32-g++ sh build-mingw.sh >/dev/null )
 [ -f "$OG/glide2x.dll" ] || die "OpenGLide build failed"
 keep "$G/Glide2x.dll"
@@ -55,7 +56,7 @@ keep "$G/OpenGLid.INI"
 printf 'Configuration File for OpenGLide\r\n\r\nVersion=0.09rc9\r\n\r\n[Options]\r\nWrapperPriority=2\r\nCreateWindow=1\r\nInitFullScreen=0\r\nEnableMipMaps=0\r\nIgnorePaletteChange=0\r\nWrap565to5551=1\r\nEnablePrecisionFix=1\r\nEnableMultiTextureEXT=1\r\nEnablePaletteEXT=1\r\nEnableVertexArrayEXT=0\r\nTextureMemorySize=2\r\nFrameBufferMemorySize=2\r\nNoSplash=1\r\nWinOpenDelayMS=0\r\nResolution=0\r\n' > "$G/OpenGLid.INI"
 
 echo "== 2/6 music-fix proxy"
-"$HERE/music-fix/build-mac.sh" "$CACHE/Strlkup.mac.dll" >/dev/null
+"$REPO/music-fix/build-mac.sh" "$CACHE/Strlkup.mac.dll" >/dev/null
 # the original goes to strlkup_orig.dll once (the proxy forwards to it by that name); never overwrite it
 if [ ! -f "$G/strlkup_orig.dll" ]; then
     [ -f "$G/STRLKUP.DLL" ] || [ -f "$G/Strlkup.dll" ] || die "no Strlkup.dll in the game folder"
