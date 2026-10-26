@@ -302,6 +302,8 @@ build_app() {   # build_app <gold|nitro> <GOG folder>
     else
         put "$PAY/nitro/Strlkup.dll" "$GD/Strlkup.dll"
         apply_patches nitro
+        # the Gold app's controls (controls/input.map lints clean against nitro.exe; MAC-NITRO-108-106-2026-10-26.md)
+        keep "$GD" input.map input.map.stock-gog; put "$PAY/gold/input.map" "$GD/input.map"
     fi
     # OpenGLide-HD (GOG ships OpenGLide; ours adds the Mac output modes, gamma and HD textures) + its INI
     keep "$GD" glide2x.dll _gog-originals/glide2x.dll; keep "$GD" OpenGLid.INI _gog-originals/OpenGLid.INI
@@ -317,10 +319,9 @@ build_app() {   # build_app <gold|nitro> <GOG folder>
     mkdir -p "$WINEPREFIX/drive_c/dxwnd"; tar -xf "$dx" -C "$WINEPREFIX/drive_c/dxwnd"
     dxwnd_ini "$kind" "$WINEPREFIX/drive_c/dxwnd/dxwnd.ini"
     ok "window shape ${DXW}x${DXH} (main display $(display_size))"
-    if [ "$kind" = gold ]; then   # the mouse-button / wheel remapper the Gold launcher starts when present
-        mkdir -p "$WINEPREFIX/drive_c/AutoHotkey"
-        for f in AutoHotkeyU32.exe license.txt i76-remap.ahk; do cp "$PAY/ahk/$f" "$WINEPREFIX/drive_c/AutoHotkey/$f"; done
-    fi
+    # the pad / mouse-button remapper both launchers start when present (the Nitro launcher since 2026-10-26)
+    mkdir -p "$WINEPREFIX/drive_c/AutoHotkey"
+    for f in AutoHotkeyU32.exe license.txt i76-remap.ahk; do cp "$PAY/ahk/$f" "$WINEPREFIX/drive_c/AutoHotkey/$f"; done
 
     say "   registry"
     local reg="$WORK/$kind.reg"
@@ -355,6 +356,10 @@ build_app() {   # build_app <gold|nitro> <GOG folder>
     ok "Wine keys for $exe written and read back$( [ $kind = gold ] && echo ", graphics tier $TIER")$( [ -n "$NULLAUDIO" ] && echo ', NULL AUDIO')"
 
     xattr -dr com.apple.quarantine "$A" 2>/dev/null || true
+    # register the bundle now: macOS Local Network privacy maps the launcher's UUID to a bundle id through LaunchServices and
+    # caches it per bundle; a launcher replaced in place left the old UUID cached and the app's LAN unicasts denied
+    # (docs/records/MAC-NITRO-108-106-2026-10-26.md). -f re-registers, which refreshes that cache for this bundle id.
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$A" 2>/dev/null || true
     { echo "built by the I'76 Mac Kit $VERSION on $(date '+%Y-%m-%d %H:%M'), $(sw_vers -productVersion) $ARCH"
       echo "from $src"; echo "launcher $(md5of "$A/Contents/MacOS/Sikarugir"), graphics ${TIER:-n/a}, display ${DXW}x${DXH}"; } > "$A/Contents/i76-mac-kit.txt"
     ok "done: $A ($(du -sh "$A" | awk '{print $1}'))"

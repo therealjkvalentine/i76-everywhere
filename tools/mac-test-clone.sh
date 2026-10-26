@@ -4,6 +4,7 @@
 #   tools/mac-test-clone.sh make NAME [SOURCE.app]   APFS-clone SOURCE (default: the daily install) as NAME.app
 #   tools/mac-test-clone.sh run  NAME                start it from this shell (see "why run, not open")
 #   tools/mac-test-clone.sh stop NAME                kill its wineserver and everything under the bundle
+#   tools/mac-test-clone.sh remove NAME              unregister it from LaunchServices, then delete it
 #
 # NAME is a bundle name in ~/Applications/Sikarugir ("I76 IPX TEST") or a path to a .app.
 #
@@ -27,6 +28,13 @@
 #
 # The daily install is never modified. The clone gets its own bundle id so LaunchServices keeps the two apart,
 # and any user-folder symlink that leaves the prefix (Templates -> ~/Templates) becomes a plain folder.
+#
+# The clone's launcher also gets its OWN Mach-O UUID (2026-10-26, docs/records/MAC-NITRO-108-106-2026-10-26.md). macOS Local
+# Network privacy finds an app's bundle id from its main executable's UUID (UserEventAgent: "LocalNetwork: found bundle id
+# ... by UUID"), then applies that bundle id's Allow / Deny. Clones with the shipped launcher's UUID (Nitro 03B81E57) gave
+# macOS several bundle ids for one UUID; it picked a lab clone's (never allowed) for the SHIPPED app, whose LAN unicasts were
+# then dropped: the session listed, JOIN GAME ended in "Cannot open connection to game". A deleted clone keeps its
+# LaunchServices record (Trash paths included), so `remove` unregisters before it deletes.
 set -euo pipefail
 ROOT="$HOME/Applications/Sikarugir"
 DAILY="$ROOT/Interstate 76 Gold.app"
@@ -51,6 +59,21 @@ make)
     slug="$(basename "$APP" .app | tr -cs 'A-Za-z0-9' '.' | tr 'A-Z' 'a-z' | sed 's/^\.//; s/\.$//')"
     /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.i76everywhere.test.$slug" \
                             -c "Set :CFBundleName $(basename "$APP" .app)" "$APP/Contents/Info.plist"
+    # a fresh launcher UUID (see the header): never share the source app's Local Network identity
+    L="$APP/Contents/MacOS/Sikarugir"
+    if [ -f "$L" ] && [ ! -L "$L" ]; then
+        if perl -e '
+            my ($f, $u) = @ARGV; $u =~ s/-//g; open(my $h, "+<:raw", $f) or die; local $/; my $b = <$h>;
+            unpack("V", substr($b, 0, 4)) == 0xfeedfacf or die "not a thin 64-bit Mach-O\n";
+            my $n = unpack("V", substr($b, 16, 4)); my $o = 32;
+            for (1 .. $n) { my ($c, $z) = unpack("VV", substr($b, $o, 8));
+                if ($c == 0x1b) { seek($h, $o + 8, 0); print $h pack("H32", $u); close $h; exit 0 } $o += $z }
+            die "no LC_UUID\n";' "$L" "$(uuidgen)" && codesign -f -s - "$L" 2>/dev/null; then
+            echo "  launcher UUID $(dwarfdump --uuid "$L" | awk '{print $2}') (own; the source keeps its own)"
+        else
+            echo "mac-test-clone: warning: launcher UUID unchanged - this clone shares the source's Local Network identity" >&2
+        fi
+    fi
     # user folders that point out of the prefix: plain folders (a symlink into ~ is a TCC folder prompt)
     find "$P/drive_c/users" -maxdepth 2 -type l | while read -r l; do
         case "$(readlink "$l")" in /*) rm "$l"; mkdir "$l"; echo "  $(basename "$l"): plain folder" ;; esac
@@ -87,5 +110,10 @@ stop)
     pkill -9 -f "$(basename "$APP" | sed 's/[][\.*^$()+?{}|]/\\&/g')/Contents" 2>/dev/null || true
     echo stopped
     ;;
-*) die "unknown command $cmd (make | run | stop)" ;;
+remove)
+    pgrep -f "$(basename "$APP" | sed 's/[][\.*^$()+?{}|]/\\&/g')/Contents" >/dev/null && die "it is running - stop it first"
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$APP" 2>/dev/null || true
+    rm -rf "$APP"; echo "removed $APP (unregistered from LaunchServices)"
+    ;;
+*) die "unknown command $cmd (make | run | stop | remove)" ;;
 esac

@@ -10,7 +10,9 @@
 // loop that never saw "nitro.exe" and reaped every game after 120 s, and of a sweep that killed every Nitro app's game).
 //
 // Derived from i76-launch-stub.swift (same env, same quit detection, same bounded reap); differences: waits on
-// nitro.exe, no savegame.dir healing (Nitro has no save files), no AutoHotkey remapper.
+// nitro.exe, no savegame.dir healing (Nitro has no save files). Since 2026-10-26 (docs/records/MAC-NITRO-108-106-2026-10-26.md) it
+// starts the same AutoHotkey remapper as the Gold app when the prefix has it (pad buttons / triggers / right stick, mouse 4 / 5).
+// The arm64 build keeps Mach-O UUID 03B81E57-0956-3BBA-8D89-3C8EDF8713C4 (tools/mac-kit/build-stubs.sh).
 // Build: swiftc -O -o Sikarugir i76-nitro-app-stub.swift
 import Foundation
 import CoreGraphics
@@ -160,6 +162,21 @@ p.executableURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/wine/bin/win
 p.arguments = ["C:\\dxwnd\\dxwnd.exe", "/R:1"]          // profile 1 = nitro.exe -glide
 p.currentDirectoryURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/prefix/drive_c/dxwnd")
 try! p.run()
+
+// Input remapper, as the Gold stub: AutoHotkey inside this prefix turns the pad's XInput buttons / triggers / right stick and
+// mouse buttons 4 / 5 into the keys input.map binds. Skipped unless the prefix has C:\AutoHotkey\AutoHotkeyU32.exe and
+// i76-remap.ahk. #SingleInstance Force dedupes a relaunch; reap() ends it with the session (wineserver -k, killOwn).
+let ahkDir = A + "/Contents/SharedSupport/prefix/drive_c/AutoHotkey"
+var ahkProc: Process? = nil
+if FileManager.default.fileExists(atPath: ahkDir + "/AutoHotkeyU32.exe"),
+   FileManager.default.fileExists(atPath: ahkDir + "/i76-remap.ahk") {
+    let ahk = Process()
+    ahk.executableURL = URL(fileURLWithPath: A + "/Contents/SharedSupport/wine/bin/wine")
+    ahk.arguments = ["C:\\AutoHotkey\\AutoHotkeyU32.exe", "C:\\AutoHotkey\\i76-remap.ahk"]
+    try? ahk.run()
+    ahkProc = ahk
+}
+_ = ahkProc
 
 var booted = false
 for _ in 0..<120 {
