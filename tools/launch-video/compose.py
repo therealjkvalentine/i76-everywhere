@@ -222,6 +222,9 @@ def clip_chain(spec, w, h, label):
     f.append("scale=%d:%d:force_original_aspect_ratio=decrease:flags=lanczos" % (w, h))
     f.append("pad=%d:%d:(ow-iw)/2:(oh-ih)/2:color=%s" % (w, h, BG))
     f.append("fps=%d" % FPS)
+    if spec.get("oseek"):  # trim-filter seek: for files with a single keyframe, where input seek returns no frames
+        f.insert(0, "trim=start=%g:duration=%g" % (tin, tout - tin))
+        return ["-i", p], ",".join(f), (tout - tin) / sp, p
     return ["-ss", str(tin), "-t", str(tout - tin), "-i", p], ",".join(f), (tout - tin) / sp, p
 
 
@@ -232,7 +235,7 @@ def seg_card(i, s):
     for k, (txt, style) in enumerate(lines):
         ass.add(0, dur, style, txt, pos=(960, y0 + k * 140))
     sub = ass.write("s%02d.ass" % i)
-    ff(["-f", "lavfi", "-i", "color=c=%s:s=1920x1080:r=%d:d=%g" % (s.get("bg", BG), FPS, dur), "-vf", "subtitles=%s,fade=in:0:15,fade=out:st=%g:d=0.25" % (sub, dur - 0.25)] + ENC + ["s%02d.mp4" % i])
+    ff(["-f", "lavfi", "-i", "color=c=%s:s=1920x1080:r=%d:d=%g" % (s.get("bg", BG), FPS, dur), "-vf", "subtitles=%s,fade=in:0:15:color=0x140c08,fade=out:st=%g:d=0.25:color=0x140c08" % (sub, dur - 0.25)] + ENC + ["s%02d.mp4" % i])
 
 
 def text_layer(ass, s, dur):
@@ -252,7 +255,7 @@ def seg_clip(i, s):
     if s.get("speed", 1.0) != 1.0:
         ass.add(0, dur, "Label", "%gx" % float(s["speed"]), pos=(1780, 980), fade=(0, 0))
     sub = ass.write("s%02d.ass" % i)
-    ff(inp + ["-vf", "%s,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2" % (chain, sub, dur - 0.2)] + ENC + ["s%02d.mp4" % i])
+    ff(inp + ["-vf", "%s,subtitles=%s,fade=in:0:12:color=0x140c08,fade=out:st=%g:d=0.2:color=0x140c08" % (chain, sub, dur - 0.2)] + ENC + ["s%02d.mp4" % i])
 
 
 def seg_sbs(i, s):
@@ -272,7 +275,7 @@ def seg_sbs(i, s):
     if s["a"].get("speed", 1.0) != 1.0:
         ass.add(0, dur, "Label", "%gx" % float(s["a"]["speed"]), pos=(1760, 222), fade=(0, 0))
     sub = ass.write("s%02d.ass" % i)
-    fc = "[0:v]%s[a];[1:v]%s[b];[a][b]hstack=2,pad=1920:1080:0:270:color=%s,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2[v]" % (ca, cb, BG, sub, dur - 0.2)
+    fc = "[0:v]%s[a];[1:v]%s[b];[a][b]hstack=2,pad=1920:1080:0:270:color=%s,subtitles=%s,fade=in:0:12:color=0x140c08,fade=out:st=%g:d=0.2:color=0x140c08[v]" % (ca, cb, BG, sub, dur - 0.2)
     ff(ia + ib + ["-filter_complex", fc, "-map", "[v]", "-t", str(dur)] + ENC + ["s%02d.mp4" % i])
 
 
@@ -287,7 +290,7 @@ def seg_still(i, s):
     for k, ln in enumerate(s.get("notes", [])):
         ass.add(0.5 + 0.6 * k, dur, "Sub", ln, pos=(1700, 330 + 150 * k), extra="\\fs40\\q2")
     sub = ass.write("s%02d.ass" % i)
-    vf = ("scale=2560:1920:flags=lanczos,zoompan=z='%s':x='%s':y='%s':d=%d:s=1440x1080:fps=%d,pad=1920:1080:%d:0:color=%s,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2"
+    vf = ("scale=2560:1920:flags=lanczos,zoompan=z='%s':x='%s':y='%s':d=%d:s=1440x1080:fps=%d,pad=1920:1080:%d:0:color=%s,subtitles=%s,fade=in:0:12:color=0x140c08,fade=out:st=%g:d=0.2:color=0x140c08"
           % (zexp, xexp, yexp, n, FPS, s.get("x", 0), BG, sub, dur - 0.2))
     ff(["-loop", "1", "-i", img, "-vf", vf, "-frames:v", str(n)] + ENC + ["s%02d.mp4" % i])
 
@@ -302,7 +305,7 @@ def seg_panel(i, s):
         counters(ass, overlay_for(pg), s["game"]["_tin"], 1.0, dur, (640, 940), s["game"].get("tag", ""))
     sub = ass.write("s%02d.ass" % i)
     fc = ("[0:v]%s[g];[1:v]scale=640:1080:force_original_aspect_ratio=decrease:flags=lanczos,pad=640:1080:0:0:color=%s,fps=%d,setpts=PTS-STARTPTS[p];"
-          "color=c=%s:s=1920x1080:r=%d[bg];[bg][g]overlay=0:180[t];[t][p]overlay=1280:0:shortest=1,subtitles=%s,fade=in:0:12,fade=out:st=%g:d=0.2[v]"
+          "color=c=%s:s=1920x1080:r=%d[bg];[bg][g]overlay=0:180[t];[t][p]overlay=1280:0:shortest=1,subtitles=%s,fade=in:0:12:color=0x140c08,fade=out:st=%g:d=0.2:color=0x140c08[v]"
           % (cg, BG, FPS, BG, FPS, sub, dur - 0.2))
     ff(ig + ["-ss", str(pin), "-t", str(dur), "-i", pp, "-filter_complex", fc, "-map", "[v]", "-t", str(dur)] + ENC + ["s%02d.mp4" % i])
 
@@ -323,7 +326,7 @@ def seg_crawl(i, s):
         top.add(1.0, dur, "Small", s["aside"], pos=(1700, 1040), fade=(200, 0))
     sub2 = top.write("s%02db.ass" % i)
     ff(["-f", "lavfi", "-i", "color=c=%s:s=1920x1080:r=%d:d=%g" % (BG, FPS, dur), "-vf",
-        "subtitles=%s,drawbox=x=0:y=0:w=1920:h=140:color=%s@1:t=fill,subtitles=%s,fade=in:0:10,fade=out:st=%g:d=0.25" % (sub, BG, sub2, dur - 0.25)] + ENC + ["s%02d.mp4" % i])
+        "subtitles=%s,drawbox=x=0:y=0:w=1920:h=140:color=%s@1:t=fill,subtitles=%s,fade=in:0:10:color=0x140c08,fade=out:st=%g:d=0.25:color=0x140c08" % (sub, BG, sub2, dur - 0.25)] + ENC + ["s%02d.mp4" % i])
 
 
 R = {"card": seg_card, "clip": seg_clip, "sbs": seg_sbs, "still": seg_still, "panel": seg_panel, "crawl": seg_crawl}
