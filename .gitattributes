@@ -47,3 +47,6 @@ dgVoodoo.daily-driver-2026-10-03.conf   text eol=crlf
 # must stay LF in a Windows working copy too (a CR at a URL's end breaks curl). The launch stubs are Mach-O binaries.
 tools/mac-kit/**                text eol=lf
 tools/mac-kit/stubs/Sikarugir-* binary
+
+# Windows batch files: CRLF in the working tree always (cmd.exe wants it), LF in the repo like everything else.
+*.bat text eol=crlf
