@@ -10,7 +10,7 @@
     3. copy -GogDir -> -OutDir, the stage over it (the same as unzipping the tester zip into a GOG folder)
     4. _i76e\i76e-prepare.ps1 -Preset <p>      the first-run setup (setup-windows.ps1, Apply-Shell-Keys, u32x, dgVoodoo, controls)
                                                + the display fit (Make-Wide-Conf: dgVoodoo.wide.conf + the presets' I76_ASPECT)
-    Then <OutDir>\PLAY.bat (stable, tick19-42) / PLAY-PREVIEW.bat (preview) / PLAY-T05*.bat start it; UNINSTALL-i76e.bat
+    Then <OutDir>\PLAY.bat (tick19-42) / PLAY-T05*.bat start it; UNINSTALL-i76e.bat
     puts the GOG files back. README-PATCH-KIT.md in the copy explains the launchers and keys.
 
   Nitro Pack (nitro.exe): the same steps; step 4 runs i76e-prepare.ps1 -Game Nitro (since 2026-10-25 the kit's own Nitro route).
@@ -141,7 +141,7 @@ if ($Display) { $pa += @('-Display', $Display) }
 if ($NoSupersample) { $pa += '-NoSupersample' }
 & powershell.exe @pa
 if ($LASTEXITCODE) { Say "Build-From-GOG: $Game - i76e-prepare.ps1 exited $LASTEXITCODE; $OutDir is set up only partly (read the lines above and $OutDir\_i76e\setup.log)" 'Red'; $failed += $Game; continue }
-if ($Game -eq 'Gold') { Say "=== done: $OutDir\PLAY.bat (stable) / PLAY-PREVIEW.bat (graphics preview); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
+if ($Game -eq 'Gold') { Say "=== done: $OutDir\PLAY.bat; README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
 else { Say "=== done: $OutDir\PLAY-Nitro.bat (preset $(if ($Preset -and $Preset -ne 'tick19-42') { $Preset } else { 'nitro-tick42' })); README-PATCH-KIT.md there; UNINSTALL-i76e.bat undoes it ===" 'Green' }
 }
 if ($failed.Count) { exit 1 }

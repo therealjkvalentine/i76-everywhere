@@ -14,13 +14,12 @@ What it gives you, in one line each:
   refresh rate, in between those steps.
 - **Any monitor shape**: ultrawide, 16:9, 16:10 or 4:3 - the launcher reads your monitor and sizes the picture. The
   3D view is wider on a wide screen (you see more, nothing is stretched); the menus stay 4:3 with bars.
-- **Three times the draw distance** (1.8 km instead of 600 m), with roads and bushes all the way out, more terrain
-  detail, shadows and textures farther away, a rear-view mirror that sees 300 m.
+- **Four times the draw distance** (2.3 km instead of 600 m), with roads and bushes all the way out and the last quarter
+  fading into the sky instead of a hard edge. Hills blend in as you approach instead of popping, the shading no longer
+  steps, and the rear-view mirror sees 1 km with the same ground textures as the main view.
 - **Menus that work with a modern mouse** (the pointer lands where you click), a save screen you can type in, and
   keyboard shortcuts for the popups (Enter / Space / Y / N).
 - **A WASD-style keyboard layout** (the full table is below) plus gamepad and wheel support.
-- A second launcher with the **graphics experiments** the developer is working on right now (smoother terrain, 2.3 km view
-  fading out at the far edge). That one is unpolished on purpose - he wants your eyes on it.
 
 ## What you need
 
@@ -59,10 +58,9 @@ right-click -> *Run as administrator*, or (better) tell Galaxy to install the ga
 
 | file | what it starts |
 |---|---|
-| **`PLAY.bat`** | **STABLE.** Exactly the set the developer plays every day: the 1997 timing at 120 fps, widescreen, 1.8 km view, every fix that has passed his testing. |
-| **`PLAY-PREVIEW.bat`** | **EXPERIMENTAL GRAPHICS PREVIEW.** The same base plus the developer's current graphics picks: smoother terrain shading and terrain that morphs in instead of popping, a 2.3 km view whose last quarter fades out to transparent (no fog colour), bushes at half density carried farther out, a rear-view mirror that sees 1 km with the main view's ground textures, a slightly softer nose-dive on jumps. Not finished, not gated - it exists so you can compare it with `PLAY.bat`. |
-| `PLAY-T05.bat` / `PLAY-PREVIEW-T05.bat` | The same two, but they boot **straight into mission 5** (the long ridge road down to the barn) with a stock car, skipping the menus and movies. The quickest way to look at the terrain. |
-| `PLAY-16x10.bat`, `PLAY-balanced.bat`, `PLAY-stock.bat`, `PLAY-i76.bat` | Written by the setup. `PLAY-16x10.bat` = the older tested 16:10 picture (a fallback if the widescreen one looks wrong); `PLAY-stock.bat` = the game with none of our engine changes (a control); the other two are variants of the stable set. |
+| **`PLAY.bat`** | The set the developer plays every day: the 1997 timing at 120 fps, widescreen, the 2.3 km view with terrain that morphs in instead of popping and fades out at the far edge, bushes at half density carried farther out, a rear-view mirror that sees 1 km, every fix that has passed his testing. (Until v0.8.1 the graphics half of this was a second launcher, `PLAY-PREVIEW.bat`; it is now the default and that launcher is gone. The jump physics are the 1997 ones.) |
+| `PLAY-T05.bat` | The same, but it boots **straight into mission 5** (the long ridge road down to the barn) with a stock car, skipping the menus and movies. The quickest way to look at the terrain. |
+| `PLAY-16x10.bat`, `PLAY-balanced.bat`, `PLAY-stock.bat`, `PLAY-i76.bat` | Written by the setup. `PLAY-16x10.bat` = the older tested 16:10 picture (a fallback if the widescreen one looks wrong); `PLAY-stock.bat` = the game with none of our engine changes (a control); the other two are variants of the default set. |
 | `PLAY-Nitro.bat` | Only for the **Nitro Pack** folder (see "Nitro Pack" below). In a Gold folder it says so and does nothing. |
 | `UNINSTALL-i76e.bat` | Puts your folder back the way GOG installed it (see the end). |
 | `INSTALL-EXTRAS.bat` | **Optional extras** (below): community maps, head look, Python for the debug tool, German voices, your own extra music. |
@@ -97,7 +95,7 @@ What Nitro gets: the same 41.667 ms simulation step at up to 120 fps, widescreen
 1.2 km view with the farther terrain / road / shadow detail, the ground and hull fixes, dgVoodoo 2.87.5, and Enter /
 Space / Y / N / Esc in the shell's popups. What it does not get (yet): our WASD key layout and the gamepad / wheel button
 layer (Nitro keeps **GOG's own Nitro keys**, plus mouse buttons and the gamepad's stick and buttons 1 / 3 / 4), the
-menu-mouse DLL, the graphics preview and the mission-5 launchers, and the debug dashboard. The options `--no-supersample`,
+menu-mouse DLL, the terrain morph / fade / mirror set, the mission-5 launcher, and the debug dashboard. The options `--no-supersample`,
 `--display WxH`, `--setup` and `--resetup` work as for `PLAY.bat`. `UNINSTALL-i76e.bat` undoes it the same way.
 
 If you have both games, unzip the kit into each folder; the two installs do not share anything.
@@ -333,9 +331,9 @@ Send your answers, screenshots and the files below as a GitHub issue (see "Probl
 1. **Terrain popping** (the main thing we want checked). Start `PLAY-T05.bat`, press `F6` for the hood view and drive
    the road up over the ridge and down to the barn (about two minutes; `I` starts the engine if it is off). Watch
    the ground a few hundred metres ahead: do hills change shape, "step" or pop as you approach? Does the far edge
-   of the world look odd? Then do the same drive with `PLAY-PREVIEW-T05.bat`. Is it smoother? Do you see any
-   sliding or wobbling of the far ground, flicker in the shading, or does the fade-out at the far edge look wrong?
-   Which of the two would you rather play?
+   of the world look odd? Do you see any sliding or wobbling of the far ground, flicker in the shading, or does the
+   fade-out at the far edge look wrong? If you want the old hard-edged 1.8 km view back to compare, set
+   `draw distance = 1800` in `SETTINGS.bat` and tell us which you would rather play.
 2. **Smoothness and feel.** Does `PLAY.bat` feel like Interstate '76 (handling, the mission 5 canyon jump near the
    start, how fast the AI cars react, how fast damage comes)? Any stutter, especially when new terrain appears?
 3. **Menus.** Does the pointer land on the buttons? Does saving a bookmark (typing a name, overwriting) work? Does
@@ -393,7 +391,7 @@ replaced it (a map you changed meanwhile is kept as `input.map.i76e-last`; a map
 `I76PLYR.DEF` gets back only the three detail settings the kit changed (all your other options stay); `presets\local.psd1` and any layer
 script you edited are kept in `_i76e\backup\`. One file will differ if you have played: the game
 itself rewrites `Lee.fot` as you play (Gold), so a hash check after playing shows that one difference - that is the game's, not ours.
-Then delete `PLAY.bat`, `PLAY-PREVIEW.bat`, `PLAY-T05.bat`, `PLAY-PREVIEW-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `FIREWALL.bat`, `CONTROLS.bat`, `UPDATE.bat`, `i76-settings.txt`,
+Then delete `PLAY.bat`, `PLAY-T05.bat`, `PLAY-Nitro.bat`, `UNINSTALL-i76e.bat`, `INSTALL-EXTRAS.bat`, `SETTINGS.bat`, `FIREWALL.bat`, `CONTROLS.bat`, `UPDATE.bat`, `i76-settings.txt`,
 `README-PATCH-KIT.md`, the `_ipx` folder and the `_i76e` folder yourself (look in `_i76e\backup\` first: your own files from before the kit are there). The backups it kept (`i76.exe.u32xorig`, `i76shell.dll.orig`,
 `i76shell.dll.pre-i76e-keys` / `nitshell.dll.pre-i76e-keys`, `input.map.stock-*` / `input.map.pre-windows-setup`) are safe to delete. Bookmarks
 stay: if the setup copied in our set because you had none, those `save*.cmp` files and `savegame.dir` are left for you to keep or delete. GOG

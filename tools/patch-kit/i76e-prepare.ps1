@@ -1,5 +1,5 @@
 <#
-  i76e-prepare.ps1 - what PLAY.bat / PLAY-PREVIEW.bat / PLAY-Nitro.bat of the Patch Kit run BEFORE the game starts (tester build
+  i76e-prepare.ps1 - what PLAY.bat / PLAY-Nitro.bat of the Patch Kit run BEFORE the game starts (tester build
   2026-10-23, tools\package-patch-kit.ps1 puts this file and its payload in <game>\_i76e\, the .bat files beside the exe).
 
   The folder decides the game: i76.exe = Interstate '76 Gold (GOG), nitro.exe = the Nitro Pack (GOG) (2026-10-25: the kit covers
@@ -116,7 +116,7 @@ $exeName = if ($isNitro) { 'nitro.exe' } else { 'i76.exe' }
 $gameName = if ($isNitro) { "Interstate '76 Nitro Pack" } else { "Interstate '76 Gold" }
 if (-not $Preset) { $Preset = if ($isNitro) { 'nitro-tick42' } else { 'tick19-42' } }
 if ($isNitro -and $Preset -ne 'nitro-tick42' -and $Preset -ne 'stock') { $Preset = 'nitro-tick42' }   # a Gold preset name from an old .bat
-$widePresets = if ($isNitro) { @('nitro-tick42') } else { @('tick19-42', 'preview', 'best-wide', 'best-wide-balanced') }
+$widePresets = if ($isNitro) { @('nitro-tick42') } else { @('tick19-42', 'best-wide', 'best-wide-balanced') }
 
 $version = (Get-Content (Join-Path $here 'VERSION.txt') -TotalCount 1).Trim()
 # Mark of the Web: a zip downloaded from GitHub and extracted without ticking Unblock tags every file (Zone.Identifier), and
@@ -201,7 +201,7 @@ if ($Uninstall) {
     foreach ($d in 'presets', '_ahk', '_tools') { Remove-Item -LiteralPath (Join-Path $gameDir $d) -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $stampFile, $dispFile -Force -ErrorAction SilentlyContinue
     Say "Done: the game files are back the way GOG installed them; your own control and option files are as you had them." 'Green'
-    Say "Left for you to delete: PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat, PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat,"
+    Say "Left for you to delete: PLAY.bat, PLAY-T05.bat, PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat,"
     Say "README-PATCH-KIT.md, the _i76e folder and the _ipx folder (the internet-relay IPXWrapper). The backups beside the game files (*.u32xorig, *.orig, *.pre-i76e-keys, input.map.stock-*,"
     Say "input.map.pre-windows-setup) are safe to delete too. GOG Galaxy's 'verify / repair' also restores everything."
     Say "_i76e\backup\ holds your control / option files from before the kit (and local.psd1): look there before deleting _i76e."
@@ -257,7 +257,7 @@ if ($need) {
         #    I76PLYR.DEF is the exe's 96-byte options block (<re-archive> data\FORMATS.md s.10). A fresh GOG 2.1.0.17 install has
         #    +0x4A / +0x4D / +0x4E = 1 / 1 / 0, the release candidate 2 / 2 / 1; at the GOG values the rear-view mirror is at its
         #    middle level, objects only on a flat sky-coloured background (MIRROR-DETAIL-2026-10-23 s.1: the 300 m / 1000 m mirror
-        #    and the preview's mirror textures never show). Seen on a lab test copy 2026-10-23: flat mirror at 1/1/0, road, terrain and
+        #    and the mirror's terrain textures never show). Seen on a lab test copy 2026-10-23: flat mirror at 1/1/0, road, terrain and
         #    clouds in it at 2/2/1. Original kept as I76PLYR.DEF.pre-i76e; the game's Options > Graphic Detail menu changes them later.
         $def = Join-Path $gameDir 'I76PLYR.DEF'
         if (-not $isNitro -and (Test-Path -LiteralPath $def)) {
@@ -335,7 +335,7 @@ if ($didSetup -or $SetupOnly) {
     Write-Host ''
     $bat = if ($isNitro) { 'PLAY-Nitro.bat' } else { 'PLAY.bat' }
     Write-Host "  To play: double-click $bat in this folder (it checks your monitor each time and starts the game)."
-    if (-not $isNitro) { Write-Host '           PLAY-PREVIEW.bat = the same with the graphics preview; PLAY-T05.bat = straight into mission 5.' }
+    if (-not $isNitro) { Write-Host '           PLAY-T05.bat = straight into mission 5 (the ridge road to the barn), no menus.' }
     if (Test-Path -LiteralPath (Join-Path $gameDir 'input.map.i76e-default')) {
         Write-Host '  Your own key bindings (input.map) were KEPT. The kit''s layout is beside it as input.map.i76e-default;' -ForegroundColor Yellow
         Write-Host '  CONTROLS.bat switches: keep mine / use the kit''s layout / restore mine from the backup.' -ForegroundColor Yellow

@@ -135,7 +135,7 @@ Dash, `i76motion` 144 B; validator, golden tests).
 
 The owner's picks of 2026-10-23 live as `OWNER-2300-ALL` in lab `exp-polish2` (one-pass sky, stateless morph + BIG
 unset + NEAR 100, SHADE 3, shade smooth, Glide fog 0.75, feather, sparse bushes, clutter alpha fade 150, 2300 m,
-mirror detail; proxy `6e4e7c49`) and as the patch kit's `PLAY-PREVIEW`. None of it is in the daily driver or the RC.
+mirror detail; proxy `6e4e7c49`) and, since v0.8.2 (2026-10-27), as the patch kit's `PLAY.bat` (preset tick19-42, all but the jump-pitch key).
 
 | item | status | source |
 |---|---|---|

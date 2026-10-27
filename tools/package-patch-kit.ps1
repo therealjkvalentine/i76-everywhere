@@ -15,7 +15,7 @@
                      against the pins PLAY-i76.ps1 uses), its licence, readme and the exact source as a zip: PLAY.bat --relay
                      <address>:<port> (internet play through tools\relay\pyrelay.py, issue #113, docs\records\RELAY-DESKTOP-2026-10-25.md)
                      copies them beside the exe for that launch only
-    _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-PREVIEW.bat, PLAY-T05.bat, PLAY-PREVIEW-T05.bat,
+    _i76e\i76e-prepare.ps1, VERSION.txt, MD5SUMS;  PLAY.bat, PLAY-T05.bat,
     PLAY-Nitro.bat, UNINSTALL-i76e.bat, INSTALL-EXTRAS.bat, SETTINGS.bat, FIREWALL.bat, CONTROLS.bat, UPDATE.bat, README-PATCH-KIT.md
   CONTROLS.bat (_i76e\i76e-controls.ps1) and UPDATE.bat (_i76e\i76e-update.ps1) since 0.8.1 (kit-controls lane 2026-10-25,
   docs\records\KIT-CONTROLS-UPDATER-2026-10-25.md): the player's own bindings are kept by the setup, CONTROLS.bat chooses, UPDATE.bat
@@ -43,7 +43,7 @@ param(
     [string]$IpxRelayDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\ipxwrapper-master-20261025\out'),
     [string]$IpxRelaySrc = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\ipxwrapper-master-20261025\src'),
     [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\patch-kit'),
-    [string]$Version = '0.8.1',
+    [string]$Version = '0.8.2',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''
 )
@@ -58,6 +58,7 @@ $dirty = @(git -C $repo status --porcelain -- windows shared/presets shared/cont
 if ($dirty.Count) { Say "WARNING: uncommitted changes in shipped files (commit first so VERSION.txt names what shipped):`n  $($dirty -join "`n  ")" 'Yellow' }
 if (-not (Test-Path -LiteralPath $Proxy)) { Die "proxy not found: $Proxy" }
 $proxyMd5 = Md5 $Proxy
+if (-not $ProxyCommit) { Say "WARNING: -ProxyCommit not given: VERSION.txt will say the proxy was built from HEAD ($sha). Pass the commit it was really built from (the v0.8.0 / v0.8.1 / v0.8.2 proxy c54210f8 = 935f897)." 'Yellow' }
 if (-not $Stage) { $Stage = Join-Path $env:TEMP "patch-kit-stage-$Stamp" }
 if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -Force }
 $i76e = Join-Path $Stage '_i76e'; $sr = Join-Path $i76e 'repo'
@@ -79,7 +80,7 @@ $files = @(
     'tools\trainer\i76trainer_gui.py', 'tools\trainer\i76trainer.py', 'tools\trainer\i76trn.h', 'tools\trainer\README-GUI.md',
     'tools\telemetry\i76tel.py', 'tools\telemetry\i76tel.h', 'tools\telemetry\i76tel_v2.h',
     'docs\Interstate76-Controls-Quick-Reference.pdf', 'docs\CONTROLS.md',
-    'presets\tick19-42.psd1', 'presets\preview.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
+    'presets\tick19-42.psd1', 'presets\best-120.psd1', 'presets\best-wide.psd1', 'presets\best-wide-balanced.psd1', 'presets\stock.psd1', 'presets\nitro-tick42.psd1',
     'saves\savegame.dir',
     # the internet relay (issue #113): whoever hosts runs _i76e\repo\tools\relay\RUN-RELAY.bat (players need only PLAY.bat --relay)
     'tools\relay\pyrelay.py', 'tools\relay\relay.ini', 'tools\relay\relay-tool.ps1', 'tools\relay\RUN-RELAY.bat', 'tools\relay\RELAY-FIREWALL.bat',
@@ -273,10 +274,8 @@ start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden 
 "@
 }
 $t05 = ' -Mission t05.msn -SkipMovies'
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY.bat') (Bat 'tick19-42' '' 'STABLE - the set the developer plays (tick 41.667 ms, 120 fps, widescreen, 1800 m view, every promoted fix)') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW.bat') (Bat 'preview' '' 'EXPERIMENTAL GRAPHICS PREVIEW (smoothed + morphing terrain, 2300 m view fading out at the far edge, sparser bushes, 1000 m mirror with full textures) on the same stable base') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-T05.bat') (Bat 'tick19-42' $t05 'STABLE, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
-Set-Content -LiteralPath (Join-Path $Stage 'PLAY-PREVIEW-T05.bat') (Bat 'preview' $t05 'EXPERIMENTAL GRAPHICS PREVIEW, straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY.bat') (Bat 'tick19-42' '' 'the set the developer plays (tick 41.667 ms, 120 fps, widescreen, 2300 m view fading out at the far edge, terrain that morphs in, 1000 m mirror, every promoted fix)') -Encoding ascii
+Set-Content -LiteralPath (Join-Path $Stage 'PLAY-T05.bat') (Bat 'tick19-42' $t05 'straight into mission 5 (the ridge road to the barn), no menus, a stock car') -Encoding ascii
 Set-Content -LiteralPath (Join-Path $Stage 'PLAY-Nitro.bat') @"
 @echo off
 REM Interstate '76 NITRO PACK - i76-everywhere tester build $Stamp (repo $sha): for a GOG Nitro Pack folder (the one with nitro.exe).
@@ -392,7 +391,7 @@ $u32xMd5 = Md5 (Join-Path $sr 'u32x\u32x_full.dll')
     "i76-everywhere tester build, packed $(Get-Date -Format 'yyyy-MM-dd HH:mm') by tools\package-patch-kit.ps1 from repo commit $sha",
     "proxy Strlkup.dll md5 $proxyMd5 (clean build of commit $(if ($ProxyCommit) { $ProxyCommit } else { $sha }), MSVC x86 /MT /O2)",
     "u32x_full.dll md5 $u32xMd5; dgVoodoo 2.87.5 (unmodified x86 components; 2.87.3 kept in _i76e\dgVoodoo-2.87.3 as fallback); AutoHotkey $ahkVer (GPL)",
-    "PLAY.bat = preset tick19-42 (stable); PLAY-PREVIEW.bat = preset preview (the experimental graphics preview); PLAY-Nitro.bat = the Nitro Pack (nitro.exe), preset nitro-tick42",
+    "PLAY.bat = preset tick19-42 (the one Gold preset since v0.8.2); PLAY-Nitro.bat = the Nitro Pack (nitro.exe), preset nitro-tick42",
     "CONTROLS.bat = keep / switch / restore the player's own key bindings (_i76e\i76e-controls.ps1); UPDATE.bat = the newest kit from GitHub (_i76e\i76e-update.ps1)",
     "INSTALL-EXTRAS.bat = optional extras (_i76e\i76e-extras.ps1 + extras.json: pinned downloads of community maps, opentrack, Python; German voices from the user's disc; private extra music)",
     "_ipx\relay = IPXWrapper master $($ipxCommit.Substring(0, 7)) (GPL-2.0, unmodified, source zip included) for PLAY.bat --relay <address>:<port> (internet play; tools\relay\JOIN-RELAY.md)"

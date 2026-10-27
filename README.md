@@ -35,10 +35,14 @@ https://github.com/user-attachments/assets/adcb8b46-3d7a-4385-9d5d-36a5fdf64612
 ## What changes
 
 - **Smooth:** 120 fps instead of 20, with the game's timing kept as designed.
-- **Far:** you can see 1.8 to 2.3 km instead of 600 m, and the terrain no longer pops.
+- **Far:** you can see 2.3 km instead of 600 m, hills blend in instead of popping, and the far edge fades into the sky.
 - **Wide:** your screen's real shape (16:9, 21:9). You see more of the world instead of a stretched picture.
 - **Fixed:** Windows 11 start-up crashes, menus that miss your mouse clicks, and music that stops in missions.
 - **Controls:** keyboard, gamepad, wheel and flight stick layouts. Your own bindings are kept if you already have some.
+
+**How this differs from [I26](https://github.com/vahokif/i26):** I26 is a rebuild of the game in a modern engine. This kit runs the
+original 1997 executable and changes it from the outside, so what you play is the original game with the original handling,
+missions, saves and quirks. Both have their place; try both.
 
 Experimental, in the repo but not yet in the kit: LAN play with computer cars filling the empty seats, a two-player co-op
 campaign, and new Nitro Pack game types. The full list is in [docs/ENHANCEMENTS.md](docs/engine/ENHANCEMENTS.md).
