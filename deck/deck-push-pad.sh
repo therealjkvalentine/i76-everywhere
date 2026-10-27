@@ -15,9 +15,9 @@ for a in "$@"; do
 done
 if [ -z "$HOST" ]; then HOST="${I76_DECK_HOST:-deck@steamdeck.local}"; fi
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/.." && pwd)"; DEST="i76-deploy"
-ssh -o ConnectTimeout=10 "$HOST" "mkdir -p ~/$DEST/deck ~/$DEST/controls ~/$DEST/tools"
-scp -q "$REPO/controls/input.map" "$HOST:~/$DEST/controls/"
-scp -q "$REPO/i76-remap.ahk" "$HOST:~/$DEST/"
+ssh -o ConnectTimeout=10 "$HOST" "mkdir -p ~/$DEST/deck ~/$DEST/shared/controls ~/$DEST/tools"
+scp -q "$REPO/shared/controls/input.map" "$HOST:~/$DEST/shared/controls/"
+scp -q "$REPO/windows/i76-remap.ahk" "$HOST:~/$DEST/"
 scp -q "$REPO/tools/lint-input-map.py" "$HOST:~/$DEST/tools/"
 scp -q "$HERE/setup-deck-pad.sh" "$HERE/controller_neptune_i76_pad.vdf" "$HERE/i76-deck-launch.sh" \
        "$HERE/add-pad-shortcut.py" "$HERE/add-to-steam.py" "$HOST:~/$DEST/deck/"

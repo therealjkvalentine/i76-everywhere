@@ -5,7 +5,7 @@ r"""arena-pack.py - stage a community arena for Gold's ADDON\ (or Nitro's miss8/
     python -I tools/content-archive/arena-pack.py nitro <miss16 map> <lab game dir> --miss8 <8-bit map> --name gumball
 
 Why: 409 community mission files (every LSM i76comb* arena, the 1997 Activision bonus maps) are I76EDIT-1997 files,
-WREV 8. Measured 2026-10-24 (docs/CONTENT-FEASIBILITY-2026-10-25.md s.2): their WRLD is 318 bytes and lacks ONE field,
+WREV 8. Measured 2026-10-24 (docs/research/CONTENT-FEASIBILITY-2026-10-25.md s.2): their WRLD is 318 bytes and lacks ONE field,
 the 13-byte horizon .hzd name at body +0x86 (Gold/Nitro WREV 9 = 331 bytes); the author's title is there, 13 bytes
 early (+0x12e). Every 1997 exe (demo, 1.05, 1.06, 1.081, 1.083) expects WREV 8; Gold and Nitro expect WREV 9 (REV table
 0x500438: VERW 9) and read WRLD at fixed offsets (0x4b8a10: hour body +0x93, surfaces +0x97, far clip +0x137; title

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """make-music.py - the royalty-free soundtrack for the launch video: a 1970s-funk groove synthesised from scratch (numpy only,
 no samples, no third-party audio). Written for this project; released CC0 1.0 (public domain dedication) like any output of
-this script. The cut that carries the game's own theme is the separate '-theme' render (docs/LAUNCH-VIDEO-2026-10-25.md s.3).
+this script. The cut that carries the game's own theme is the separate '-theme' render (docs/release/LAUNCH-VIDEO-2026-10-25.md s.3).
 
   python make-music.py --out groove.wav --seconds 95 [--bpm 104] [--seed 76]
 

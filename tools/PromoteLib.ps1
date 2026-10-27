@@ -1,5 +1,5 @@
 <#
-  PromoteLib.ps1 - shared helpers for future promote-N scripts (added 2026-10-10, docs/CLEANUP-PLAN-2026-10-10.md s.7.1).
+  PromoteLib.ps1 - shared helpers for future promote-N scripts (added 2026-10-10, docs/status/CLEANUP-PLAN-2026-10-10.md s.7.1).
 
     . (Join-Path $PSScriptRoot 'PromoteLib.ps1')
 

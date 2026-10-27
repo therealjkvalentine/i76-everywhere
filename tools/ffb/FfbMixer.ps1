@@ -15,7 +15,7 @@
   ---------------------------------------------------------------------------
   I'76 has NO TYRE MODEL. Measured over two real drives, the yaw rate is whichever
   of two limits binds - steering geometry below 27 mph, a lateral-acceleration
-  ceiling above it (see docs/HANDLING-MODEL.md and Telemetry.ps1's header):
+  ceiling above it (see docs/engine/HANDLING-MODEL.md and Telemetry.ps1's header):
 
       yaw = sign(steer) * min( (v/L)*tan(|steer|*0.76), 31.0*|steer|/v )
 

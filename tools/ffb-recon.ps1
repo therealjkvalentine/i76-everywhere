@@ -15,7 +15,7 @@
 
   NOTE: do NOT open the Thrustmaster control panel to answer any of this. It takes
   the DirectInput device exclusively, which is itself a cause of "FFB stopped
-  working" (docs/WHEEL-T300.md). Everything below is read from the registry/PnP.
+  working" (docs/guides/WHEEL-T300.md). Everything below is read from the registry/PnP.
 #>
 $ErrorActionPreference = 'Continue'
 # NOTE: helper names must not collide with PowerShell ALIASES. `H` is Get-History

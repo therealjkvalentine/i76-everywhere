@@ -1,6 +1,6 @@
 # tools/haptics/motion - motion simulator output and its desk bench
 
-The motion half of the haptics host ([docs/MOTION-OUTPUT.md](../../../docs/MOTION-OUTPUT.md), phases M0-M3). The host turns
+The motion half of the haptics host ([docs/engine/MOTION-OUTPUT.md](../../../docs/engine/MOTION-OUTPUT.md), phases M0-M3). The host turns
 the game's telemetry into the UDP formats motion software already reads, so FlyPT Mover, SimHub or SimTools can drive a
 virtual (and later a real) rig from Interstate '76. Nothing here installs anything, launches the game or drives an
 actuator: the host only sends UDP to software on this PC, and only when you ask it to (`--send` / `--live`).
@@ -159,7 +159,7 @@ python tools\haptics\motion\i76motion.py --check tools\haptics\out\motion\synth-
 1000 i76motion packets at 100.3 Hz, interval p50 10.0 / p95 10.1 ms, no seq gaps; the sniffed braking log passes the
 braking table.
 
-## Safety (docs/MOTION-OUTPUT.md 6) - what is enforced now
+## Safety (docs/engine/MOTION-OUTPUT.md 6) - what is enforced now
 
 * **Fail-to-neutral**: no new physics state for 250 ms (or player absent / destroyed, or the 2 s startup hold) ramps every
   kinematic channel to 0 over 1 s, never a step; status bit 5 set; recovery ramps back. Live, the stale clock is the

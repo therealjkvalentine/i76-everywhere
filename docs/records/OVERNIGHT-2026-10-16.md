@@ -5,7 +5,7 @@ headless lab boots). Every number below is the lane's figure **as corrected by i
 or unsupported are listed under "Retracted" and are not findings. Nothing was pushed. The daily driver and the golden copy were
 read only.
 
-## Morning list (also appended to [../OWNER-TEST-LIST.md](../OWNER-TEST-LIST.md) as items 45-52, with notes on 1-2 and 36)
+## Morning list (also appended to [../OWNER-TEST-LIST.md](../process/OWNER-TEST-LIST.md) as items 45-52, with notes on 1-2 and 36)
 
 Ordered by priority, then minutes. Dropped as not owner work (verifiers): "more n for Gold's canyon kills" (a budget call agents can
 settle), "which car the lab T06 gives" (an agent can read it), "ramp-lip clip by hand" (run the 31.75 ms preset headless first; the
@@ -192,7 +192,7 @@ turns about a quarter less than Gold" was the Arcade Phys. option, not code.
 - The old retail-vs-Gold fps comparison was not like for like (retail SFX 0).
 - **Next:** agent log test of GAPLESS / TRUE_PAUSE with 5 s stand-in mp3s (n 2 each); retail-vs-Gold fps with SFX matched.
 
-### backlog-refresh ([../BACKLOG-2026-10-16.md](../BACKLOG-2026-10-16.md), [../STATUS-2026-10-16.md](../STATUS-2026-10-16.md); main 7a542a9; verify d504057)
+### backlog-refresh ([../BACKLOG-2026-10-16.md](../status/BACKLOG-2026-10-16.md), [../STATUS-2026-10-16.md](../status/STATUS-2026-10-16.md); main 7a542a9; verify d504057)
 - Every 10-10 backlog row re-marked; 17 new rows X-01..X-17; 11 code items; OWNER-TEST-LIST status tags without renumbering.
 - Driver: STRLKUP 509c6df0, u32x 06467bd2, shell a300db63; `mciproxy.log` last written 2026-10-08 07:43 (promotions 15 / 16 unplayed there).
 - Promotion 18 held, no P9 gate. ENHANCEMENTS.md stale (0 of 8 recent switches).

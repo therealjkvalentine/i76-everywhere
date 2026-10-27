@@ -37,7 +37,7 @@ launcher/trainer logic can *read* whether music should be playing instead of
 inferring it, and could set music volume live instead of re-encoding tracks.
 That's for intent/volume work only — the cutscene STOP belongs here in the
 SMACKW32 proxy, which is the correct trigger point. Details:
-[docs/MEMORY-MAP-INDEX.md](../docs/MEMORY-MAP-INDEX.md).
+[docs/engine/MEMORY-MAP-INDEX.md](../docs/engine/MEMORY-MAP-INDEX.md).
 
 ## Build (the DLL is not committed — repo ships no binaries)
 

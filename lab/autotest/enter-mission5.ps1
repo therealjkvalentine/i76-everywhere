@@ -6,7 +6,7 @@
   LOAD BOOKMARK path rather than NEW TRIP.
 
   Requires save002 (mission 5) in the game folder - check with:
-      python ..\..\i76-everywhere\i76-save-editor.py --dir <gamedir> --list
+      python ..\..\i76-everywhere\tools\save-editor\i76-save-editor.py --dir <gamedir> --list
 
   Flow (all coordinates calibrated, see lib/maplib.ps1):
     intro skip -> TRIP -> LOAD BOOKMARK -> SCENE 5 -> LOAD

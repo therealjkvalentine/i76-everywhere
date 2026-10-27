@@ -9,8 +9,8 @@ recipe, frame-gen smoothing, FFB, and an aspect-ratio cheat — the question is 
 that runs back under Wine on Apple Silicon. Short answer: **the single most valuable piece
 (the HD textures) transfers for free and is already proven on Mac; the frame-cap/input/music
 wins already work there; the frame-gen and the dgVoodoo supersampling are the Windows-only
-advantages.** Companion to [DXGI-DGVOODOO-RESEARCH.md](../DXGI-DGVOODOO-RESEARCH.md),
-[HD-TEXTURES-RESEARCH.md](../HD-TEXTURES-RESEARCH.md), [MAC-SETUP.md](MAC-SETUP.md).*
+advantages.** Companion to [DXGI-DGVOODOO-RESEARCH.md](../research/DXGI-DGVOODOO-RESEARCH.md),
+[HD-TEXTURES-RESEARCH.md](../research/HD-TEXTURES-RESEARCH.md), [MAC-SETUP.md](MAC-SETUP.md).*
 
 ## Why the texture pack is the free lunch (the load-bearing insight)
 
@@ -76,7 +76,7 @@ For now the honest recommendation is: **play the Mac version at native 20 FPS wi
 
 *(Note 2026-10-03: `setup-mac-hd-textures.sh` below is not in this repo, and `games/interstate-76/` is the path
 this folder had inside mac-gaming-ports. The HD texture pack was retired on 2026-07-27:
-[HD-TEXTURES-RESEARCH.md](../HD-TEXTURES-RESEARCH.md), `texture-lab/README.md`. Kept as the 2026-07-10 record.)*
+[HD-TEXTURES-RESEARCH.md](../research/HD-TEXTURES-RESEARCH.md), `texture-lab/README.md`. Kept as the 2026-07-10 record.)*
 
 ```sh
 # 1. copy the built pack from the Windows box (it's portable — identical game files)
@@ -106,7 +106,7 @@ fixes 36/36, render interp 11/11, terrain/object/clutter/mirror distances, fps c
 IAT hook. The proxy's own CD emulation played `music\9.mp3` through mpegvideo/GStreamer.
 
 **dgVoodoo -> DXVK -> MoltenVK -> Metal (the parked Voodoo path): renders, but at 0.4-0.5 fps.**
-Test wrapper `Interstate 76 - HiRes120 TEST.app` ([`i76-hires120-stub.swift`](../../i76-hires120-stub.swift)).
+Test wrapper `Interstate 76 - HiRes120 TEST.app` ([`i76-hires120-stub.swift`](../../mac/i76-hires120-stub.swift)).
 Correct picture (cockpit, Hor+ widescreen, round reticle) on the DXVK HUD at 0.4 fps with one core
 pinned. **Not the proxy:** the same 0.4 fps with every `I76_*` switch off (music only), and with
 `I76_GLIDE_REFRESH` / `I76_FPS_CAP` off. At the full 3456x2234 (Wine `RetinaMode=y`, screen-sized
@@ -123,7 +123,7 @@ the horizon; game process 17-60 % of a core. Not yet measured: the frame rate, m
 the HUD squeeze on the software path, a played mission.
 
 Software resolution ceiling: 1024x768, set in-game (Options -> Graphic Detail -> Screen Resolution;
-[VERIFIED-FIXES.md](../VERIFIED-FIXES.md)). Anything above it is engine RE, not a setting.
+[VERIFIED-FIXES.md](../engine/VERIFIED-FIXES.md)). Anything above it is engine RE, not a setting.
 
 ### Later the same night: measuring the CPU path
 
@@ -191,7 +191,7 @@ Built on the Mac by `tools/openglide-hd/MAC-BUILD.md` route B: voyageur/openglid
 `Interstate 76 - GL120 TEST.app` with the MAC-BUILD `OpenGLid.INI` (`Version=0.09rc9`). It boots with no extension
 MessageBox; `OpenGLid.log`: Vendor Apple, Renderer Apple M5 Pro, **Version 2.1 Metal - 90.5**
 (`GL_EXT_texture_env_combine` emulated). Launched `-glide` in `explorer /desktop=...,1280x960` by
-[`i76-hires120-stub.swift`](../../i76-hires120-stub.swift); t01 direct boot (movies hidden, null audio), W held by script.
+[`i76-hires120-stub.swift`](../../mac/i76-hires120-stub.swift); t01 direct boot (movies hidden, null audio), W held by script.
 
 | OpenGLid `Resolution` | fps (5 s windows) | OpenGLide frame_ms | lfb_total_ms | swap_ms | main thread |
 |---|---|---|---|---|---|

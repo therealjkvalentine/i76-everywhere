@@ -1,4 +1,4 @@
-# shots.psd1 - the game shots record-shot.ps1 can capture headless (docs/LAUNCH-VIDEO-2026-10-25.md s.1 has the full shot list).
+# shots.psd1 - the game shots record-shot.ps1 can capture headless (docs/release/LAUNCH-VIDEO-2026-10-25.md s.1 has the full shot list).
 # Each shot = one boot of the launch-video twin (lab launchvid-20261025, a twin of test-gold) in a 1920x1080 window at the top left
 # of the primary screen (dgVoodoo.lv1080.conf: [Glide] 3840x2160 supersample, AppControlledScreenMode false; I76_ASPECT 1920x1080 for
 # the non-stock presets), captured with ffmpeg ddagrab (the window rect only) at 60 fps.

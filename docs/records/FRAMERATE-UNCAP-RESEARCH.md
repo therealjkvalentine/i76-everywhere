@@ -22,7 +22,7 @@ evidence; **[folklore]** = repeated claim nobody has measured.*
 
 **The question:** can the engine's real frame rate be doubled/tripled (20 → 40–60) by
 scaling the physics so it doesn't break? Frame generation (LSFG x2, see
-[Setup-FrameGen.ps1](../../Setup-FrameGen.ps1)) already fakes 40 at the display; this is
+[Setup-FrameGen.ps1](../../windows/Setup-FrameGen.ps1)) already fakes 40 at the display; this is
 about real frames.
 
 > **Update 2026-09-26 (static, <re-archive> `subsystems/simclock.md`).** The first true unknown below is answered: a
@@ -157,7 +157,7 @@ any, paces the sim. Note: the 2017 Galaxy exe imports **no winmm at all**; only 
    once found): direct struct read vs snapshot vs scene list, and whether
    software/Glide/D3D share one choke point. Decides if route 1 has one seam or three.
 9. **Reverse I76PATCH.DLL** (present in the Mac GOG install per
-   [MAC-BUILD.md](../MAC-BUILD.md); absent from both Windows installs — presence varies by
+   [MAC-BUILD.md](../guides/MAC-BUILD.md); absent from both Windows installs — presence varies by
    install). What does its QPC+Sleep trampoline hook, and why does it overshoot to
    20.66? Its insertion point is a field-proven host for a scheduler.
 10. **Build the per-mechanic breakage ladder nobody has:** 22/25/30/40 FPS with the

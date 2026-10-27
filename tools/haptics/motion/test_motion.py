@@ -18,7 +18,7 @@ EXE = os.path.join(HAPTICS, "src", "Host", "bin", "Release", "net8.0", "i76hapti
 
 
 def i76m_packet(seq=5, status=0x00020501, t=2.5, surge=-9.5, sway=1.0, heave=0.25, cue_heave=6.0, roll=0.01, pitch=-0.056, heading=0.52):
-    """A hand-packed i76motion v1 datagram (offsets typed in from docs/MOTION-OUTPUT.md 3.3, not from the schema)."""
+    """A hand-packed i76motion v1 datagram (offsets typed in from docs/engine/MOTION-OUTPUT.md 3.3, not from the schema)."""
     b = bytearray(144)
     b[0:4] = b"I76M"
     struct.pack_into("<HHII", b, 4, 1, 144, seq, status)

@@ -30,7 +30,7 @@ CATEGORIES = [
 
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else 'docs/assets-raw/asset-extracted.txt'
-    dst = sys.argv[2] if len(sys.argv) > 2 else 'docs/ASSET-BIBLE.md'
+    dst = sys.argv[2] if len(sys.argv) > 2 else 'docs/engine/ASSET-BIBLE.md'
     text = open(src, encoding='utf-8', errors='ignore').read()
 
     # reorder: everything from the font table onward is the document START

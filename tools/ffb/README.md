@@ -111,7 +111,7 @@ defaults) and the interposer loads it on the next start. Edit it by hand too, e.
 `{ "PavementScale": 0.4, "EngineGain": 300, "HitSideSign": -1 }`.
 
 Continuous channels are deliberately held **low** so transients read on top —
-the discipline that makes the pad rumble mixer (`i76-remap.ahk`) work. Raising
+the discipline that makes the pad rumble mixer (`windows/i76-remap.ahk`) work. Raising
 the steady gains to feel "more" buries every transient and leaves the wheel
 merely heavy.
 
@@ -206,7 +206,7 @@ This is easy to hit, because the interposer runs in its own terminal and used to
 outlive the game. It was hit in the field on 2026-08-04. Two defences now:
 
 - the interposer **exits when the game does**, releasing the device;
-- `PLAY-i76.ps1` **stops any running interposer** before launching, as a backstop
+- `windows/PLAY-i76.ps1` **stops any running interposer** before launching, as a backstop
   for one started by hand or hung.
 
 The safe order is: wheel connected → game launched → interposer started, *in that
@@ -316,7 +316,7 @@ Recorded because none produced a useful error message:
 ## Telemetry map
 
 Player entity resolves via `[[[0x54a264]]+0x70]`. Full table and the corrections
-it forced live in `docs/MEMORY-MAP-INDEX.md` Tier 2. Summary:
+it forced live in `docs/engine/MEMORY-MAP-INDEX.md` Tier 2. Summary:
 
 | offset | field | confidence |
 |---|---|---|
@@ -406,7 +406,7 @@ Lfe         parametric bass-shaker: engine, road, impulses (freq + amp)
 | renderer | how |
 |---|---|
 | **wheel** | `(Steady + OscValue + Transient) * 10000` - exactly the existing output, asserted by test |
-| **pad** | `Mix-RenderPad` - left motor heavy/low, right motor buzz/high, per `i76-remap.ahk` |
+| **pad** | `Mix-RenderPad` - left motor heavy/low, right motor buzz/high, per `windows/i76-remap.ahk` |
 | **motion rig** | `Motion` verbatim over UDP; washout and tilt are the rig's job |
 | **bass shaker** | `Lfe` synthesised to audio by `ffb-lfe.ps1` |
 
@@ -437,7 +437,7 @@ no orientation to read); pitch, roll, position and per-wheel data are **zero**,
 because the engine has no suspension model and inventing one would drive a rig with
 detail the simulation does not have.
 
-Background and the numbers behind all of this: **[docs/FFB-DESIGN-LIBRARY.md](../../docs/FFB-DESIGN-LIBRARY.md)**.
+Background and the numbers behind all of this: **[docs/engine/FFB-DESIGN-LIBRARY.md](../../docs/engine/FFB-DESIGN-LIBRARY.md)**.
 
 ## Files
 

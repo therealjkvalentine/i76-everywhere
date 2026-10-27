@@ -1,7 +1,7 @@
 # tools/lan-test: re-run the family LAN matrix from the PC
 
 Built 2026-10-18 for the overnight LAN test (results: `docs/records/LAN-MATRIX-2026-10-18.md`; player instructions:
-`docs/MULTIPLAYER.md`, section "Family game night"). Everything runs from Git Bash on the PC; the Macs are reached
+`docs/guides/MULTIPLAYER.md`, section "Family game night"). Everything runs from Git Bash on the PC; the Macs are reached
 through the developer's laptop (Tailscale), the Deck directly.
 
 | file | runs on | does |

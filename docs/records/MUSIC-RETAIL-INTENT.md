@@ -8,7 +8,7 @@ The reference is the retail 1.0 exe (`I76.EXE` md5 `6cc509ad`, 1997-03-15) with 
   - WRLD fields of the 40 retail mission files: lab `emu\work\retail-data\missions`. Sizes match the CD1 listing.
   - The existing emu traces: lab `emu\results\memtrace\*\mem.music.csv`, 45 run folders (39 with music rows: 19 retail with a mission start, 18 Gold, the 2 RPLYR.DEF runs; 6 empty).
 - **Not done:** no game run, no listening. Nothing was installed in any game folder.
-- **Background:** [docs/MUSIC-TRACK-MAP.md](../MUSIC-TRACK-MAP.md) (Gold / AiO, disc tables) and
+- **Background:** [docs/MUSIC-TRACK-MAP.md](../engine/MUSIC-TRACK-MAP.md) (Gold / AiO, disc tables) and
   [EMU-MEMTRACE.md](EMU-MEMTRACE.md) section 6.
 
 ## 1. The retail music module (addresses: retail, then AiO / Gold)

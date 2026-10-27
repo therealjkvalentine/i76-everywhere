@@ -1,9 +1,9 @@
 <#
-.SYNOPSIS  Write AGENTS.md (from docs\AGENTS-GAME-FOLDER.md, filled per folder) into the root of one kept game folder.
+.SYNOPSIS  Write AGENTS.md (from docs\process\AGENTS-GAME-FOLDER.md, filled per folder) into the root of one kept game folder.
 .EXAMPLE   .\place-agents-md.ps1 -Dir (Join-Path $env:USERPROFILE 'Games\I76\Interstate 76 Gold') -Role 'main' -Game Gold
 #>
 param([Parameter(Mandatory)][string]$Dir, [Parameter(Mandatory)][ValidateSet('dev','test','main')][string]$Role, [Parameter(Mandatory)][ValidateSet('Gold','Nitro')][string]$Game,
-      [string]$Template = (Join-Path $PSScriptRoot '..\docs\AGENTS-GAME-FOLDER.md'))
+      [string]$Template = (Join-Path $PSScriptRoot '..\docs\process\AGENTS-GAME-FOLDER.md'))
 $ErrorActionPreference = 'Stop'
 $name = Split-Path $Dir -Leaf
 $sub  = if ($Game -eq 'Gold') { 'Interstate 76' } else { 'Interstate 76 Nitro Pack' }
@@ -31,7 +31,7 @@ Latest information: https://github.com/therealjkvalentine/i76-everywhere (docs/,
 - Launchers here: $bats. (``README.md`` in ``Games\I76`` has the owner-facing table.)
 - Where things are: proxy ``$sub\$dll`` (``strlkup_orig.dll`` = the real original); presets ``$sub\presets\*.psd1``; launcher ``$sub\PLAY-i76.ps1`` (Gold); dgVoodoo ``dgVoodoo.conf``; controls ``$sub\input.map``; log ``$sub\mciproxy.log`` (rotates; look for the ``CRASH`` line); rollbacks ``_rollback\``.
 - Originals stay: ``strlkup_orig.dll``, ``i76.exe.u32xorig``, ``i76shell.dll.orig``, one ``input.map`` known-good backup. Cruft (``*.pre-*``, ``*.driver-*``, ``STRLKUP.DLL.<md5>`` backups, old logs) was moved to ``D:\i76-archive\cruft-20261025\<folder>\`` on 2026-10-25 and can be fetched from there.
-- Old names (``exp-polish2``, ``rc-twin-20261024``, ``release-candidate``, ``exp-nitro-*``) are junctions to the new folders; see ``docs\COPIES-PLAN-2026-10-24.md`` (Done 2026-10-25).
+- Old names (``exp-polish2``, ``rc-twin-20261024``, ``release-candidate``, ``exp-nitro-*``) are junctions to the new folders; see ``docs\status\COPIES-PLAN-2026-10-24.md`` (Done 2026-10-25).
 
 "@
 Set-Content -Path (Join-Path $Dir 'AGENTS.md') -Value ($head + $tail) -Encoding UTF8

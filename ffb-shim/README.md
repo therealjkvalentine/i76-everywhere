@@ -7,7 +7,7 @@ vector, tire status, and impact events with direction + damage) and hands it to
 `i7_SFRCE.DLL` — a tiny DLL with **three stdcall exports** that is the only
 thing in the game that touches DirectInput. Full reverse-engineering record:
 [docs/records/FFB-DEEP-DIVE.md](../docs/records/FFB-DEEP-DIVE.md) → distilled in
-[docs/MEMORY-MAP-INDEX.md](../docs/MEMORY-MAP-INDEX.md).
+[docs/engine/MEMORY-MAP-INDEX.md](../docs/engine/MEMORY-MAP-INDEX.md).
 
 This shim **replaces** that DLL. The game then:
 
@@ -44,7 +44,7 @@ Ways to view the stream (all no-rig):
 field runs are in the git log for this folder the same and next day — `25d3033` "deploy to prefix",
 `4cbc4d4` "impact nodes are FLOATS (was pinning the motor after collisions)", `fe86069` "rework from field feel",
 `f762b89` "narrated-drive rework", `579ce0f` "much lower engine idle" — every one a change made from a live
-drive, and [docs/FFB-STACKS.md](../docs/FFB-STACKS.md) records the same status ("field-run and tuned on the
+drive, and [docs/engine/FFB-STACKS.md](../docs/engine/FFB-STACKS.md) records the same status ("field-run and tuned on the
 Mac over 2026-07-19/20"). Tuning sheet: [docs/records/FFB-MORNING-TEST.md](../docs/records/FFB-MORNING-TEST.md). Still true: it
 has only ever run on the Mac, and wheel / shakers / pad have never run together (FFB-STACKS point 3).
 
@@ -61,7 +61,7 @@ has only ever run on the Mac, and wheel / shakers / pad have never run together 
 
 **Windows / Steam Deck warning:** the real `i7_sfrce.dll` + a DirectInput FFB
 wheel gives *authentic* wheel force feedback there (the Deck's docked-wheel
-setup, docs/STEAMDECK.md). Installing this shim REPLACES that with pad rumble —
+setup, docs/guides/STEAMDECK.md). Installing this shim REPLACES that with pad rumble —
 only do it on a platform (Mac) or setup (pad-only) where real FFB isn't in
 play. `--revert` undoes it.
 

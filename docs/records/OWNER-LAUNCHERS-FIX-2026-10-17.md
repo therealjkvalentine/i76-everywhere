@@ -1,7 +1,7 @@
 # Owner launchers fixed after the first pass (2026-10-17)
 
 The owner's first pass over `OWNER-TESTS-2026-10-17` (lab `ced03f7`; results in
-[OWNER-TEST-LIST.md](../OWNER-TEST-LIST.md), "Owner results 2026-10-17") left four launchers to fix. All four are fixed
+[OWNER-TEST-LIST.md](../process/OWNER-TEST-LIST.md), "Owner results 2026-10-17") left four launchers to fix. All four are fixed
 in lab **`8104bf1`**. Three were verified on the emulator. The F2 driver (06 / 07) was not run live.
 
 | launcher | problem | fix | verified |

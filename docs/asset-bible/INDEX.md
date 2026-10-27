@@ -2,7 +2,7 @@
 
 Searchable markdown conversion of the **Interstate '76 / '77 Complete Asset Bible, 4th edition**.
 
-> **Credit:** original Asset Bible writer and **DIVER** ("Happy Nitrous Delivery Services -the Ruins Project-"). Obtained from <https://route380.stars.ne.jp/i76/resource_i76/> as `i76cab4.zip`. Reproduced here for reference and to make it greppable by agents working on this repo — see [COMMUNITY-RESOURCES.md](../COMMUNITY-RESOURCES.md).
+> **Credit:** original Asset Bible writer and **DIVER** ("Happy Nitrous Delivery Services -the Ruins Project-"). Obtained from <https://route380.stars.ne.jp/i76/resource_i76/> as `i76cab4.zip`. Reproduced here for reference and to make it greppable by agents working on this repo — see [COMMUNITY-RESOURCES.md](../research/COMMUNITY-RESOURCES.md).
 
 **What it gives you:** every placeable object's CLASS NAME, footprint (X/Z in metres) and engine class ID, plus vehicle codes. That turns a level's raw object list into something readable, and gives known dimensions for physics work.
 

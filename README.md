@@ -41,7 +41,7 @@ https://github.com/user-attachments/assets/adcb8b46-3d7a-4385-9d5d-36a5fdf64612
 - **Controls:** keyboard, gamepad, wheel and flight stick layouts. Your own bindings are kept if you already have some.
 
 Experimental, in the repo but not yet in the kit: LAN play with computer cars filling the empty seats, a two-player co-op
-campaign, and new Nitro Pack game types. The full list is in [docs/ENHANCEMENTS.md](docs/ENHANCEMENTS.md).
+campaign, and new Nitro Pack game types. The full list is in [docs/ENHANCEMENTS.md](docs/engine/ENHANCEMENTS.md).
 
 ## Install (Windows, 3 steps)
 
@@ -56,7 +56,7 @@ You need **[Interstate '76 Arsenal from GOG](https://www.gog.com/en/game/interst
 
 ## Mac and Steam Deck
 
-- **Mac (Apple Silicon):** about 100 to 120 fps through Wine. It is a beta and needs one manual step. Start at [docs/MAC-BUILD.md](docs/MAC-BUILD.md).
+- **Mac (Apple Silicon):** about 100 to 120 fps through Wine. It is a beta and needs one manual step. Start at [docs/MAC-BUILD.md](docs/guides/MAC-BUILD.md).
 - **Steam Deck:** the [Deck Kit pre-release](https://github.com/therealjkvalentine/i76-everywhere/releases/tag/deck-v0.1.0)
   has the controller layout and rumble, but it has not been community tested yet. See [deck/kit/README.md](deck/kit/README.md).
 
@@ -64,18 +64,18 @@ You need **[Interstate '76 Arsenal from GOG](https://www.gog.com/en/game/interst
 
 Open an [issue](https://github.com/therealjkvalentine/i76-everywhere/issues/new/choose) and attach `mciproxy.log`,
 `play-i76.log` and `i76-settings.txt` from the game folder. Common problems and their fixes are in
-[docs/VERIFIED-FIXES.md](docs/VERIFIED-FIXES.md).
+[docs/VERIFIED-FIXES.md](docs/engine/VERIFIED-FIXES.md).
 
 ## More
 
 | | |
 |---|---|
-| Controls and a printable key sheet | [docs/CONTROLS.md](docs/CONTROLS.md) · [PDF](docs/Interstate76-Controls-Quick-Reference.pdf) |
+| Controls and a printable key sheet | [docs/CONTROLS.md](docs/guides/CONTROLS.md) · [PDF](docs/guides/Interstate76-Controls-Quick-Reference.pdf) |
 | Save editor (runs in your browser) | [open it](https://therealjkvalentine.github.io/i76-everywhere/i76-save-editor.html) |
-| Multiplayer and co-op | [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md) · [docs/COOP.md](docs/COOP.md) |
+| Multiplayer and co-op | [docs/MULTIPLAYER.md](docs/guides/MULTIPLAYER.md) · [docs/COOP.md](docs/guides/COOP.md) |
 | What's planned | [ROADMAP.md](ROADMAP.md) · [project board](https://github.com/therealjkvalentine/i76-everywhere/projects) |
 | How it works: reverse engineering, file formats, measurements | [docs/README.md](docs/README.md) · [re/](re/README.md) · [docs/records/](docs/records/) |
-| The long version of this page | [docs/README-DETAILS.md](docs/README-DETAILS.md) |
+| The long version of this page | [docs/README-DETAILS.md](docs/guides/README-DETAILS.md) |
 
 ## Get involved
 

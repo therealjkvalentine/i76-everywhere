@@ -4,7 +4,7 @@ Every stage takes `loop`: a loop (engine idle, mode 1/2 GAS loops) is processed 
 middle period kept, or resampled by FFT (exactly periodic) -- so the seam the stock file had is the seam the
 replacement has. One-shots are processed linearly at their stock length.
 
-Design: docs/SOUND-HD-PACK.md 2 (methods ranked) and 3.2 (synthesis details). Deviations are commented inline.
+Design: docs/guides/SOUND-HD-PACK.md 2 (methods ranked) and 3.2 (synthesis details). Deviations are commented inline.
 """
 import math
 

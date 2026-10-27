@@ -28,7 +28,7 @@ $Here = $PSScriptRoot
 $Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = Join-Path $Lab "game"
 $Owner = Join-Path $Lab ".console-owner"
 $Dll = "$env:USERPROFILE\i76-everywhere\music-fix\Strlkup.dll"
-$psd = if (Test-Path $Preset) { $Preset } else { "$env:USERPROFILE\i76-everywhere\presets\$Preset.psd1" }
+$psd = if (Test-Path $Preset) { $Preset } else { "$env:USERPROFILE\i76-everywhere\shared\presets\$Preset.psd1" }
 $P = Import-PowerShellDataFile $psd
 $Missions = @($Missions | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 if (-not $Missions) { $Missions = @(1..17 | ForEach-Object { "t{0:d2}" -f $_ }) }

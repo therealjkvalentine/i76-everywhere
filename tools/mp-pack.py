@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the LAN multiplayer pack (game night, docs/GAME-NIGHT.md) from the Windows daily driver, READ-ONLY.
+"""Build the LAN multiplayer pack (game night, docs/guides/GAME-NIGHT.md) from the Windows daily driver, READ-ONLY.
 
     python tools/mp-pack.py <pack dir> [--driver "<driver game folder>"] [--proxy <STRLKUP.DLL to ship instead>]
 
@@ -9,7 +9,7 @@ i7_sfrce.dll + i7_sfrce_org.dll + rumble-envelopes.ini, music\\, AutoHotkeyU32.e
 This script writes:
 
   common\\   the files every machine gets byte-identical: the daily driver's exe, shell, u32x.dll, STRLKUP.DLL proxy,
-            I76.ZFS, missions, ADDON (stock valepre4.vcf de680a86), NVCL, ...; the repo's controls\\input.map;
+            I76.ZFS, missions, ADDON (stock valepre4.vcf de680a86), NVCL, ...; the repo's shared\\controls\\input.map;
             IPXWrapper 0.7.2 (ipxwrapper.dll, wsock32.dll, mswsock.dll); the scenarios and the co-op campaign
             (tools/coop-install.py: ADDON\\auto01..auto07.lvl "Oil Well Well (Scenario)" .. and coop01..coop17.lvl
             "Scene 1 (Co-op)" .. (lower case: the shells' .lvl test is case-sensitive), listed as their own arenas
@@ -89,8 +89,8 @@ def main():
             continue
         copy(src, os.path.join(win if name.lower() in WIN_ONLY else common, name))
     # the unified control map and the matching wheel/pad layer
-    shutil.copy2(os.path.join(REPO, "controls", "input.map"), os.path.join(common, "input.map"))
-    shutil.copy2(os.path.join(REPO, "i76-remap.ahk"), os.path.join(win, "_ahk", "i76-remap.ahk"))
+    shutil.copy2(os.path.join(REPO, "shared", "controls", "input.map"), os.path.join(common, "input.map"))
+    shutil.copy2(os.path.join(REPO, "windows", "i76-remap.ahk"), os.path.join(win, "_ahk", "i76-remap.ahk"))
     for f in IPX_FILES:
         shutil.copy2(os.path.join(IPX, f), os.path.join(common, f))
     # anti-cheat car check: stock car data only
@@ -106,7 +106,7 @@ def main():
                 shutil.copy2(sys.argv[sys.argv.index("--proxy") + 1], os.path.join(common, n))
     with open(os.path.join(win, "PLAY-LAN.bat"), "w", newline="\r\n") as f:
         f.write("@echo off\n"
-                "REM Interstate '76 LAN / co-op (docs/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"
+                "REM Interstate '76 LAN / co-op (docs/guides/GAME-NIGHT.md). Same picture and physics as the daily driver's\n"
                 "REM PLAY.bat (preset best-wide), plus the co-op switches. Arena list (MULTI MELEE > HOST): the 15 stock\n"
                 "REM arenas = normal melee, then \"<name> (Scenario)\" = the 7 auto-melee scenarios with their AI cars\n"
                 "REM (joiners respawn; the host's death restarts the scenario), then \"Scene 1..17 (Co-op)\" = the co-op campaign.\n"

@@ -1,7 +1,7 @@
 # Proxy source cleanup, 2026-10-10
 
-Owner-approved cleanup of the two proxy sources, as proposed in [CLEANUP-PLAN-2026-10-10.md](../CLEANUP-PLAN-2026-10-10.md)
-sections 3 and 7.2 and [BACKLOG-2026-10-10.md](../BACKLOG-2026-10-10.md) R-07. **Source only.** The committed,
+Owner-approved cleanup of the two proxy sources, as proposed in [CLEANUP-PLAN-2026-10-10.md](../status/CLEANUP-PLAN-2026-10-10.md)
+sections 3 and 7.2 and [BACKLOG-2026-10-10.md](../status/BACKLOG-2026-10-10.md) R-07. **Source only.** The committed,
 promoted binaries are unchanged: `music-fix/Strlkup.dll` is still `c11f7f7d51b1e1ddc1fcaf191a7a4675` and
 `u32x/u32x_full.dll` is still `06467bd28e060b2889c9ef26b43ee152` (md5 read back after every build). No game was
 started, nothing was written to a game folder, and nothing was installed.
@@ -9,7 +9,7 @@ started, nothing was written to a game folder, and nothing was installed.
 **Before either side DLL replaces a committed binary or goes to the daily driver, it needs the 23-row gate on the lab
 twin** (`..\<lab>\autotest\gate-folder.ps1 -GameDir ..\<lab>\game-dd-20261003`, the gate that produced
 23 rows in `autotest\runs\gate\20261008-204529`). That is an owner/console item:
-[OWNER-TEST-LIST.md](../OWNER-TEST-LIST.md) item 27.
+[OWNER-TEST-LIST.md](../process/OWNER-TEST-LIST.md) item 27.
 
 ## What changed
 

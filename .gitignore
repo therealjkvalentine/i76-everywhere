@@ -75,8 +75,8 @@ texture-lab/build/
 tools/controls-sheet/*.png
 
 # game frame captures (lab residue): kept on disk, never committed (removed from the tree 2026-10-03; history keeps them)
-lab-residue/0x501918/
-lab-residue/**/*.png
+docs/records/lab-residue/0x501918/
+docs/records/lab-residue/**/*.png
 
 # lab/ and re/ are public-safe SNAPSHOTS of <lab> and <re-archive> (2026-10-03, tools/export_public.py).
 # The private data of those repos (decompiler output, game captures, extracted game files, third-party media) stays
@@ -136,7 +136,7 @@ tools/haptics/replays/synth-*
 tools/haptics/motion/__pycache__/
 
 # per-machine launcher override (PLAY-i76.ps1; never shipped)
-presets/local.psd1
+shared/presets/local.psd1
 
 # private LAN hosts for tools/lan-test
 tools/lan-test/hosts.local.sh

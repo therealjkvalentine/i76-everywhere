@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""i76motion.py - validator for the haptics host's motion output (docs/MOTION-OUTPUT.md 5.4). Offline, Python 3, stdlib only.
+"""i76motion.py - validator for the haptics host's motion output (docs/engine/MOTION-OUTPUT.md 5.4). Offline, Python 3, stdlib only.
 
 Decodes every wire format the host writes, auto-detected by size / magic: i76motion (144 B, 'I76M'), LFS OutSim classic
 (64 / 68 B), OutSimPack2 (280 B, 'LFST'), OutGauge (92 / 96 B), Forza Sled (232 B) and Dash (311 B). Layouts come from

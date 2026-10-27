@@ -45,17 +45,17 @@ Kit does not install them yet, and none has been tried outside one household.
 - **LAN multiplayer with AI drop-in (Gold):** IPX through IPXWrapper; computer cars fill the empty seats of any arena,
   respawn after 5 s, and give their seat to a player who joins. The session survives the host leaving (host migration).
 - **Co-op campaign (Gold):** two players through the 17 story scenes as "Co-op Scene 1 .. 17" in the arena list, the host
-  as the hero, the buddy in their own car, enemies scaled for two. [docs/COOP.md](../COOP.md)
+  as the hero, the buddy in their own car, enemies scaled for two. [docs/COOP.md](../guides/COOP.md)
 - **Nitro Pack game types:** two new entries in Nitro's own GAME TYPE popup, **"Arena Drop-In + AI"** (computer cars in
   every empty seat; a leaving player's seat goes back to the AI) and **"Co-Op"** (Nitro's campaign missions together).
-  Host migration in an AI arena passed 3 of 3 in the lab. [docs/NITRO-LAN-WEEKEND.md](../NITRO-LAN-WEEKEND.md)
+  Host migration in an AI arena passed 3 of 3 in the lab. [docs/NITRO-LAN-WEEKEND.md](../process/NITRO-LAN-WEEKEND.md)
 - **Wheel force feedback:** the game's own effects on a modern wheel, with a fix (lab-tested) that keeps them on across Alt-Tab and
   Replay; an optional
   custom force model with a **tuning page in your browser** (`http://127.0.0.1:17691/`, live sliders per channel, the
   game in a window beside it). [tools/ffb/README.md](../../tools/ffb/README.md)
 - **Head look** through opentrack (start opentrack first; `Ctrl+Alt+H` cycles analog / digital / off).
 - **Mac (Apple Silicon, Wine):** the Glide renderer at about 100-120 fps, music, controls; one manual step (the Wine
-  wrapper). [docs/MAC-BUILD.md](../MAC-BUILD.md). Steam Deck: [docs/STEAMDECK.md](../STEAMDECK.md).
+  wrapper). [docs/MAC-BUILD.md](../guides/MAC-BUILD.md). Steam Deck: [docs/STEAMDECK.md](../guides/STEAMDECK.md).
 - **Not tried yet:** a PC and a Mac in one game on the newest build; anything over the internet with these changes
   (play online on the stock game).
 

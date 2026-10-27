@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""soundhd.py - Interstate '76 HD sound pack pipeline (design: docs/SOUND-HD-PACK.md).
+"""soundhd.py - Interstate '76 HD sound pack pipeline (design: docs/guides/SOUND-HD-PACK.md).
 
     tools\\soundhd\\.venv\\Scripts\\python tools\\soundhd\\soundhd.py build          # extract..check, the whole v1 pack
     soundhd.py extract  [--zfs I76.ZFS] [--work DIR]      stock .wav/.gpw (+ loose music.wav) -> DIR\\stock, md5 manifest

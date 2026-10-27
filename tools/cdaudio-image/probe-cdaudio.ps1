@@ -2,7 +2,7 @@
   probe-cdaudio.ps1 - can MCI see and play CD audio from a mounted virtual drive?
 
   THIS IS THE LOAD-BEARING UNKNOWN for the virtual-CD route to I'76 music. The game
-  plays its soundtrack through MCI's `cdaudio` device (docs/MUSIC.md). A virtual
+  plays its soundtrack through MCI's `cdaudio` device (docs/guides/MUSIC.md). A virtual
   drive definitely presents the DATA track to Windows - that is what mounting is
   for - but whether it exposes CD-DA in a way MCI can enumerate and PLAY is a
   property of the specific virtual-drive driver, not something that follows from
@@ -18,7 +18,7 @@
   makes and the same device.
 
   If `open cdaudio` still returns 266 with an audio disc mounted, this route is
-  dead for that driver and the injection route in docs/MUSIC.md is the remaining
+  dead for that driver and the injection route in docs/guides/MUSIC.md is the remaining
   option.
 #>
 param([int]$Track = 1, [int]$PlaySeconds = 3)

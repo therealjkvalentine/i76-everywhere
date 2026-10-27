@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install (or remove) the co-op campaign and the auto-melee scenarios as network arenas. docs/COOP.md.
+"""Install (or remove) the co-op campaign and the auto-melee scenarios as network arenas. docs/guides/COOP.md.
 
     python3 tools/coop-install.py "<game folder>"            build + install
     python3 tools/coop-install.py "<game folder>" --remove   put everything back

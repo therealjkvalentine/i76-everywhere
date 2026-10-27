@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
   Consolidate the I'76 game copies into dev / test / rc / daily-driver (+ Nitro equivalents). PLAN 2026-10-24 - NOT RUN.
-  See docs\COPIES-PLAN-2026-10-24.md. DRY-RUN BY DEFAULT: prints every action, size and lock verdict, changes nothing.
+  See docs\status\COPIES-PLAN-2026-10-24.md. DRY-RUN BY DEFAULT: prints every action, size and lock verdict, changes nothing.
 
 .PARAMETER Execute      Really do it. Without it nothing is moved, deleted or linked.
 .PARAMETER Phase        Archive | Rename | Cruft | All (default All). Order inside All: Archive, Rename, Cruft.

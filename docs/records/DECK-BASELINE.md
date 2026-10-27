@@ -24,7 +24,7 @@ pad and emits keyboard/mouse ([DECK-INPUT-SCIENCE.md](DECK-INPUT-SCIENCE.md)). M
 the Mac and Windows builds grew a richer layer that the Deck never got:
 
 - the **rumble mixer** — nitrous kick, handbrake thud, gear click, mine thud, ignition
-  crank, plus a continuous engine growl that scales with throttle ([i76-remap.ahk](../../i76-remap.ahk), line 338 when written)
+  crank, plus a continuous engine growl that scales with throttle ([i76-remap.ahk](../../windows/i76-remap.ahk), line 338 when written)
 - the **LB shift layer** — all five hardpoints, camera cycle, gears, binoculars, horn
 - **independent triggers** (winmm merges them into one axis; XInput doesn't)
 - **look-back rear gun** — RT while the right stick is held back fires hardpoint 3
@@ -35,7 +35,7 @@ Proton prefix — one source of truth across Mac, Windows and Deck.
 
 **What you give up:** the Steam Input v4 trackpad radial menu and the L4/L5/R4/R5 grip
 bindings. Both are convenience-tier only; every critical action is covered here
-([CONTROL-DOCTRINE.md](../CONTROL-DOCTRINE.md)). Rollback is one command.
+([CONTROL-DOCTRINE.md](../engine/CONTROL-DOCTRINE.md)). Rollback is one command.
 
 ## Deploy
 

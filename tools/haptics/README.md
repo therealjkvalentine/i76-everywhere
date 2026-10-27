@@ -1,6 +1,6 @@
 # tools/haptics - one host for wheel FFB, pad rumble, bass shakers and motion simulator output
 
-The implementation of [docs/HAPTICS-ARCHITECTURE.md](../../docs/HAPTICS-ARCHITECTURE.md), phases A and B: everything
+The implementation of [docs/engine/HAPTICS-ARCHITECTURE.md](../../docs/engine/HAPTICS-ARCHITECTURE.md), phases A and B: everything
 that can be built and verified without the game. Nothing here launches `i76.exe`, touches a game folder, or opens a
 device unless you pass `--live`.
 
@@ -104,7 +104,7 @@ FfbMixer.ps1 by design, so update `Tune.Defaults` only when FfbMixer.ps1 itself 
 | `motion-file` | Motion.FileSink | `<tag>.motion.csv` (the VehicleState) | - |
 | `motion-udp` | Motion.Udp | `<tag>.<target>.<format>.i76rec` packet logs + `<tag>.motionout.csv` | UDP to the enabled `motion/targets.json` targets, loopback only (third-party software, no actuator) |
 
-**Motion.** [docs/MOTION-OUTPUT.md](../../docs/MOTION-OUTPUT.md) phases M0-M3 are built: `Motion.Udp` (sink `motion-udp`,
+**Motion.** [docs/engine/MOTION-OUTPUT.md](../../docs/engine/MOTION-OUTPUT.md) phases M0-M3 are built: `Motion.Udp` (sink `motion-udp`,
 command `haptics.ps1 motion`) runs MotionCore on `CoreStep.State` / `Events` and writes LFS OutSim classic / OutSimPack2 /
 OutGauge, Forza Sled / Dash and our own i76motion v1; setup of FlyPT Mover / SimHub / SimTools, sign conventions, the
 validator and what is stubbed: [motion/README.md](motion/README.md). Another motion renderer still plugs in the same way:
@@ -114,7 +114,7 @@ implement `IRenderer`, read `CoreStep.State` (`Core/VehicleState.cs` documents f
 ## Lfe.Stems: the HD sound pack's LFE stems on the shaker
 
 A third shaker source beside Lfe.Synth (synthesised from the bus) and Lfe.Loopback (the game-audio bed), as
-[docs/SOUND-HD-PACK.md](../../docs/SOUND-HD-PACK.md) section 4 recommends: the per-sound 25-90 Hz stems that
+[docs/guides/SOUND-HD-PACK.md](../../docs/guides/SOUND-HD-PACK.md) section 4 recommends: the per-sound 25-90 Hz stems that
 `tools/soundhd` writes to `out\pack-v1\lfe\` (16 kHz mono, plus `lfe-manifest.json`), played on the i76tel v3
 `SOUND_START` / `SOUND_STOP` events. Code: `src/Haptics/Renderers/LfeStems.cs`; tests: `tests/Haptics.Tests/StemsTests.cs`.
 
@@ -260,7 +260,7 @@ MMCSS and the Highest priority are for.
 
 ## Owner-console tests (Phase C)
 
-Also in [docs/OWNER-TEST-LIST.md](../../docs/OWNER-TEST-LIST.md). Lab copy only; A/A before A/B; report n.
+Also in [docs/process/OWNER-TEST-LIST.md](../../docs/process/OWNER-TEST-LIST.md). Lab copy only; A/A before A/B; report n.
 
 * **C1 Record a real session.** Lab game with `I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76_DAMAGE_EVENTS=1`, then
   `haptics.ps1 record --udp --out replays\t01-c1.i76rec --seconds 300` while driving t01 (shoot, hit a wall, jump, get

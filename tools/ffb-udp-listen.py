@@ -21,7 +21,7 @@ Usage:
 
 Surge/sway note: for a motion rig, fx1000/1000 ≈ longitudinal force (surge),
 fy1000/1000 ≈ lateral (sway). Roll/pitch/heave need the entity transform matrix
-from memory (docs/MEMORY-MAP-INDEX.md Tier 2) — not in this stream yet.
+from memory (docs/engine/MEMORY-MAP-INDEX.md Tier 2) — not in this stream yet.
 """
 import argparse, re, socket, sys, time
 

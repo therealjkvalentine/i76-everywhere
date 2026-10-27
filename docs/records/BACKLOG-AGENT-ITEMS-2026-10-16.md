@@ -1,7 +1,7 @@
 # Backlog agent items, 2026-10-16 (overnight lane `backlog-agent-items`)
 
-The agent-only rows of [BACKLOG-2026-10-10.md](../BACKLOG-2026-10-10.md) section D that were still open in
-[BACKLOG-2026-10-16.md](../BACKLOG-2026-10-16.md). Code and docs only: no game was started, no VM, no console lock
+The agent-only rows of [BACKLOG-2026-10-10.md](../status/BACKLOG-2026-10-10.md) section D that were still open in
+[BACKLOG-2026-10-16.md](../status/BACKLOG-2026-10-16.md). Code and docs only: no game was started, no VM, no console lock
 taken. The daily driver was read (presets, `PLAY-i76.ps1`, `i76shell.dll` md5) and not written. Host CPU was at 100 %
 (other lanes' VMs) during part of the run; one pytest launcher test timed out at 120 s then and passed on re-run.
 

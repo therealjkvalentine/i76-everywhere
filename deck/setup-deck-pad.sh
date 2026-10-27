@@ -2,7 +2,7 @@
 # Interstate '76 - the second Deck control profile: the shared pad layer. RUNS ON THE DECK.
 #
 # Adds a library entry "Interstate 76 (pad layer)" beside the normal one. It plays the same game
-# folder with the controls Windows and Mac use (docs/CONTROL-DOCTRINE.md, "Direction for the Steam
+# folder with the controls Windows and Mac use (docs/engine/CONTROL-DOCTRINE.md, "Direction for the Steam
 # Deck"): Steam Input layout v9 presents a plain gamepad (+ the Deck extras: grips, trackpad menu,
 # trackpad mouse), the shared i76-remap.ahk runs inside the Proton prefix and turns the pad into keys
 # (analog driving, Y view cycle, LB shift layer for hardpoints / gears / horn / binoculars), and the
@@ -33,7 +33,7 @@ if [ "${1:-}" = "--revert" ]; then
 fi
 
 [ -f "$GAME/i76.exe" ] || die "no i76.exe in $GAME"
-for f in controls/input.map i76-remap.ahk deck/controller_neptune_i76_pad.vdf deck/i76-deck-launch.sh deck/add-pad-shortcut.py; do
+for f in shared/controls/input.map i76-remap.ahk deck/controller_neptune_i76_pad.vdf deck/i76-deck-launch.sh deck/add-pad-shortcut.py; do
     [ -f "$PAYLOAD/$f" ] || die "payload missing: $f"
 done
 if pgrep -x i76.exe >/dev/null 2>&1; then die "the game is running - quit it first"; fi
@@ -44,8 +44,8 @@ if [ ! -f "$GAME/input.map.profile-deck" ]; then
 else
     say "input.map.profile-deck already kept"
 fi
-cp -f "$PAYLOAD/controls/input.map" "$GAME/input.map.profile-pad"
-say "input.map.profile-pad <- controls/input.map (md5 $(md5sum "$GAME/input.map.profile-pad" | cut -c1-8))"
+cp -f "$PAYLOAD/shared/controls/input.map" "$GAME/input.map.profile-pad"
+say "input.map.profile-pad <- shared/controls/input.map (md5 $(md5sum "$GAME/input.map.profile-pad" | cut -c1-8))"
 if [ -f "$PAYLOAD/tools/lint-input-map.py" ]; then
     T="$(mktemp -d)"; cp "$GAME/input.map.profile-pad" "$T/input.map"; cp "$GAME/i76.exe" "$T/"
     python3 "$PAYLOAD/tools/lint-input-map.py" "$T" | tail -1 | sed 's/^/  lint: /'; rm -rf "$T"

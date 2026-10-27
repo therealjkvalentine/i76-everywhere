@@ -6,6 +6,6 @@ setlocal
 echo.
 echo   Interstate '76 Everywhere - installing from your GOG copy...
 echo.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Setup-From-GOG.ps1" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0windows\Setup-From-GOG.ps1" %*
 echo.
 pause

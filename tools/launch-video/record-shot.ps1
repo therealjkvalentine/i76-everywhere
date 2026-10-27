@@ -1,5 +1,5 @@
 <#
-  record-shot.ps1 - launch-video lane: record ONE game shot headless at 1920x1080 / 60 fps (docs/LAUNCH-VIDEO-2026-10-25.md).
+  record-shot.ps1 - launch-video lane: record ONE game shot headless at 1920x1080 / 60 fps (docs/release/LAUNCH-VIDEO-2026-10-25.md).
 
     .\record-shot.ps1 -Shot route-all            # a shot from shots.psd1
     .\record-shot.ps1 -Shot route-all -DryRun    # print env / paths, touch nothing

@@ -86,7 +86,7 @@ crash after Windows 11 26100.9711 (Interstate '76)":**
 while the kit README says "shipped as its readme allows". Settle that first; the last two sentences assume the kit
 README is right.)*
 
-**To vahokif (I26):** the draft in [PRIOR-ART-I26-2026-10-21.md](../PRIOR-ART-I26-2026-10-21.md) s.7 still stands (the
+**To vahokif (I26):** the draft in [PRIOR-ART-I26-2026-10-21.md](../research/PRIOR-ART-I26-2026-10-21.md) s.7 still stands (the
 41.667 ms step, the difficulty finding, the ANet notes). Send it with the forum post or before it, so it reads as a
 note between two projects, not a competing announcement.
 

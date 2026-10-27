@@ -27,5 +27,5 @@ $SSH "$HOST" 'cd ~/Games/Interstate76 && ls -la game | grep -i -E "sfrce|strlkup
 $SSH "$HOST" 'B=$(cat ~/Games/Interstate76/backups/LAST-TV 2>/dev/null) && cat "$B/game/dgVoodoo.conf"' > "$CAP/pre-tv_dgVoodoo.conf" 2>/dev/null || true
 echo "== last session's logs and conf -> $CAP"
 $SSH "$HOST" "mkdir -p ~/$DEST/deck"
-scp -q -o BatchMode=yes "$HERE/setup-deck-tv.sh" "$HERE/i76-deck-launch.sh" "$HERE/Strlkup.deck-padmenu.dll" "$HERE/../i76-remap.ahk" "$HOST:~/$DEST/deck/"
+scp -q -o BatchMode=yes "$HERE/setup-deck-tv.sh" "$HERE/i76-deck-launch.sh" "$HERE/Strlkup.deck-padmenu.dll" "$HERE/../windows/i76-remap.ahk" "$HOST:~/$DEST/deck/"
 $SSH "$HOST" "sed -i 's/\r$//' ~/$DEST/deck/setup-deck-tv.sh ~/$DEST/deck/i76-deck-launch.sh; bash ~/$DEST/deck/setup-deck-tv.sh $ARGS"

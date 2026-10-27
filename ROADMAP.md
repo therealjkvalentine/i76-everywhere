@@ -9,7 +9,7 @@ Where Interstate '76 everywhere is going, in three tiers. The live state is on G
   [done](https://github.com/therealjkvalentine/i76-everywhere/issues?q=is%3Aissue+is%3Aclosed) (each closed issue links its record).
 - **Ideas to vote on**: [Discussions > Ideas](https://github.com/therealjkvalentine/i76-everywhere/discussions/categories/ideas).
 
-How the labels, milestones and records fit together: [docs/PROCESS.md](docs/PROCESS.md).
+How the labels, milestones and records fit together: [docs/process/PROCESS.md](docs/process/PROCESS.md).
 
 ## Milestones
 

@@ -56,7 +56,7 @@
          none), yaw rate, speed, throttle, brake, steering input.
   PROXY: Heading comes from the DIRECTION OF TRAVEL, not from a facing vector.
          The engine exposes no orientation at all - there is no rotation matrix
-         anywhere in the entity (docs/HANDLING-MODEL.md). For a car the two differ
+         anywhere in the entity (docs/engine/HANDLING-MODEL.md). For a car the two differ
          only by the slip angle, which in this engine is near zero outside a spin.
   ZERO:  Pitch and Roll (this engine has NO suspension model - measured, see
          HANDLING-MODEL.md - so there is no body roll or pitch to report),

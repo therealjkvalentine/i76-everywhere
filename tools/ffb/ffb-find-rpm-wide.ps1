@@ -22,7 +22,7 @@
     RPM must go UP, then DOWN, then UP. Three sign-correct transitions is a hard
     filter - counters only climb, timers never return, and random churn does not
     reverse on cue three times. This is the Cheat Engine changed/unchanged
-    workflow (docs/RE-METHODOLOGY.md), narrowed by the shape of the signal.
+    workflow (docs/research/RE-METHODOLOGY.md), narrowed by the shape of the signal.
 
     Each step is HELD until the needle stops moving, then Enter. The settled
     value is the measurement, so no rhythm-keeping is needed.

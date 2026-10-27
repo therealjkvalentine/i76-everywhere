@@ -247,7 +247,7 @@ details .paths li{margin:6px 0}
     for the numbers and their sources) comes from the game's own definition files (<code>compnent.cdf</code>,
     the <code>.wdf</code>/<code>.gdf</code> files) and the reverse-engineered code: offline, for instance, every
     brake brakes the same and bigger wheels only grip better until the tyre is first hit. Full table:
-    <code>docs/PARTS-REFERENCE.md</code>.
+    <code>docs/engine/PARTS-REFERENCE.md</code>.
     <b>Paint Shop</b> rewrites the save's own texture-set reference (the same <code>piranhaN.vtf</code>
     field the game's car configs use) — the LOAD list's "Stock (Orange)" label is display-only text
     and stays as-is. <b>Weight</b> is computed (the save stores none): real per-part weights plus the
@@ -338,7 +338,7 @@ const SPECIALS=[["Radar Jammer","spc01","verified (garage name; spc%02d code)"],
    Keyed by def code (wheels by design letter: wauto_a..d). "short" = the one-line label, "what" = the numbers,
    each claim tagged [game data] (stock I76.ZFS via <re-archive>'s parsers) / [RE: doc, address] / [community] / [unknown].
    Generated: python i76-save-editor.py --parts-json (the Python table is the source; tests/test_save_editor.py
-   fails if the two differ). Readable version with sources: docs/PARTS-REFERENCE.md. */
+   fails if the two differ). Readable version with sources: docs/engine/PARTS-REFERENCE.md. */
 /* PARTS_INFO:BEGIN */
 const PARTS_INFO={
 "eng01": {
@@ -639,7 +639,7 @@ const PARTS_INFO={
 "spc02": {
 "name": "NitrousOxide",
 "short": "x5 drive for 15 s, 3 charges (key)",
-"what": "Press its special key: drive acceleration x5.0 for 15 s, still capped by rear-tyre traction; 3 charges, a second press restarts the 15 s and costs a charge (physics_FireNitro 0x43d280, 15.0 at 0x43d2a6, x5.0 at 0x4bd1dc; re-read from the exe in this pass) [RE: engine.md]. The community figure '+50% acceleration, +20% top speed' [community: docs/I76-GAMEPLAY-REFERENCE.md] does not match the code. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+"what": "Press its special key: drive acceleration x5.0 for 15 s, still capped by rear-tyre traction; 3 charges, a second press restarts the 15 s and costs a charge (physics_FireNitro 0x43d280, 15.0 at 0x43d2a6, x5.0 at 0x4bd1dc; re-read from the exe in this pass) [RE: engine.md]. The community figure '+50% acceleration, +20% top speed' [community: docs/engine/I76-GAMEPLAY-REFERENCE.md] does not match the code. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
 },
 "spc03": {
 "name": "Blower",
@@ -674,7 +674,7 @@ const PARTS_INFO={
 "spc09": {
 "name": "Cup Holders",
 "short": "10% of hits do no internal damage",
-"what": "Passive: a hit that gets past the armour and chassis to the components does no internal damage 10% of the time (entity_DamageComponent, rand()%100 < 10 at 0x465b7e clears the record's type mask) [RE: engine.md, damage.md]. The armour and chassis still take their share first, so the community 'reduces the probability of being hit by 10%' is only partly true. docs/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some are jokes)' [community]; the code gives them a real effect. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
+"what": "Passive: a hit that gets past the armour and chassis to the components does no internal damage 10% of the time (entity_DamageComponent, rand()%100 < 10 at 0x465b7e clears the record's type mask) [RE: engine.md, damage.md]. The armour and chassis still take their share first, so the community 'reduces the probability of being hit by 10%' is only partly true. docs/engine/I76-GAMEPLAY-REFERENCE.md files cup holders among 'minor/flavor items (some are jokes)' [community]; the code gives them a real effect. Specials are components with 10 hp (x4 for you offline); damage that destroys one ends its effect unless noted [RE: engine.md, entity_SpecialCreate 0x4676b0]."
 }
 };
 /* PARTS_INFO:END */

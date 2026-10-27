@@ -31,7 +31,7 @@ setuuid() {   # setuuid <thin 64-bit Mach-O> <UUID with dashes>: overwrite LC_UU
 build() {   # build <name> <source> <target> <uuid>
     local f="$OUT/Sikarugir-$1"
     rm -f "$f"
-    swiftc -O -target "$3" -o "$f" "$REPO/$2"
+    swiftc -O -target "$3" -o "$f" "$REPO/mac/$2"
     setuuid "$f" "$4"
     codesign -f -s - "$f" 2>/dev/null
     printf '%-14s %s  %s\n' "$1" "$(md5 -q "$f")" "$(dwarfdump --uuid "$f" | awk '{print $2}')"

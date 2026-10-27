@@ -3,7 +3,7 @@
 Lane `nitro-mp-design`. Owner ruling, 2026-10-21 (verbatim): *"from a multiplayer perspective we'd want nitro to be the
 basis instead of gold so we'll have some rebuilding to do there. let's try to do it nondestructively, so that community
 play of nitro multiplayer is unperturbed. perhaps it's a new menu item we'd add separately but not sure what we'd call it
-ai drop in coop something"*. Plan: [ARSENAL-PLAN-2026-10-21.md](../ARSENAL-PLAN-2026-10-21.md) section 2.
+ai drop in coop something"*. Plan: [ARSENAL-PLAN-2026-10-21.md](../status/ARSENAL-PLAN-2026-10-21.md) section 2.
 
 **Everything here is static** (Ghidra decompilation and capstone on the pristine GOG files; no game was started). RE notes
 with every address: `<re-archive>\nitro-net\README.md` (new track; headless exports of nitshell, WIPX2, WINETS2;
@@ -898,7 +898,7 @@ The G6 joiner type line stays covered but unobserved.
 ### 0.5.20 The weekend pass (2026-10-23 21:00 - 10-24 04:00, nitro-mp-design lane): Mac app update, the join that never left the Mac, EIP-0
 
 Owner (2026-10-23 night): *"finish Nitro multiplayer"*; the family plays this weekend. How-to for the family:
-[NITRO-LAN-WEEKEND.md](../NITRO-LAN-WEEKEND.md). Lab: `<lab>\builds\nitro-weekend-20261023` (scripts, A/B binaries, outputs;
+[NITRO-LAN-WEEKEND.md](../process/NITRO-LAN-WEEKEND.md). Lab: `<lab>\builds\nitro-weekend-20261023` (scripts, A/B binaries, outputs;
 lab commits b703f36, 4095a9b, 6d3d84f, 14e556b), captures `captures\nitro-weekend-20261023` (on disk; the lab ignores captures). Repo: 02b77e0 (stubs), 6253bf0
 (UUID). Times CDT.
 

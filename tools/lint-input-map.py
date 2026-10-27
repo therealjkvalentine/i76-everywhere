@@ -114,7 +114,7 @@ def main():
             findings.append(f"line {lineno}: '{action}' has {len(plus)} '+' lines = CHORD (all keys at once). Alternatives need separate blocks")
         if len(analog) > 1:
             srcs = ", ".join(f"{d} {t}" for _s, d, t in analog)
-            findings.append(f"line {lineno}: '{action}' has two analog sources ({srcs}) — axis pins dead-center (VERIFIED-FIXES; docs/WHEEL-T300.md: list joystick1 ONLY on steer/throttle)")
+            findings.append(f"line {lineno}: '{action}' has two analog sources ({srcs}) — axis pins dead-center (VERIFIED-FIXES; docs/guides/WHEEL-T300.md: list joystick1 ONLY on steer/throttle)")
         for sign, dev, tok in lines:
             if re.fullmatch(r"joystick", dev, re.I):
                 findings.append(f"line {lineno}: '{action}': DEAD device token '{dev}' — bare Joystick parses but binds NOTHING (field-settled 2026-07-18, twice). Use joystick1")
@@ -135,7 +135,7 @@ def main():
             findings.append(
                 f"NO '{need}' BLOCK — that axis cannot work at all. If both are missing this is the "
                 f"signature of input.map having been rewritten by the IN-GAME Control Configuration "
-                f"menu, which corrupts it (docs/VERIFIED-FIXES.md). Restore a known-good input.map; "
+                f"menu, which corrupts it (docs/engine/VERIFIED-FIXES.md). Restore a known-good input.map; "
                 f"never rebind in-game.")
 
     # The menu-corrupted file also re-pointed every button at whatever joystick

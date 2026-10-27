@@ -35,7 +35,7 @@ case "$1" in
     [ -f "$DEST/x32/x32dbg.exe" ] || { echo "not installed - run tools/setup-debugger.sh first"; exit 1; }
     echo "launching x32dbg inside the prefix..."
     "$APP/Contents/SharedSupport/wine/bin/wine" 'C:\x64dbg\x32\x32dbg.exe' >/dev/null 2>&1 &
-    echo "started (pid $!).  See docs/FIND-WHAT-WRITES.md for the workflow."
+    echo "started (pid $!).  See docs/engine/FIND-WHAT-WRITES.md for the workflow."
     ;;
 --remove)
     rm -rf "$DEST" && echo "removed $DEST"
@@ -61,6 +61,6 @@ case "$1" in
     mkdir -p "$DEST"
     cp -R "$TMP/x/release/." "$DEST/"
     echo "installed to $DEST"
-    echo "next: tools/setup-debugger.sh --launch   (see docs/FIND-WHAT-WRITES.md)"
+    echo "next: tools/setup-debugger.sh --launch   (see docs/engine/FIND-WHAT-WRITES.md)"
     ;;
 esac

@@ -4,7 +4,7 @@
 extracted, 25 adversarially verified (24 confirmed, 1 refuted). Confidence tags and citations are
 per-method. This is the "what has everyone tried" reference so we don't reinvent or miss anything —
 the macOS/Wine port specifics live in [../README.md](../../README.md) and
-[DXGI-DGVOODOO-RESEARCH.md](../DXGI-DGVOODOO-RESEARCH.md).*
+[DXGI-DGVOODOO-RESEARCH.md](../research/DXGI-DGVOODOO-RESEARCH.md).*
 
 ## The one-paragraph state of the art
 

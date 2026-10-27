@@ -136,8 +136,8 @@ if (($knownGood -notcontains $u32xMd5) -and -not $AllowUnrecordedU32x) {
     Die "u32x build $u32xMd5 is not in u32x\deploy-u32x.ps1's KnownGood list ($($knownGood -join ', ')). Record it there after its gate, or pass -AllowUnrecordedU32x."
 }
 
-$presetFile = Join-Path $repo "presets\$Preset.psd1"
-if (-not (Test-Path -LiteralPath $presetFile)) { Die "no preset $Preset in $repo\presets" }
+$presetFile = Join-Path $repo "shared\presets\$Preset.psd1"
+if (-not (Test-Path -LiteralPath $presetFile)) { Die "no preset $Preset in $repo\shared\presets" }
 if (-not (Test-Path -LiteralPath (Join-Path $srcGame 'strlkup_orig.dll'))) { Die "the source has no strlkup_orig.dll: the music-fix proxy would have nothing to forward to" }
 
 # The driver's i76.exe and i76shell.dll must already import u32x.dll, because this script only
@@ -206,7 +206,7 @@ $overlays = New-Object System.Collections.ArrayList
 [void]$overlays.Add(@{ From = $U32xDll;    Name = 'u32x.dll';    Label = 'overlay: u32x' })
 if ($GameExe)            { [void]$overlays.Add(@{ From = $GameExe; Name = 'i76.exe'; Label = 'overlay: game exe' }) }
 if (-not $KeepSourceConf) { [void]$overlays.Add(@{ From = (Resolve-Path -LiteralPath $DgVoodooConf).Path; Name = 'dgVoodoo.conf'; Label = 'overlay: dgVoodoo conf' }) }
-[void]$overlays.Add(@{ From = (Join-Path $repo 'PLAY-i76.ps1'); Name = 'PLAY-i76.ps1'; Label = 'overlay: launcher (repo)' })
+[void]$overlays.Add(@{ From = (Join-Path $repo 'windows\PLAY-i76.ps1'); Name = 'PLAY-i76.ps1'; Label = 'overlay: launcher (repo)' })
 if ($WideConf) {
     [void]$overlays.Add(@{ From = $WideConf; Name = 'dgVoodoo.wide.conf'; Label = 'overlay: widescreen dgVoodoo conf' })
     [void]$overlays.Add(@{ From = (Resolve-Path -LiteralPath $DgVoodooConf).Path; Name = 'dgVoodoo.16x10.conf'; Label = 'overlay: 16:10 dgVoodoo conf (PLAY-16x10.bat)' })
@@ -223,7 +223,7 @@ Say "Golden      : $(if ($GoldenDest) { $GoldenDest } else { '(none)' })" 'Cyan'
 Say ("Game files  : {0} to 'Interstate 76\', {1} residue files to '_carried-over\'" -f $nGame, $nCarry)
 Say ("Lossless Scaling : {0}" -f $(if ($haveLS) { 'carried' } else { 'not carried' }))
 foreach ($o in $overlays) { Say ("Overlay     : {0,-14} <- {1}  (md5 {2})" -f $o.Name, $o.From, (Md5 $o.From)) }
-Say ("Presets     : {0}\presets\*.psd1 -> 'Interstate 76\presets\'; PLAY.bat uses -Preset {1}" -f $repo, $Preset)
+Say ("Presets     : {0}\shared\presets\*.psd1 -> 'Interstate 76\presets\'; PLAY.bat uses -Preset {1}" -f $repo, $Preset)
 if ($WideConf) { Say "Widescreen  : dgVoodoo.wide.conf + dgVoodoo.16x10.conf; PLAY.bat (wide conf, -Preset $Preset), PLAY-16x10.bat (16:10, best-120), PLAY-balanced.bat (wide, best-wide-balanced)" }
 Say ("I76PATCH.DLL: {0}" -f $(if ($disablePatch) { 'renamed to I76PATCH.DLL.disabled in the NEW folder (20 fps cap off)' } else { 'left active' }))
 if ($KeepSourceConf) { Say "dgVoodoo.conf: the DRIVER'S conf is carried unchanged. If dgVoodoo rejects it, the new folder depends on %APPDATA%\dgVoodoo\dgVoodoo.conf and is not independent." 'Yellow' }
@@ -275,7 +275,7 @@ foreach ($o in $overlays) {
 
 # presets beside the launcher
 $dstPresets = Join-Path $dstGame 'presets'
-foreach ($p in Get-ChildItem -LiteralPath (Join-Path $repo 'presets') -Filter '*.psd1') { CopyVerified $p.FullName (Join-Path $dstPresets $p.Name) 'repo: presets' }
+foreach ($p in Get-ChildItem -LiteralPath (Join-Path $repo 'shared\presets') -Filter '*.psd1') { CopyVerified $p.FullName (Join-Path $dstPresets $p.Name) 'repo: presets' }
 
 # GOG's 20 fps cap: with it loaded a 60/120 preset runs under the cap and looks like it does nothing
 if ($disablePatch) {
@@ -290,7 +290,7 @@ if ($disablePatch) {
 
 # save editor (current repo build; the driver's top-level html is the 2026-07-21 pre-fix parser)
 foreach ($n in 'i76-save-editor.html', 'i76-save-editor.py', 'i76-save-editor-server.py') {
-    $p = Join-Path $repo $n
+    $p = if ($n -eq 'i76-save-editor.html') { Join-Path $repo $n } else { Join-Path $repo "tools\save-editor\$n" }
     if (Test-Path -LiteralPath $p) { CopyVerified $p (Join-Path $Dest $n) 'repo: save editor' }
 }
 # root launchers for the save editor, I76 Debug and the trainer (code in _tools; debug imports ..\trainer and ..\telemetry;
@@ -382,7 +382,7 @@ if ($py) {
     $env:PYTHONDONTWRITEBYTECODE = '1'
     $r = (& python (Join-Path $repo 'tools\lint-input-map.py') $dstGame 2>&1 | Out-String).Trim()
     [void]$checks.Add("lint-input-map: exit $LASTEXITCODE - " + ($r -split "`n")[-1].Trim())
-    $r = (& python (Join-Path $repo 'i76-save-editor.py') --dir $dstGame --check 2>&1 | Out-String).Trim()
+    $r = (& python (Join-Path $repo 'tools\save-editor\i76-save-editor.py') --dir $dstGame --check 2>&1 | Out-String).Trim()
     [void]$checks.Add("save editor --check: exit $LASTEXITCODE - " + ($r -split "`n")[0].Trim())
 } else { [void]$checks.Add('python not found: lint-input-map and save --check NOT run') }
 $sh = [IO.File]::ReadAllBytes((Join-Path $dstGame 'i76shell.dll'))

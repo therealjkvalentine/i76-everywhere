@@ -86,7 +86,7 @@ game keeps its state in its folder, not the profile); `UseForceBindIP`/`ChangeIP
 6. Launch line: `start "" /D "<instance>" "<instance>\i76.exe" -glide` from the per-instance `.cmd`.
 
 ## AutoHotkey layers
-`i76-remap.ahk`, the fighterstick layer and `i76wheel` send keys globally (to the foreground window), and the game
+`windows/i76-remap.ahk`, the fighterstick layer and `i76wheel` send keys globally (to the foreground window), and the game
 reads key state globally. Under Nucleus: **do not run them** for the first runs. They would reach whichever instance
 has focus, and a non-elevated AHK cannot send into the elevated instances anyway. Per-window scoping later needs
 (a) AHK run elevated, (b) `#If WinActive("ahk_pid " pid)` per instance (both processes are `i76.exe`; `ChangeExe`

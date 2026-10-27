@@ -148,7 +148,7 @@ MSVC build, GTX 1080 Ti, t01 through `autotest\proxy-run.ps1`, 7 runs, no crash.
 ## 7. Patch 0004 on the Mac (2026-10-04): gamma, MSAA, stretched output
 
 Run on the MacBook (M5 Pro, Wine 10, built as route B). All off unless set; the Mac launcher
-([`i76-hires120-stub.swift`](../../i76-hires120-stub.swift)) passes them from `hires120.env`:
+([`mac/i76-hires120-stub.swift`](../../mac/i76-hires120-stub.swift)) passes them from `hires120.env`:
 
 | setting | what | Mac result |
 |---|---|---|
@@ -215,7 +215,7 @@ that path; the Nitro and DxWnd Settings launchers were rebuilt from the updated 
 swap brightened the already brightened frame. Patch 0006 draws the saved unbrightened frame back after each swap.
 (2) On the 3440x1440 display the fixed `OGL_VIEWPORT=1728x1117` did not match DxWnd's real 2228x1440 window, and the
 pass copied the frame into a corner of itself on every menu redraw (nested copies, visible in captures). Fixed in the
-launcher: `i76-launch-stub.swift` now computes `OGL_VIEWPORT` before Wine starts whenever the prefix environment has
+launcher: `mac/i76-launch-stub.swift` now computes `OGL_VIEWPORT` before Wine starts whenever the prefix environment has
 `OGL_OUTPUT=parent` - the profile's `sizx0:sizy0` shape fitted into the main display (laptop 1728x1117, ultrawide
 2228x1440). Verified on the TEST clone at 2228x1440: the Esc menu, 8 moves, no nesting, no brightening.
 (An `OGL_VIEWPORT=auto` read of the initial GL viewport was tried and dropped: the output child is hidden when the
@@ -240,9 +240,9 @@ Promoted to `~/Applications/Sikarugir/Interstate 76 Gold.app` with every replace
 (Glide2x.dll, Strlkup.dll, the launcher, dxwnd.ini, I76PLYR.DEF). Boot check: render size 2228x1440 computed, the
 guard re-claimed all four slots, the CD device opened. The test clone `Interstate 76 TEST.app` stays for the next pass.
 
-## 11. One step from a DxWnd wrapper: `setup-mac-glide.sh`
+## 11. One step from a DxWnd wrapper: `mac/setup-mac-glide.sh`
 
-[`setup-mac-glide.sh`](../../setup-mac-glide.sh) `[wrapper.app]` applies everything above to a working DxWnd install:
+[`mac/setup-mac-glide.sh`](../../mac/setup-mac-glide.sh) `[wrapper.app]` applies everything above to a working DxWnd install:
 builds OpenGLide (voyageur `ad9a3dd` + every patch here, cached in `~/Library/Caches/i76-everywhere`) and the proxy,
 installs both (the original Strlkup kept as `strlkup_orig.dll`, GOG's `I76PATCH.DLL` disabled), sets DxWnd target 0
 (`cmdline0=i76.exe -glide`, `maxfps0=0`, 1728x1117 shape, its virtual CD off), the prefix environment, GDI DirectDraw

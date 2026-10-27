@@ -48,7 +48,7 @@
 
   Whether our acquire actually succeeds alongside the game's is an empirical
   question, not a deducible one - so this script TRIES, and reports plainly which
-  happened rather than assuming. If it fails, see docs/WHEEL-T300.md.
+  happened rather than assuming. If it fails, see docs/guides/WHEEL-T300.md.
 #>
 param(
     # Read + display only; never open or drive the wheel. Start here.
@@ -381,7 +381,7 @@ try {
             Write-Host ""
             Write-Host "The game holds an exclusive DirectInput acquisition while it runs." -ForegroundColor Yellow
             Write-Host "Re-run with -DryRun to work on telemetry and the force model," -ForegroundColor Yellow
-            Write-Host "or see docs/WHEEL-T300.md. Nothing was changed." -ForegroundColor Yellow
+            Write-Host "or see docs/guides/WHEEL-T300.md. Nothing was changed." -ForegroundColor Yellow
             exit 2
         }
     }

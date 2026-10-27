@@ -1,7 +1,7 @@
 # Game night rollout, 2026-10-17: one LAN pack for the PC and three Macs
 
 Goal: The developer, the M4 Max tester and the M2 tester (Macs, Wine) plus the Windows PC can play I'76 over IPX at home, with identical game
-data and one control map. The one-page player sheet is [../GAME-NIGHT.md](../GAME-NIGHT.md).
+data and one control map. The one-page player sheet is [../GAME-NIGHT.md](../guides/GAME-NIGHT.md).
 
 ## 1. State of each machine (end of the session)
 

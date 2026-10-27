@@ -17,7 +17,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-LAUNCHER = os.path.join(REPO, "PLAY-i76.ps1")
+LAUNCHER = os.path.join(REPO, "windows", "PLAY-i76.ps1")
 POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
 
 ENV_LINE = re.compile(r"^\s*(I76_[A-Z0-9_]+)\s*=\s*'([^']*)'", re.M)
@@ -45,7 +45,7 @@ def guard_problems(env):
     return refuse, warn
 
 
-PRESETS = sorted(glob.glob(os.path.join(REPO, "presets", "*.psd1")))
+PRESETS = sorted(glob.glob(os.path.join(REPO, "shared", "presets", "*.psd1")))
 
 
 @pytest.mark.parametrize("path", PRESETS, ids=[os.path.basename(p) for p in PRESETS])

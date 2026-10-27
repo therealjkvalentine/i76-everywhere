@@ -1,4 +1,4 @@
-# lv-lib.ps1 - shared helpers for the launch-video pipeline (docs/LAUNCH-VIDEO-2026-10-25.md). Dot-source it.
+# lv-lib.ps1 - shared helpers for the launch-video pipeline (docs/release/LAUNCH-VIDEO-2026-10-25.md). Dot-source it.
 #   Get-LvFfmpeg            ffmpeg.exe / ffprobe.exe (winget Gyan.FFmpeg 9.0.2 on this PC; PATH or the winget package folder)
 #   Wait-LvConsole -Tag x   CONSOLE-LOCK.md protocol: waits (queue line in .fps-queue, poll 10 s) until no i76 / nitro runs,
 #                           .console-owner and .fps-lock are free, then takes both with an exclusive create. Returns $true / $false.

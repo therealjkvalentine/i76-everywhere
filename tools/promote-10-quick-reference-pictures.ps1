@@ -7,5 +7,5 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     -What 'Controls quick reference PDF: wheel and flight stick pages drawn around labelled pictures (5 pages)' `
     -Gate 'tools\controls-sheet\build.ps1: lint OK, sources agree (57 actions, 0 mismatches), tests\test_controls.py 5 passed; pages 3 and 4 looked at as PNGs' `
     -Files @{
-        'Interstate76-Controls-Quick-Reference.pdf' = (Join-Path $repo 'docs\Interstate76-Controls-Quick-Reference.pdf')
+        'Interstate76-Controls-Quick-Reference.pdf' = (Join-Path $repo 'docs\guides\Interstate76-Controls-Quick-Reference.pdf')
     }

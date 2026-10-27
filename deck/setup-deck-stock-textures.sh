@@ -7,7 +7,7 @@
 # .map tiles (cockpit gauges and reticles z*.map, roads r4r*, terrain i2*, lights *_1lt_*, clouds nk_*)
 # were re-quantized against ONE day palette (t01). I76 does night by keeping the indices and swapping
 # the level palette, so the pack's new indices come out as wrong colours at night only
-# (docs/HD-TEXTURES-RESEARCH.md, "Why it was retired"; docs/STEAMDECK.md, night missions).
+# (docs/research/HD-TEXTURES-RESEARCH.md, "Why it was retired"; docs/guides/STEAMDECK.md, night missions).
 #
 # This moves every ADDON file that is not GOG stock (DUMMY.TXT fullres.lst i2ayj_13.map loadgame.pcx
 # loadscr.pcx) or a vehicle/armour file (*.vcf *.vsf, kept) into backups/hd-pack-<date>/ADDON, installs

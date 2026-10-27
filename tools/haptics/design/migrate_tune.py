@@ -248,7 +248,7 @@ RIG_SKELETON = {
         "loopback": {"renderer": "Lfe.Loopback", "enabled": False, "gain": 0.25, "hp_hz": 22.0, "lp_hz": 90.0,
                      "duck_on_transient": 0.6, "gate": "player_present", "endpoint": "default-render"},
         "motion": {"renderer": "Motion.FileSink", "enabled": False,
-                   "note": "Plug-in point only. Motion cueing, washout and packet formats are a separate workstream: docs/MOTION-OUTPUT.md"},
+                   "note": "Plug-in point only. Motion cueing, washout and packet formats are a separate workstream: docs/engine/MOTION-OUTPUT.md"},
     },
 }
 

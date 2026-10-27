@@ -53,7 +53,7 @@ echo "   reachable"
 
 echo "== copying payload =="
 ssh "$HOST" "mkdir -p ~/$DEST/deck"
-scp -q "$REPO/i76-remap.ahk"              "$HOST:~/$DEST/i76-remap.ahk"
+scp -q "$REPO/windows/i76-remap.ahk"          "$HOST:~/$DEST/i76-remap.ahk"
 scp -q "$HERE/setup-deck-baseline.sh"     "$HOST:~/$DEST/deck/setup-deck-baseline.sh"
 scp -q "$HERE/i76-deck-launch.sh"         "$HOST:~/$DEST/deck/i76-deck-launch.sh"
 ssh "$HOST" "chmod +x ~/$DEST/deck/*.sh"

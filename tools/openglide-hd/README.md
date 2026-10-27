@@ -39,7 +39,7 @@ The built DLL is LGPL-2.1 (OpenGLide) and is not committed here (THIRD-PARTY.md:
 no third-party binaries); keep sources and builds in the lab's gitignored `refs\openglide`.
 
 Output: `glide2x.dll` (32-bit). Deploy with
-[`swap-renderer.ps1 openglide`](../../lab-residue/swap-renderer.ps1), which also owns the two
+[`swap-renderer.ps1 openglide`](../../docs/records/lab-residue/swap-renderer.ps1), which also owns the two
 load-bearing companions (never skip them):
 
 - `OpenGLid.ini` **must** keep `TextureMemorySize=2` / `FrameBufferMemorySize=2`

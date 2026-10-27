@@ -1,4 +1,4 @@
-"""Gated install / uninstall of the HD sound pack into a LAB game folder's ADDON\\ (docs/SOUND-HD-PACK.md 3.5).
+"""Gated install / uninstall of the HD sound pack into a LAB game folder's ADDON\\ (docs/guides/SOUND-HD-PACK.md 3.5).
 
 Rules, all enforced here, all unit-tested against a temporary fake game folder (tests/test_soundhd.py):
   * the target must BE a folder matching <lab>\\game* (after resolving links), must

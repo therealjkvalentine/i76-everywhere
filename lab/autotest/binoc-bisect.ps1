@@ -10,7 +10,7 @@ param([string]$Preset = "best-wide", [string]$Mission = "t01", [string[]]$Varian
       [string]$Conf = "$env:USERPROFILE\i76-uncap-lab\game\dgVoodoo.aspect-wide.conf", [string]$Agent = "binoc-bisect")
 $ErrorActionPreference = "Continue"
 $Here = $PSScriptRoot; $Lab = "$env:USERPROFILE\i76-uncap-lab"; $G = Join-Path $Lab "game"; $Owner = Join-Path $Lab ".console-owner"
-$P = Import-PowerShellDataFile "$env:USERPROFILE\i76-everywhere\presets\$Preset.psd1"
+$P = Import-PowerShellDataFile "$env:USERPROFILE\i76-everywhere\shared\presets\$Preset.psd1"
 $log = Join-Path $G "mciproxy.log"
 $Out = Join-Path $Here "runs\preset-soak\$(Get-Date -Format 'yyyyMMdd-HHmmss')-bisect-$Preset-$Mission.md"
 while ($true) {

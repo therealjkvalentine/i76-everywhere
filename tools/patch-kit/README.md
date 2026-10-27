@@ -175,7 +175,7 @@ tier files in `presets\` to `presets\local.psd1` and edit it: its keys replace t
 game's stock value, and `play-i76.log` lists every key it took (and the `render:` line). Tiers: `graphics-balanced` (= the full set as
 shipped), `graphics-mid` (the same, rendered at the monitor's own size; cost not yet measured), `graphics-high` (more detail and 8x AA,
 UNTESTED), `graphics-mac` / `graphics-mac-fast` (Macs). The stock launchers (PLAY-VANILLA / PLAY-stock) ignore local.psd1;
-`PLAY-i76.ps1 -NoLocal` skips it.
+`windows/PLAY-i76.ps1 -NoLocal` skips it.
 
 | key | values (stock) | what it does |
 |---|---|---|
@@ -306,7 +306,7 @@ with the gamepad and wheel pages is `_i76e\repo\docs\Interstate76-Controls-Quick
 | arrow keys (or middle mouse button = look left) | glance up / down / left / right |
 | `Page Up` / `Page Down` / `End` | zoom out / in / reset (view, map and camera) |
 | `Shift` + arrows | move the outside camera / pan the map |
-| `Ctrl`+`Alt`+`H` | head look (only with a head tracker and `PLAY-i76.ps1 -HeadTrack`, which a normal set does not use): cycles ANALOG (start) > DIGITAL > OFF, shown on screen; holding a glance key overrides it |
+| `Ctrl`+`Alt`+`H` | head look (only with a head tracker and `windows/PLAY-i76.ps1 -HeadTrack`, which a normal set does not use): cycles ANALOG (start) > DIGITAL > OFF, shown on screen; holding a glance key overrides it |
 | `M` | map |
 | `N` | notepad (the mission briefing) |
 | `P` | poetry |

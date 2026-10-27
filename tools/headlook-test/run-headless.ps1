@@ -14,7 +14,7 @@
 #>
 param(
     [string]$Ahk = (Join-Path $env:USERPROFILE 'i76-uncap-lab\exp-polish2\Interstate 76\_ahk\AutoHotkeyU32.exe'),
-    [string]$Script = (Join-Path $PSScriptRoot '..\..\i76-opentrack-headlook.ahk'),
+    [string]$Script = (Join-Path $PSScriptRoot '..\..\windows\i76-opentrack-headlook.ahk'),
     [string]$Map = (Join-Path $env:USERPROFILE 'i76-uncap-lab\rc-twin-20261024\Interstate 76\input.map'),
     [string]$Out = ''
 )
