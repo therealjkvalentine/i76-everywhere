@@ -330,7 +330,7 @@ Evidence: lab captures/i26-compare-20261101/tables.md (raw runs, harnesses, RERU
 |---|---|---|---|---|
 | suspension bounce (1 m / 3 m drops) | 1.71 Hz, settle 0.417 s | 2.00 Hz (+17 %) | 1.56 Hz (-9 %) | same depth; tempo follows substeps/s (28 vs 24); no I26 rate gives 24 - evidence for the late, optional clock conversation |
 | 0-20 m/s, 10 s speed, stop from 29.5 m/s | 4.21 s, 28.73, 39.1 m | 4.20, 28.64, 38.6 | 4.20, 28.67, 38.6 | match |
-| heading after 2.5 s full steer | 135.5 / 137.0 deg | 143.0 / 140.4 | 140.5 / 138.6 | I26 turns 3-5 % more; open |
+| heading after 2.5 s full steer | 135.5 / 137.0 deg | 143.0 / 140.4 | 140.5 / 138.6 | withdrawn 2026-11-01: a harness artefact (I26 entered the turn at 19.8 m/s, carrying the brake phase's throttle); in lockstep at 1/24 s I26 matches the kit to 0.1 % (captures i26-lockstep-20261101) |
 | t02 Taurus race (player parked) | 94.8 s, 43.2 m/s mean | 100.5 s, 40.0 | 99.6 s, 40.2 | I26 slower; the missing Taurus flag explains it (forced on: 95.3 s) |
 | rounds: time to a 355 m hit, MG / rocket | 2.375 / 1.625 s | 2.40 / 1.65 | 2.36 / 1.64 | agree within one kit frame (42 ms, about 2.5 %), one method only (shot-to-burst times at the 355 m range end); I26 rocket ease matches the spec (0x4aa5b0, 0.5 x dt); per-tick kit check pending; the "too fast" feel is unexplained (suspect the 4 m tracer cap) |
 | AI flee | rare (the kit's preset fixes the x100 health bug) | at the first core-part scratch (bug kept on purpose) | same | the developer's reference flees later because of a kit fix, not the 1997 exe |
