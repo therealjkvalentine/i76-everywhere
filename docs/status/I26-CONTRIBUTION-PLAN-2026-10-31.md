@@ -317,7 +317,7 @@ decompile as yes, as I26 does; the missions pass read ai.md as no): read 0x41263
 | 4 | fix/mission-music-wrap | 883b33c | #128 | ready: N..14 then 2..14, 15+ alone; follow-up: shell credits track table and loop |
 | 5 | fix/1997-tracers | 336073b | - | ready: MG a 1 px line over the front 65 % of the step, cannon the whole step, no 4 m cap; needs a 1997-look screenshot |
 | 6 | fix/modern-target-health-bar | 6a8b5b7 | - | ready: the original's 30 x sqrt(hp) geometry scaled by height/480; needs a screenshot |
-| rework | fix/wheel-suspension-prime | (rework) | #141 | measured live: the original primes each wheel's history to the ground under it at placement (0x46da90 from InitEntity), so cars start still; the branch is being redone to prime at placement instead of the constructor's 64 |
+| 8 | fix/wheel-suspension-prime | 17d6000 | #141 | ready: VehicleStep.PrimeWheels at every fresh placement (missions, co-op seats, melee start/join/respawn, co-op respawn and recar), as the original's entity init; T01/T08/T16 substeps at the limit while still 9-21 -> 0; four seed-sensitive install tests (Checkpoint T14, T01Follow vppt01@20, T01 diner, T06 creepers) change outcome - offer re-picked seeds |
 | 7 | fix/taurus-load-cornering | d669451 | - | validated against the original: t02 race with the player parked, kit 94.8 s, I26 100.5 s, I26 with the flag 95.3 s (turn mean 43.5 m/s, as the kit); the T01 diner dice test (seeds 1-4, needs 3) drops to 2: say so in the PR and offer a threshold the maintainer prefers |
 
 Each branch carries its own CHANGELOG `## Unreleased` section, so they conflict on merge with each other: open one PR at a
