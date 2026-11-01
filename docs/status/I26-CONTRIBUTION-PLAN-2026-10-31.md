@@ -239,6 +239,24 @@ in-game view. Not yet checked: menus, controls, audio, the Nitro Pack, Intel Mac
 launch failure. This is the first concrete item for the macOS issue: the release's signing step, reproduced on 0.11.0
 first, with the exact error and the re-sign that works.
 
+**2026-11-01, tier 1.2, 0.11.0 on the same Mac (Apple Silicon, macOS 26.6.2): reproduced, and the cause found.** The
+shipped app (sha256 checked; downloaded with curl, so no quarantine flag) is SIGKILLed at launch: `open` fails with
+"Launchd job spawn failed" (NSPOSIXErrorDomain 163), `codesign --verify --deep --strict` passes, `spctl` rejects (as
+for any ad hoc app). Re-signing with Apple's `codesign` and the same entitlements makes it run. Ruled out: the code page
+size (re-signed with 4 KB pages, as shipped, it runs too). The difference that remains is the DER-encoded entitlements
+blob that Godot's own signer writes (release.sh: "ad-hoc signed by Godot; checked without a Mac"):
+- Apple's: `70 82 01 0a 02 01 01 b0 82 01 03 ...` = [APPLICATION 16] { INTEGER 1, [CONTEXT 16] { SEQUENCE { UTF8String
+  key, BOOLEAN ff } ... } }, minimal lengths, keys sorted, TRUE = ff (270 bytes).
+- Shipped: `31 82 01 21 30 82 00 28 0c 82 00 1f ... 01 82 00 01 01` = a bare SET with no application wrapper and no
+  version, every length in the long form, TRUE as 01, keys in file order (293 bytes). Not valid DER; macOS validates
+  this blob at exec, so the kill.
+Fix options for I26: sign the macOS export with a signer that writes Apple's form (rcodesign runs on Linux), or an
+upstream Godot fix; plus a release.sh check that the entitlements blob starts `70 ..  02 01 01 b0`. Worth checking
+upstream Godot's codesign for an existing report first. Functional run after the re-sign (Metal 4.0 Forward+, M-series):
+T05 modern 8.2 ms CPU per frame median (p95 9.2-9.9), 1997 look 8.6 ms, Nitro front end renders; the gpu.* timings read
+0 under Metal; one 205-235 ms hitch at the screenshot frame, one 3 s mission-build hitch behind the loading card.
+Still needs a person: the normal launch window, controls, audio, CB microphone prompt, driving.
+
 **2026-11-01, tier 1.3 (Steam Deck).** Harness ready, not run: the Deck was off. Native Linux build chosen over the
 Windows build under Proton (the build the maintainer ships and can act on; Proton as an optional comparison run). The
 lab harness (`i26-deck/` in the lab repo) installs 0.11.0 into its own folder, unpacks both GOG offline installers with
