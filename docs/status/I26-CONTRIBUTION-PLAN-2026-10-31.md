@@ -270,6 +270,11 @@ lab harness (`i26-deck/` in the lab repo) installs 0.11.0 into its own folder, u
 I26's own unpacker, and boots T05 in both looks plus Nitro with I26's frame profiler, two runs each; a Game Mode
 checklist covers what needs a person (controls, rumble, on-screen keyboard, suspend, feel, battery).
 
+**2026-11-01, first PR opened: vahokif/I26#144** (macOS launch fix, branch `fix/macos-entitlements-der` aef8758, from the
+developer's fork). Godot 4.7.2's signer writes long-form DER entitlement lengths that macOS 26 refuses at exec; the
+release re-signs with rcodesign and the bundle check now rejects that form. Checked on the Mac: shipped 0.11.0 fails
+spawn (163); the branch build launches from a quarantined-then-cleared download. Mic-prompt docs PR + issue next.
+
 
 ## 9. Fidelity audit, 2026-11-01: our spec against I26 0.11.0's code
 
