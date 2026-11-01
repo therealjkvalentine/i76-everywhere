@@ -325,7 +325,7 @@ time and rebase the next onto master after a merge.
 
 ## 11. Side-by-side measurements, 2026-11-01 (the kit at 41.667 ms vs I26 0.11.0)
 
-Evidence: lab captures\i26-compare-20261101	ables.md (raw runs, harnesses, RERUN.txt). Same install copy and car.
+Evidence: lab captures/i26-compare-20261101/tables.md (raw runs, harnesses, RERUN.txt). Same install copy and car.
 | measure | kit | I26 20 Hz | I26 25 Hz | reading |
 |---|---|---|---|---|
 | suspension bounce (1 m / 3 m drops) | 1.71 Hz, settle 0.417 s | 2.00 Hz (+17 %) | 1.56 Hz (-9 %) | same depth; tempo follows substeps/s (28 vs 24); no I26 rate gives 24 - evidence for the late, optional clock conversation |
