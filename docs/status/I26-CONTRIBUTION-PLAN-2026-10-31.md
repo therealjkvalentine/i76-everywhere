@@ -269,3 +269,39 @@ Windows build under Proton (the build the maintainer ships and can act on; Proto
 lab harness (`i26-deck/` in the lab repo) installs 0.11.0 into its own folder, unpacks both GOG offline installers with
 I26's own unpacker, and boots T05 in both looks plus Nitro with I26's frame profiler, two runs each; a Game Mode
 checklist covers what needs a person (controls, rumble, on-screen keyboard, suspend, feel, battery).
+
+
+## 9. Fidelity audit, 2026-11-01: our spec against I26 0.11.0's code
+
+Four read-only passes (AI, physics and collision, damage and weapons, missions and FSM), each rule of our spec marked
+high-confidence or live-verified compared with I26's faithful path, deliberate deviations (docs/deviations.md) left
+out. Most of the port matches, often line by line; the gaps below are what is left. Code readings only: each item
+needs its test before it is offered. Spec references are i76-map subsystems/*.md.
+
+**Picked first: the police siren (#51, #48).** The GAS0 header's play mode (int32 at +12: 0 one-shot, 1 loop, 2 shared
+loop) is never read; every call site hard-codes looping. aps2.gpw (the engine-10 police horn) is mode 1, priority 60,
+2 voices, 0.33 s of 11 kHz audio; I26 plays it once (`CarVoices.Sirens` via `Once`), so a cop's siren is a click. 26
+stock .gpw files are mode 1. Fix: read the mode in the formats layer, the siren held and looped when its file says
+so; also the siren's on-edge is lost when the car node is not ready. Branch `fix/siren-gpw-loop` (local worktree).
+
+**Candidates, ranked (reported or report-shaped first):**
+| # | finding | where in I26 | player sees | issue |
+|---|---|---|---|---|
+| 1 | spawn bob: wheel suspension history starts at 0, so the first filter call sees the whole terrain height as a step (+-0.25 r travel ringing ~0.8 s); no 0.2 s first frame; regen the same | Vehicle.cs:30,38; SimSession.cs:181; MeleeGame.cs:252 | cars drop and bob at mission start and respawn | #141 (new in 0.11) |
+| 2 | AI obstacle avoidance: chooser order from a centred wheel (+a first in the original), all-blocked fallback (full lock, best blocked score), fixed 10 m x 2.6 m car-obstacle ladder, static probe grown 3 m | PtableEscapes.cs:246-421 | AI dodges the other way, reacts later, drives into buildings; maybe #111's stuck creepers | report-shaped |
+| 3 | AI line of fire ignores structures (terrain only) | Combat.cs:574,596,632; PtableEscapes.cs:52 | AI shoots through buildings | report-shaped |
+| 4 | Difficulty never applied: `Combat.Difficulty` has no writer outside tests; player damage x2.0 / 1.0 / 0.75 (offline) | Combat.cs:105; Main.cs ApplyPlayOptions | Wimp and Badass play as Champ | report-shaped |
+| 5 | Taurus's car lacks flag 0x10000 (always set in the original) | Main.cs:653 only | Taurus can drift; a rollover wrecks him (mission fail) | t01-t03, t10, t11, t14, s02 |
+| 6 | middle wheels get no suspension (drawn at the front/rear average) | Vehicle.cs:258-265 | tank and 6-wheel middle wheels sink on crests | #124 (wheel half) |
+| 7 | contact order: statics before car-car, so a wall loses to a car (the original: last written wins, statics last) | SimWorld.cs:77-80 | pins and pile-ups resolve differently | - |
+| 8 | the EZK mortar is never fired by the AI (subtype 3 falls through) | Combat.cs:598 | AI EZK cars never fire it | - |
+| 9 | turret lead corrects for the carrier's velocity (the original does not) | Combat.cs:662 | AI turrets on moving cars hit more | - |
+| 10 | class 8/9 placements not snapped to the terrain at load (static reading, medium-high) | MissionSetup.cs:219,278 | T11's guns 2 m up | - |
+Smaller: wreck debris rolls 2-3 throw no parts and draw no rand (DamageModel.cs:252); isShot/isRammed seen one frame
+not two (stale FsmTick at stamp); teleport does not write the terrain y into path node 0; tactic_skid modulus 32 not 31
+at skill 0.4 (x87 truncation); scenery multi-hit choice (earliest TOI vs last written).
+Not bugs: #124's "Empty" cannon label is the stock .gdf's own name (`3empty_on`); #114's tanker matches the script
+and the reporter recalls it in the original; #71's smoke is already right in code.
+Spec errors the audit found (fix in i76-map, I26 is right): damage.md:323 specials slots 17..18 not 17..19;
+weapons.md:87 heat missile keeps a valid target; weapons.md:123 flamer explosion per touching segment; weapons.md:359
+the .45 is 1.0 fixed; ai.md:1901 setAgg also writes the attacker cap.
