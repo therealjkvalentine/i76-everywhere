@@ -317,8 +317,23 @@ decompile as yes, as I26 does; the missions pass read ai.md as no): read 0x41263
 | 4 | fix/mission-music-wrap | 883b33c | #128 | ready: N..14 then 2..14, 15+ alone; follow-up: shell credits track table and loop |
 | 5 | fix/1997-tracers | 336073b | - | ready: MG a 1 px line over the front 65 % of the step, cannon the whole step, no 4 m cap; needs a 1997-look screenshot |
 | 6 | fix/modern-target-health-bar | 6a8b5b7 | - | ready: the original's 30 x sqrt(hp) geometry scaled by height/480; needs a screenshot |
-| hold | fix/wheel-suspension-prime | 33f20b6 | #141 | faithful (wheel history starts at 64) but does not remove the bob: most spawns are far from 64; live lane measuring the original's first 2 s |
-| hold | fix/taurus-load-cornering | d669451 | - | faithful flag; makes Taurus faster in t02 corners (race 4.6 s sooner) and breaks the T01 diner dice test (3 of 4 -> 2 of 4); wait for the original's t02 numbers |
+| rework | fix/wheel-suspension-prime | (rework) | #141 | measured live: the original primes each wheel's history to the ground under it at placement (0x46da90 from InitEntity), so cars start still; the branch is being redone to prime at placement instead of the constructor's 64 |
+| 7 | fix/taurus-load-cornering | d669451 | - | validated against the original: t02 race with the player parked, kit 94.8 s, I26 100.5 s, I26 with the flag 95.3 s (turn mean 43.5 m/s, as the kit); the T01 diner dice test (seeds 1-4, needs 3) drops to 2: say so in the PR and offer a threshold the maintainer prefers |
 
 Each branch carries its own CHANGELOG `## Unreleased` section, so they conflict on merge with each other: open one PR at a
 time and rebase the next onto master after a merge.
+
+## 11. Side-by-side measurements, 2026-11-01 (the kit at 41.667 ms vs I26 0.11.0)
+
+Evidence: lab captures\i26-compare-20261101	ables.md (raw runs, harnesses, RERUN.txt). Same install copy and car.
+| measure | kit | I26 20 Hz | I26 25 Hz | reading |
+|---|---|---|---|---|
+| suspension bounce (1 m / 3 m drops) | 1.71 Hz, settle 0.417 s | 2.00 Hz (+17 %) | 1.56 Hz (-9 %) | same depth; tempo follows substeps/s (28 vs 24); no I26 rate gives 24 - evidence for the late, optional clock conversation |
+| 0-20 m/s, 10 s speed, stop from 29.5 m/s | 4.21 s, 28.73, 39.1 m | 4.20, 28.64, 38.6 | 4.20, 28.67, 38.6 | match |
+| heading after 2.5 s full steer | 135.5 / 137.0 deg | 143.0 / 140.4 | 140.5 / 138.6 | I26 turns 3-5 % more; open |
+| t02 Taurus race (player parked) | 94.8 s, 43.2 m/s mean | 100.5 s, 40.0 | 99.6 s, 40.2 | I26 slower; the missing Taurus flag explains it (forced on: 95.3 s) |
+| rounds: time to a 355 m hit, MG / rocket | 2.375 / 1.625 s | 2.40 / 1.65 | 2.36 / 1.64 | match; the "too fast" feel is not the sim (suspect the 4 m tracer cap) |
+| AI flee | rare (the kit's preset fixes the x100 health bug) | at the first core-part scratch (bug kept on purpose) | same | the developer's reference flees later because of a kit fix, not the 1997 exe |
+Not measured: GOG at 46.9 ms; rendered 1997-look pictures; Taurus against a moving player (the "too fast" impression did
+not reproduce with the player parked). I76_MOTION / I76_INPUT / I76_MOTION_CSV are documented in dev-hooks.md but have no
+code in 0.11.0.
