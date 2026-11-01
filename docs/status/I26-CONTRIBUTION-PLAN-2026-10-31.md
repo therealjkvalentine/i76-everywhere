@@ -306,3 +306,19 @@ Spec errors the audit found (fix in i76-map, I26 is right): damage.md:323 specia
 weapons.md:87 heat missile keeps a valid target; weapons.md:123 flamer explosion per touching segment; weapons.md:359
 the .45 is 1.0 fixed; Disputed between two passes: whether setAgg (0x40bf60) also sets the attacker cap to 1 (the AI pass read the
 decompile as yes, as I26 does; the missions pass read ai.md as no): read 0x412630 before either side is changed.
+
+## 10. Branch tracker (local worktrees under the developer's i26-wt folder; nothing pushed)
+
+| order | branch | commit | issue | state |
+|---|---|---|---|---|
+| 1 | fix/difficulty-damage | e95ca09 | - | ready: +19 tests; Wimp x2 / Champ x1 / Badass x0.75 offline, x1 in melee and co-op; note the shipped default is Wimp |
+| 2 | fix/siren-gpw-loop | 2680b80 | #48 #51 | ready: GAS0 play mode read; needs one listen (P16 Foxy Cat, Esc skip, first cop) |
+| 3 | fix/bookmark-cancel-returns | de70f99 | - | ready: Cancel returns to the opener (garage, salvage, post-mission); not yet clicked through in game |
+| 4 | fix/mission-music-wrap | 883b33c | #128 | ready: N..14 then 2..14, 15+ alone; follow-up: shell credits track table and loop |
+| 5 | fix/1997-tracers | 336073b | - | ready: MG a 1 px line over the front 65 % of the step, cannon the whole step, no 4 m cap; needs a 1997-look screenshot |
+| 6 | fix/modern-target-health-bar | 6a8b5b7 | - | ready: the original's 30 x sqrt(hp) geometry scaled by height/480; needs a screenshot |
+| hold | fix/wheel-suspension-prime | 33f20b6 | #141 | faithful (wheel history starts at 64) but does not remove the bob: most spawns are far from 64; live lane measuring the original's first 2 s |
+| hold | fix/taurus-load-cornering | d669451 | - | faithful flag; makes Taurus faster in t02 corners (race 4.6 s sooner) and breaks the T01 diner dice test (3 of 4 -> 2 of 4); wait for the original's t02 numbers |
+
+Each branch carries its own CHANGELOG `## Unreleased` section, so they conflict on merge with each other: open one PR at a
+time and rebase the next onto master after a merge.
