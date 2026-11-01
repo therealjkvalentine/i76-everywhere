@@ -1,6 +1,6 @@
 /* nitro_mp.c - ARENA+ on Nitro: the ANet 2 layer (nitro-mp-design lane, 2026-10-21; estimate item 3).
  * Record: docs/records/NITRO-MP-DESIGN-2026-10-21.md (section 0 = ARENA+, 0.5.x = proofs, 1 = the ANet 2 map).
- * RE notes: i76-map nitro-net\README.md (exe, nitshell, anet2 real code).
+ * RE notes: <re-archive> nitro-net\README.md (exe, nitshell, anet2 real code).
  *
  * BUILT ON the nitro-port lane's site table (sites_nitro.h, read-only here): every exe address below is the Gold address
  * looked up there, and the looked-up Nitro value must equal the one this lane read (nmp_site), else the feature is off.
@@ -8,7 +8,7 @@
  *
  * HOW IT IS INCLUDED. Two hosts, one source:
  *   - the proxy (strlkproxy.c, after nitro.c): NMP_IN_PROXY defined by the includer; logging = mlog, IAT = patch_iat.
- *   - the lab instrument nmpdrv (i76-uncap-lab tools\nitro-mp\nmpdrv): defines NMP_LOG / NMP_IAT and includes this file
+ *   - the lab instrument nmpdrv (<lab> tools\nitro-mp\nmpdrv): defines NMP_LOG / NMP_IAT and includes this file
  *     and sites_nitro.h; that is how sections 0.5.4 of the record were measured.
  * Entry points: nmp_attach_exe() (DllMain, nitro.exe only), nmp_attach_shell(nitshell) (when nitshell.dll is mapped),
  * nmp_status(tag) (read-back line).

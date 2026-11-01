@@ -19,7 +19,7 @@
  *   THE STOCK SKILL SCALE RUNS BACKWARDS: setSkill level 1 is the BEST driver and shooter, 5 the worst (and the AI block's
  *   default). 0x40bd90 fills ai+0xa81c throttle / +0xa820 steering / +0xa824 aim / +0xa828 fire from the tables at
  *   0x5fcb7c..: level 1 = 1.0 / 1.0 / 1.0 / 1.0, 2 = 0.8 / 0.8 / 0.8 / 0.9, 3 = 0.6 / 0.6 / 0.6 / 0.8, 4 = 0.5 / 0.5 / 0.4 / 0.7,
- *   5 = 0.4 / 0.4 / 0.2 / 0.6 (i76-map subsystems/ai.md M23; read back live on the host 2026-10-20: level 2 -> 0.8 0.8 0.8
+ *   5 = 0.4 / 0.4 / 0.2 / 0.6 (<re-archive> subsystems/ai.md M23; read back live on the host 2026-10-20: level 2 -> 0.8 0.8 0.8
  *   0.9, level 5 -> 0.4 0.4 0.2 0.6). The brief's first table (Wimp 2 / Champ 3 / Badass 5) would have made Wimp the
  *   hardest and Badass the softest; this table keeps its steps (one easier, two harder than Champ) the right way round. Only the host runs aimelee's skill code, so the
  *   host's DEF rules; a joiner's DEF changes nothing. I76_AIMELEE_SKILL, when set, overrides the byte (lab use);

@@ -304,4 +304,5 @@ Not bugs: #124's "Empty" cannon label is the stock .gdf's own name (`3empty_on`)
 and the reporter recalls it in the original; #71's smoke is already right in code.
 Spec errors the audit found (fix in i76-map, I26 is right): damage.md:323 specials slots 17..18 not 17..19;
 weapons.md:87 heat missile keeps a valid target; weapons.md:123 flamer explosion per touching segment; weapons.md:359
-the .45 is 1.0 fixed; ai.md:1901 setAgg also writes the attacker cap.
+the .45 is 1.0 fixed; Disputed between two passes: whether setAgg (0x40bf60) also sets the attacker cap to 1 (the AI pass read the
+decompile as yes, as I26 does; the missions pass read ai.md as no): read 0x412630 before either side is changed.

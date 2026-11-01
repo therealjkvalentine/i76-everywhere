@@ -5,7 +5,7 @@
  * The Esc menu is the exe's (shell_BeginInGameMenu 0x4953e0, page rect [0x654a3c..0x654a48] in 640x480 frame pixels;
  * lab MOUSE-ESC-MENU-AND-SAVE-SCREEN.md s.2). The WndProc 0x404830 hands the lParam of WM_LBUTTONDOWN / UP to
  * 0x4972d0 (call sites 0x404b89 / 0x404b4c) while [0x4fe534] == 0x10, and that function hit-tests it as a 640x480
- * coordinate. Measured on Andrew's Mac (1440x900 window): the click positions that reach 0x4972d0 follow the window
+ * coordinate. Measured on the M2 tester Mac (1440x900 window): the click positions that reach 0x4972d0 follow the window
  * up to about window x 800 / y 560-600 and then STOP - every click lower or further right lands on the last row it
  * reached (Play Options: y 560..840 all hit row 4), and Cancel / Back (UI y 434..453) could not be clicked at all
  * (0 of 61 clicks). The I76_MENU_PTR_LOG lines show why: under DxWnd the window is 800x600 as the game sees it, the

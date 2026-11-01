@@ -40,7 +40,7 @@ static int g_rpl_have_eflags;
 static DWORD g_rpl_preroll, g_rpl_pre_n;
 static int g_rpl_pre_on;
 /* I76_REPLAY_SRAND=<seed> (2026-10-17, item 51): the exe seeds MSVCRT rand() with time(NULL) at every mission start
- * (i76-map functions/004a9020, 004ad260); under this switch every srand() call of i76.exe gets <seed> instead, so two
+ * (<re-archive> functions/004a9020, 004ad260); under this switch every srand() call of i76.exe gets <seed> instead, so two
  * replays draw the same random numbers. Test of whether the A/A divergence comes from rand(). */
 static unsigned g_rpl_seed; static int g_rpl_seed_on; static volatile LONG g_rpl_srand_n;
 static void (__cdecl *p_rpl_srand)(unsigned);

@@ -1,7 +1,7 @@
 /* nitro_form.c - ARENA+ on Nitro: the host-form check boxes (nitro-mp-design lane, 2026-10-21; owner's item 2 of the
  * evening: the boxes move from the lab instrument into the shipped proxy). Included by nitro_mp.c; nmp_attach_shell()
  * calls nf_attach(nitshell). Record: docs/records/NITRO-MP-DESIGN-2026-10-21.md s.0.3 (design), 0.5.1 (lab proof),
- * 0.5.10 (this). RE: i76-map nitro-net\README.md.
+ * 0.5.10 (this). RE: <re-archive> nitro-net\README.md.
  *
  * On nitshell's network HOST form (provider [0x1004701c] 2..5) two check boxes under the label ARENA+ and its
  * owner-approved description:
