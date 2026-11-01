@@ -226,3 +226,21 @@ Tier 3
 Before any of it
 - [ ] Build and test I26 on a Windows machine of ours; play a mission in both looks; read `docs/deviations.md` end to end
 - [ ] Owner ruling: P166 or P133 as "the 1997 reference" when we quote numbers to I26
+
+## 8. Progress log
+
+**2026-11-01, tier 1.2 (macOS), from an earlier owner session on the family Mac (2026-10-28).** I26 0.9.0 macOS zip
+(sha256 checked) on Apple Silicon, macOS 26.6.2, game files copied from the Gold and Nitro wrappers into `i76/` and
+`nitro/` beside `I26.app`. Clearing the quarantine flag was not enough: the app was killed at launch (SIGKILL,
+"Launchd job spawn failed") although its ad hoc signature verified. Re-signing locally with the same ad hoc identity
+and the entitlements dumped from the shipped app fixed it
+(`codesign --force --deep --options runtime --entitlements <dumped.plist> -s - I26.app`); the game then reached the
+in-game view. Not yet checked: menus, controls, audio, the Nitro Pack, Intel Macs, and whether 0.11.0 has the same
+launch failure. This is the first concrete item for the macOS issue: the release's signing step, reproduced on 0.11.0
+first, with the exact error and the re-sign that works.
+
+**2026-11-01, tier 1.3 (Steam Deck).** Harness ready, not run: the Deck was off. Native Linux build chosen over the
+Windows build under Proton (the build the maintainer ships and can act on; Proton as an optional comparison run). The
+lab harness (`i26-deck/` in the lab repo) installs 0.11.0 into its own folder, unpacks both GOG offline installers with
+I26's own unpacker, and boots T05 in both looks plus Nitro with I26's frame profiler, two runs each; a Game Mode
+checklist covers what needs a person (controls, rumble, on-screen keyboard, suspend, feel, battery).
