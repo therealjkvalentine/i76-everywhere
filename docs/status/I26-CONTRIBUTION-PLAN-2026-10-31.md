@@ -332,7 +332,7 @@ Evidence: lab captures/i26-compare-20261101/tables.md (raw runs, harnesses, RERU
 | 0-20 m/s, 10 s speed, stop from 29.5 m/s | 4.21 s, 28.73, 39.1 m | 4.20, 28.64, 38.6 | 4.20, 28.67, 38.6 | match |
 | heading after 2.5 s full steer | 135.5 / 137.0 deg | 143.0 / 140.4 | 140.5 / 138.6 | I26 turns 3-5 % more; open |
 | t02 Taurus race (player parked) | 94.8 s, 43.2 m/s mean | 100.5 s, 40.0 | 99.6 s, 40.2 | I26 slower; the missing Taurus flag explains it (forced on: 95.3 s) |
-| rounds: time to a 355 m hit, MG / rocket | 2.375 / 1.625 s | 2.40 / 1.65 | 2.36 / 1.64 | match; the "too fast" feel is not the sim (suspect the 4 m tracer cap) |
+| rounds: time to a 355 m hit, MG / rocket | 2.375 / 1.625 s | 2.40 / 1.65 | 2.36 / 1.64 | agree within one kit frame (42 ms, about 2.5 %), one method only (shot-to-burst times at the 355 m range end); I26 rocket ease matches the spec (0x4aa5b0, 0.5 x dt); per-tick kit check pending; the "too fast" feel is unexplained (suspect the 4 m tracer cap) |
 | AI flee | rare (the kit's preset fixes the x100 health bug) | at the first core-part scratch (bug kept on purpose) | same | the developer's reference flees later because of a kit fix, not the 1997 exe |
 Not measured: GOG at 46.9 ms; rendered 1997-look pictures; Taurus against a moving player (the "too fast" impression did
 not reproduce with the player parked). I76_MOTION / I76_INPUT / I76_MOTION_CSV are documented in dev-hooks.md but have no
