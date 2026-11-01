@@ -101,6 +101,13 @@ disagrees, we measure again or drop it, we do not argue.
 
 ## 4. The prioritised list
 
+**Owner direction (2026-11-01): lead with reported bugs; the clock comes last.** The community has played at 20 fps
+for years and is convinced it is right, so 2.1 and the "AI gain at 28 fps" pattern (fast-rate patches that exist only
+because the sim may run faster than 1997 machines did) wait until much later, and are raised simply, as an option,
+obliquely. Lead instead with fixes for bugs players reported, or would report: each one change that follows from
+our reading of the original (a spec citation plus a deterministic test), preferably one root-cause change that fixes a
+family of symptoms. Verify against current I26 code first: open issues are often fixed already (#71's smoke is).
+
 Each item: what, why I26 would take it, size (S under a day, M a few days, L weeks), the evidence we bring, and the shape of
 the contribution. Tier 1 goes first and small; nothing in tier 3 is opened before at least two tier-1 PRs are merged and we
 have a feel for the review.
