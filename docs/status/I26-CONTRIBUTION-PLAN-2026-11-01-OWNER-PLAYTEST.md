@@ -20,6 +20,7 @@ root cause, provable); "later list" = the developer's own wish list, not for an 
 | 7 | the microphone permission is asked at launch, before the player opens anything (macOS) | the CB voice's audio input opened at start; ask only when CB voice is used | Mac report (with the signing issue) |
 | 8 | clouds maybe too fast | sky scroll per tick in the 1997 look (deviations.md); compare with the original per frame | investigation lane |
 | 9 | the target health bar is too thin and wide | HUD bracket readout vs the original's | later, verify first |
+| 10 | AI flee feels too fast, "an issue there overall" | flee rule ai_ShouldFleeWhenHurt: target within 80 m and health value < 30 + 17 x aggression; with the original's x100 health bug (kept on purpose in I26) any core-component damage triggers it, so early flight may be faithful; flight speed would point at the substep rate (#1) | side-by-side lane: time from first damage to flee, speed profile |
 
 ## Later list (the developer's taste; not early PRs)
 - the hood is distractingly shiny in the modern look: options to matte it;
