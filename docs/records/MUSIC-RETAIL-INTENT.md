@@ -59,7 +59,7 @@ The reference is the retail 1.0 exe (`I76.EXE` md5 `6cc509ad`, 1997-03-15) with 
 | boot movies (intro, credits SMK) | before the first shell | none started yet |
 | mission start | WinMain: Stop, intro movie (its own SMK audio), then **PlayCdTrack(-1, force 0)** (0x401290 decompile l.525 / 557) | the mission's WRLD run, **only if the music level >= 2** |
 | driving | watchdog | run N..14, gap 0-60 s, then 2..14 forever |
-| Esc menu (0x44fc00) and mode switches (0x44fab0) | pause on entering, unpause on leaving | **continues where it was** (MCI_PAUSE / MCI_RESUME) |
+| Esc menu (0x44fc00) and mode switches (0x44fab0) (disputed 2026-11-01: a code reading of the Gold callers of the pause / unpause pair 0x4234a0 / 0x4234e0 says 0x44fc00 is the Pause key, not the Esc menu; recheck before quoting) | pause on entering, unpause on leaving | **continues where it was** (MCI_PAUSE / MCI_RESUME) |
 | a movie in a mission (0x44e6e0) | pause at the start, unpause at the end (0x44e400 / 0x44ed90) | continues after the movie |
 | Options screen opens in a mission (0x44b8f0) | PlayCdTrack(-1, **force 1**) | if stopped, restarts the current track, even at level < 2 |
 | Options screen closes (0x44b9c0) | level < 2: Stop; in state 5: PlayCdTrack(-1, 0) | |
