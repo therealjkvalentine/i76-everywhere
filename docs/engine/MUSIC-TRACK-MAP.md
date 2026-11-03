@@ -1,9 +1,15 @@
 # Interstate '76 music: the per-mission track map
 
 *The game does NOT shuffle. Each mission names a CD track, and the engine plays
-a continuous RUN starting there (looping the run) — so songs changing mid-mission
+a continuous RUN starting there — so songs changing mid-mission
 is by design. This doc has the extracted per-mission table, how it was obtained,
 and the one field test that locks the numbering.*
+
+*In a mission the run does not loop back to its own start: when track 14 ends, the game itself asks for 2..14
+(measured 2026-11-03 in one lab mission log with the kit's proxy, an Instant Melee arena that started at 8: tracks 8
+to 14 played in order, then the exe sent `MCI_PLAY from=2 to=15` with no stop in between, and the proxy played 2).
+That is the rule the I26 port took from the exe's CD requests: N..14, then 2..14; track 15 is never part of a mission
+run (the proxy's run end is exclusive). n = 1 wrap; a trip mission's wrap was not in any log on disk.*
 
 *Status 2026-07-19: table extracted from the game's own mission files
 (authoritative); the CD-track↔song-title mapping is a **hypothesis pending one
