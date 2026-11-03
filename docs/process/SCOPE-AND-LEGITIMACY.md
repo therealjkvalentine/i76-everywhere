@@ -18,10 +18,12 @@ modern hardware with a modern controller.
    your own GOG copy."* `game-data/` is gitignored. We distribute scripts and
    documentation, never the game.
 
-2. **Single-player, on the owner's machine.** Everything runs locally in a Wine
-   wrapper on the owner's Mac. There is **no multiplayer**, no online service, no
-   other players. Memory reads/writes affect only the owner's own running
-   single-player session on their own computer. This is the same category as any
+2. **Local, on the player's own machine.** Everything runs locally, on the
+   player's own PC, Mac or Steam Deck. The reverse-engineering work is
+   single-player and local: memory reads/writes affect only the player's own
+   running session on their own computer. The kit's multiplayer features (LAN
+   co-op, the IPX relay a player can host) use the game's own LAN code between
+   players' own copies; this project runs no online service. This is the same category as any
    trainer/mod for an offline game — and I'76's own shipped **debug menu**
    includes "Unlim. Armor / Unlim. Ammo / Arcade Mode" toggles, i.e. the
    developers themselves built cheats into the single-player game.
