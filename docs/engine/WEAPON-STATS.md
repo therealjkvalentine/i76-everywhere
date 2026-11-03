@@ -4,6 +4,12 @@ Source: **Local Ditch**, https://www.localditch.com/interstate-76/weapons.html â
 so it is available offline and greppable. Indexed from
 [COMMUNITY-RESOURCES.md](../research/COMMUNITY-RESOURCES.md).
 
+**The speed column is Local Ditch's figure, not the engine's.** The engine's muzzle speeds come from each weapon's ORDF
+data: MG rounds 150 m/s, cannon shells 200 m/s ([PARTS-REFERENCE.md](PARTS-REFERENCE.md)), and the emulator measured
+them in the 1997 CD build: the player's 50cal at 149.99 m/s (n 114), an AI MG at 200.0 m/s, never with the carrier's
+velocity added ([TURRET-LEAD-RETAIL-2026-11-02.md](../records/TURRET-LEAD-RETAIL-2026-11-02.md)). So this table is a
+search oracle for **ammo and damage**, not for speed.
+
 `*` = late-game only.
 
 ## Slug throwers

@@ -111,7 +111,8 @@ I'76 apart since 2000; a question that looks open is often already answered.
 **[docs/engine/WEAPON-STATS.md](docs/engine/WEAPON-STATS.md)** mirrors the full weapon table locally (rate of
 fire, range, projectile speed, weight, ammo, damage). Its ammo figures matched the values read
 out of the live game **eight for eight**, which is why it doubles as a **search oracle**: when
-hunting an unknown field, the published number tells you what to look for.
+hunting an unknown field, the published number tells you what to look for. Not for speed: its
+speed column is the site's, the engine's muzzle speeds are in PARTS-REFERENCE.md (MG 150 m/s).
 
 ## Before any memory hunt: read the technique note
 

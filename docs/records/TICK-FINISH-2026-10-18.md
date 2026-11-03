@@ -1,5 +1,10 @@
 # Whole-sim tick, finished and tested against promotion 18 (2026-10-18, overnight)
 
+> **Correction 2026-11-03.** The tracer note's "this 50cal flies ~100 m/s" is wrong: the 50cal's muzzle speed is
+> 150 m/s (ORDF data, PARTS-REFERENCE), measured at 149.99 m/s (n 114) in the 1997 CD build, and rounds never inherit the
+> carrier's velocity ([TURRET-LEAD-RETAIL-2026-11-02.md](TURRET-LEAD-RETAIL-2026-11-02.md)). The segment lengths
+> measured here stand.
+
 The owner's question (2026-10-17): "where did we leave our two tick engine fix attempt? ... get me a finished version
 tested of that overnight as well and say if it's better or worse."
 
