@@ -279,6 +279,14 @@ developer's fork). Godot 4.7.2's signer writes long-form DER entitlement lengths
 release re-signs with rcodesign and the bundle check now rejects that form. Checked on the Mac: shipped 0.11.0 fails
 spawn (163); the branch build launches from a quarantined-then-cleared download. Mic-prompt docs PR + issue next.
 
+**2026-11-03, port-back from the I26 round-3 work (records only, no kit behaviour change).** s.11's rounds row: the
+rounds match the original, measured in retail 1.0 (player 50cal 149.99 m/s, n 114; AI MG 200.0; the carrier's velocity
+is never added); the "too fast" feel on the I26 side was the turret lead (it lacked the predictor's +0.09 s) and the
+tracer, both fixed there. s.9 item 9 is measured: the original's turrets aim from the barrel and hit from a moving
+carrier (37/37) ([TURRET-LEAD-RETAIL-2026-11-02.md](../records/TURRET-LEAD-RETAIL-2026-11-02.md)). Also recorded:
+the dropper gate has no speed ceiling, the radar matches, and the per-build rules table
+([BUILD-RULES.md](../engine/BUILD-RULES.md)); s.5 item 2 half closed (GOG ships no `I76PATCH.DLL`).
+
 
 ## 9. Fidelity audit, 2026-11-01: our spec against I26 0.11.0's code
 
