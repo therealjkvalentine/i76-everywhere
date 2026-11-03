@@ -1,5 +1,13 @@
 # AI and damage metrics from memory (2026-10-17)
 
+> **Caveat 2026-11-03: the retail and Gold AI pick their tactics differently.** Retail 1.0's attack-tactic chooser is
+> a stub that returns `dirt_gunner` every time (no weighted draw, no precondition); Gold / GOG draws from the weighted
+> lists. Measured in T14 in the emulator: a retail cop circles the idle player 10-90 m off, mostly out of sight, and fires
+> 3-19 rounds in its first 20 s, then a few a minute (n = 7); a Gold cop takes `road_side` from its first attack and
+> patrols the road with the player in view (n = 2). So every retail-vs-Gold (or retail-vs-our-exe) AI comparison below
+> compares two different choosers: a gap in AI rounds, hits or damage per minute is partly the chooser, not the frame
+> rate or the step. The tactic weight tables are byte-identical. [BUILD-RULES.md](../engine/BUILD-RULES.md) s.1.
+
 Lane `ai-damage-metrics-design`. Goal: make AI behaviour and damage balance measurable from game memory, so that exes,
 emulated hardware and frame rates can be compared on difficulty. Owner question: "AI behavior is key for difficulty
 balance, net damage rates in both directions, etc."

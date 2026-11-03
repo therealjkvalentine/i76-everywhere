@@ -1,5 +1,22 @@
 # EXE diff map: what differs in the code between every I'76 exe we have (2026-10-17)
 
+> **Notes 2026-11-03 (later facts; the rows below are left as written).** The per-build rules are now one living table,
+> [BUILD-RULES.md](../engine/BUILD-RULES.md).
+> - **Build names (s.1).** `9a232dcc` is what GOG sells today (installer 2.1.0.17), not only "GOG 2017 Galaxy". GOG
+>   never shipped the AiO build: `60abf7bc` is the 2019 UCyborg AiO community build, not "GOG 2019"
+>   ([I76-VERSIONS.md](I76-VERSIONS.md) s.2.8). `e1dca993` is `9a232dcc` with a 2-byte import rename, built from GOG's
+>   files for the lab emulator, not a 1998 disc pressing (I76-VERSIONS). The 1.05, 1.06, 1.081 and 1.083 exes are held
+>   (I76-VERSIONS); only 1.08b is missing.
+> - **AI behaviour (s.6, "what it changes was not traced").** Traced and measured: retail's attack-tactic chooser is a
+>   stub that returns `dirt_gunner` every time, with no draw and no precondition; Gold draws from the weighted lists by
+>   aggression, with preconditions. The weight tables are identical. Measured in T14 in the emulator, retail n = 7, Gold
+>   n = 2. Any retail-vs-Gold AI comparison compares two choosers (AI-DAMAGE-BALANCE caveat).
+> - **Turret k in retail ("Not done / open": one stack slot traced once, medium confidence).** Raised to **high**: the
+>   I26 build-versions lane read the same constants independently from the three builds side by side, and the hit-rate
+>   consequence was measured in I26 (BUILD-RULES s.1).
+> - **Radar ("retail radar rows were not read").** Measured in retail: clockwise, 30 steps, 6.0 s a turn, frame-rate
+>   neutral, the same as Gold's spec ([RADAR-SWEEP-RETAIL-2026-11-02.md](RADAR-SWEEP-RETAIL-2026-11-02.md)).
+
 Lane `cross-exe-code-diff`. Static only: no game was run and no VM was started. Every exe was only read.
 
 **The owner's questions this answers:**

@@ -1,5 +1,15 @@
 # Base decision: retail 1.0 or the GOG / Gold exe for the modern port (2026-10-17)
 
+> **Caveat 2026-11-03: the retail and Gold AI pick their tactics differently.** Retail 1.0's attack-tactic chooser is
+> a stub that returns `dirt_gunner` every time (no weighted draw, no precondition); Gold / GOG draws from the weighted
+> lists. Measured in T14 in the emulator: a retail cop circles the idle player 10-90 m off, mostly out of sight, and fires
+> 3-19 rounds in its first 20 s, then a few a minute (n = 7); a Gold cop takes `road_side` from its first attack and
+> patrols the road with the player in view (n = 2). So every retail-vs-Gold (or retail-vs-our-exe) AI comparison below
+> compares two different choosers: a gap in AI rounds, hits or damage per minute is partly the chooser, not the frame
+> rate or the step. The tactic weight tables are byte-identical. [BUILD-RULES.md](../engine/BUILD-RULES.md) s.1.
+> This answers s.7's open "AI behaviour stack" item (what it changes in behaviour is now traced and measured) and
+> names the first Gold-code difference s.6 asks about.
+
 Lane `base-decision`. Paper decision only: no game, no VM, no rebuild. Inputs are the records written earlier today
 plus one new static count (section 4.1). Nothing in any game folder was read or written.
 

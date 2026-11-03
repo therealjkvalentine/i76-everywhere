@@ -1,5 +1,14 @@
 # AI and damage balance across exes and step lengths (2026-10-17)
 
+> **Caveat 2026-11-03: the retail and Gold AI pick their tactics differently.** Retail 1.0's attack-tactic chooser is
+> a stub that returns `dirt_gunner` every time (no weighted draw, no precondition); Gold / GOG draws from the weighted
+> lists. Measured in T14 in the emulator: a retail cop circles the idle player 10-90 m off, mostly out of sight, and fires
+> 3-19 rounds in its first 20 s, then a few a minute (n = 7); a Gold cop takes `road_side` from its first attack and
+> patrols the road with the player in view (n = 2). So every retail-vs-Gold (or retail-vs-our-exe) AI comparison below
+> compares two different choosers: a gap in AI rounds, hits or damage per minute is partly the chooser, not the frame
+> rate or the step. The tactic weight tables are byte-identical. [BUILD-RULES.md](../engine/BUILD-RULES.md) s.1.
+> Item 6's "-58 % AI rounds vs retail P166" (best-wide on T13) is such a comparison.
+
 **Status: closed out 2026-10-17 (owner cut), data as gathered.** The measured cells below stand (retail 1.0 sim P166 n 10 and P133 n 8,
 Gold Champ P166 n 6, our exe at 30 / 8 ms and best-wide, melee2). Everything not yet run, including the host 40 ms
 cells e40 / f40 (section 6) and the next steps in section 10, is **deferred until the whole-sim tick exists**
