@@ -461,6 +461,10 @@ $settingsSchema = @(
               'off = the home network (LAN). PLAY.bat --relay off ignores this line for one start. Every player in a relay',
               'session can see every other player''s internet address. tools\relay\JOIN-RELAY.md in the project explains it.') }
 
+  @{ Group = 'Advanced'; Name = 'difficulty'; Target = 'none'; Kind = 'note'
+     Help = @('Difficulty is the game''s own setting (OPTIONS > Play Options > Difficulty Level); the kit does not change it. GOG as',
+              'installed is on Wimp: your rounds and flame hit twice as hard as in the 1997 CD game. Champion = the 1997 damage.',
+              'What else differs between the 1997 CD, Gold / GOG and Nitro: docs/engine/BUILD-RULES.md in the project.') }
   @{ Group = 'Advanced'; Name = 'skip mission movies'; Target = 'env:I76_SKIP_CUTSCENES'; Kind = 'onoff'; Stock = 'off'
      Help = @('on = no briefing / closing movie around each mission (movies in the middle of a mission stay).') }
   @{ Group = 'Advanced'; Name = 'simulation tick'; Target = 'param:TickMs'; Kind = 'number'; Min = 16.7; Max = 66.7; Unit = 'ms'; Stock = '41.667'

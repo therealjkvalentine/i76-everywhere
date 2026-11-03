@@ -101,6 +101,9 @@ menu-mouse DLL, the terrain morph / fade / mirror set, the mission-5 launcher, a
 
 If you have both games, unzip the kit into each folder; the two installs do not share anything.
 
+Nitro runs Gold's engine, so it follows the Gold / GOG rules where the 1997 CD differs (AI tactics, turret speed,
+heat-seeker cone, difficulty): [docs/engine/BUILD-RULES.md](https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/engine/BUILD-RULES.md).
+
 ## Network games (LAN)
 
 MULTI MELEE > HOST / JOIN go straight to a LAN game (IPX over your home network). Windows Firewall has to let the game receive the
@@ -166,6 +169,12 @@ the launcher took from the file; a line it cannot read is listed there with its 
 Delete the file to get a fresh one. Order, lowest first: the launcher's preset, `i76-settings.txt`, `presets\local.psd1` (below, for
 power users), the options after the launcher's name (`--no-supersample`). The stock launchers (PLAY-stock / PLAY-VANILLA) use only the
 controls settings.
+
+**Difficulty, the one game setting purists should know.** GOG's game as installed is on **Wimp**: your rounds and flame
+hit twice as hard as in the 1997 CD game. **Champion** is the 1997 damage, Badass x0.75 (offline only; the .45 is never
+scaled). Set it in the game's OPTIONS > Play Options > Difficulty Level; the kit does not change it. What else differs
+between the 1997 CD, Gold / GOG and Nitro, and what is the same in all of them:
+[docs/engine/BUILD-RULES.md](https://github.com/therealjkvalentine/i76-everywhere/blob/main/docs/engine/BUILD-RULES.md).
 
 ### For power users: `presets\local.psd1`
 

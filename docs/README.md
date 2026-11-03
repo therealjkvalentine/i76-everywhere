@@ -103,7 +103,8 @@ Each of these was measured and closed. Re-open one only with new evidence, and l
   [MUSIC](guides/MUSIC.md), [SOUND-HD-PACK](guides/SOUND-HD-PACK.md), [MISSION-LAUNCH](guides/MISSION-LAUNCH.md),
   [MODDING-GUIDE](guides/MODDING-GUIDE.md), [README-DETAILS](guides/README-DETAILS.md); the key sheet
   ([PDF](guides/Interstate76-Controls-Quick-Reference.pdf)), the pad diagrams and the Deck layout page.
-- **engine/** (how it works): [ENHANCEMENTS](engine/ENHANCEMENTS.md), [VERIFIED-FIXES](engine/VERIFIED-FIXES.md),
+- **engine/** (how it works): [BUILD-RULES](engine/BUILD-RULES.md) (which version of the original does what),
+  [ENHANCEMENTS](engine/ENHANCEMENTS.md), [VERIFIED-FIXES](engine/VERIFIED-FIXES.md),
   [HANDLING-MODEL](engine/HANDLING-MODEL.md), [DRAW-DISTANCE](engine/DRAW-DISTANCE.md),
   [CONTROL-DOCTRINE](engine/CONTROL-DOCTRINE.md), [FFB-STACKS](engine/FFB-STACKS.md),
   [FFB-DESIGN-LIBRARY](engine/FFB-DESIGN-LIBRARY.md), [HAPTICS-ARCHITECTURE](engine/HAPTICS-ARCHITECTURE.md),

@@ -1,5 +1,10 @@
 # Interstate '76: every released version, what each changed, and what we have (2026-10-17)
 
+> **Note 2026-11-03.** The behaviour rules that differ between retail 1.0, Gold / GOG and Nitro, and the ones measured
+> the same in every build, are now one table: [BUILD-RULES.md](../engine/BUILD-RULES.md). It adds measurements this
+> record did not have (the retail AI tactic chooser is a stub that always picks `dirt_gunner`; turret lead, dropper
+> gate and radar measured the same in retail). A fresh GOG install's `I76PLYR.DEF` is on Wimp (byte 0 at +0x5c).
+
 Lane `versions-catalogue`. Static work, plus downloads of period patches. Nothing was installed or run: no game and no VM.
 Every downloaded file sits in its own folder under lab `emu\images\versions\`, hashed in `SOURCES.txt` there. The exes
 and readmes extracted from them are in `emu\images\versions\extracted\`, so other lanes can diff them.
