@@ -128,7 +128,7 @@ param(
     [switch]$CursorOverlay,
     [switch]$NoCursorOverlay,
     # Whole-sim tick length, ms (2026-10-20, docs/records/TICK-FINISH-2026-10-18.md s.19): replaces the tick preset's
-    # I76_SIM_TICK_MS for this launch. 16.7..66.7, a plain number (41.667 = the 1997 car step); anything else is refused
+    # I76_SIM_TICK_MS for this launch. 16.7..66.7, a plain number (41.667 = 24 steps a second, the step GOG's exe takes on Windows); anything else is refused
     # (exit 4), as is a preset without the tick. PLAY-TICK.bat <ms> and its tick-ms.txt pass it. -CheckTickMs validates
     # the value, prints it and exits (0 / 4) without starting anything (the .bat runs it in a visible window first).
     # Single player: in a network game every player should run the same tick.
@@ -464,7 +464,7 @@ $settingsSchema = @(
   @{ Group = 'Advanced'; Name = 'skip mission movies'; Target = 'env:I76_SKIP_CUTSCENES'; Kind = 'onoff'; Stock = 'off'
      Help = @('on = no briefing / closing movie around each mission (movies in the middle of a mission stay).') }
   @{ Group = 'Advanced'; Name = 'simulation tick'; Target = 'param:TickMs'; Kind = 'number'; Min = 16.7; Max = 66.7; Unit = 'ms'; Stock = '41.667'
-     Help = @('How often the game world is simulated, in milliseconds (41.667 = 24 times a second, the 1997 car step). Only for',
+     Help = @('How often the game world is simulated, in milliseconds (41.667 = 24 times a second, the step GOG''s copy takes on Windows). Only for',
               'launchers with a simulation tick. In a network game every player should use the same value.') }
   @{ Group = 'Advanced'; Name = 'sim rate'; Target = 'param:SimRate'; Kind = 'choice'; Allowed = @('20', '24'); Stock = '24'
      Map = @{ 'classic' = '20'; 'classic20' = '20'; 'classic 20' = '20'; '1997' = '20'; '24/s' = '24'; '20/s' = '20' }
@@ -960,7 +960,7 @@ if ($TickMs -or $CheckTickMs) {
     $tv = 0.0
     $isNum = $raw -match '^\d+(\.\d+)?$' -and [double]::TryParse($raw, [Globalization.NumberStyles]::AllowDecimalPoint, [Globalization.CultureInfo]::InvariantCulture, [ref]$tv)
     if (-not $isNum -or $tv -lt 16.7 -or $tv -gt 66.7) {
-        Write-Host ("REFUSED: tick '{0}' - give a number of milliseconds from 16.7 to 66.7, with a dot for decimals (e.g. 41.667, the 1997 car step). The game was not started." -f $TickMs) -ForegroundColor Red
+        Write-Host ("REFUSED: tick '{0}' - give a number of milliseconds from 16.7 to 66.7, with a dot for decimals (e.g. 41.667, the step GOG's copy takes on Windows). The game was not started." -f $TickMs) -ForegroundColor Red
         exit 4
     }
     if (-not $gameEnv.Contains('I76_SIM_TICK_MS')) {

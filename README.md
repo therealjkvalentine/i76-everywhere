@@ -13,8 +13,9 @@ keep working. No game files are in this repo, and everything the kit changes can
 
 https://github.com/user-attachments/assets/eaf65800-1389-4585-ac79-79e2dc9b60cc
 
-**The physics are untouched.** The car is still simulated 24 times a second like on a 1997 Pentium, so jumps land where
-they always did. Only the drawing in between is smoother.
+**The physics are untouched.** The car is still simulated about 24 times a second, as your GOG copy does on Windows (a
+1997 Pentium ran it at anywhere from about 11 to 35 steps a second, depending on the scene and the resolution), so jumps
+land where they always did. Only the drawing in between is smoother.
 
 https://github.com/user-attachments/assets/01ae6e21-621e-45e6-be50-ffe1d439f791
 

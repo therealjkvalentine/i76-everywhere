@@ -9,9 +9,10 @@ copy in place, keeping the original of every file it touches. Everything stays i
 
 What it gives you, in one line each:
 
-- **Smooth 120 fps play with the 1997 feel**: the car is still simulated 24 times a second as it was in 1997
-  (so the physics, the jumps and the AI behave as the game was tuned), but the picture is drawn at your monitor's
-  refresh rate, in between those steps.
+- **Smooth 120 fps play with the original feel**: the car is still simulated about 24 times a second, as your GOG copy
+  does on Windows (a 1997 Pentium ran it at anywhere from about 11 to 35 steps a second, depending on the scene and the
+  resolution), so the physics, the jumps and the AI behave as the game was tuned; the picture is drawn at your
+  monitor's refresh rate, in between those steps.
 - **Any monitor shape**: ultrawide, 16:9, 16:10 or 4:3 - the launcher reads your monitor and sizes the picture. The
   3D view is wider on a wide screen (you see more, nothing is stretched); the menus stay 4:3 with bars.
 - **Four times the draw distance** (2.3 km instead of 600 m), with roads and bushes all the way out and the last quarter
