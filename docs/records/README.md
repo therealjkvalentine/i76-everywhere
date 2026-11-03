@@ -9,7 +9,7 @@ was written (the repository was reorganised on 2026-10-03 and 2026-10-26; [the d
 things are now). Living docs are in [`../guides/`](../guides/), [`../engine/`](../engine/), [`../research/`](../research/)
 and [`../process/`](../process/).
 
-168 records. Date from the file name (else the first date in the title or the opening lines); topic from a keyword in
+171 records. Date from the file name (else the first date in the title or the opening lines); topic from a keyword in
 the file name (or the title), the first match in the script's table.
 
 [Frame rate, simulation and physics](#frame-rate-simulation-and-physics) | [Multiplayer, co-op and AI opponents](#multiplayer-co-op-and-ai-opponents) | [Mac](#mac) | [Steam Deck](#steam-deck) | [Nitro Pack](#nitro-pack) | [Force feedback, rumble and motion](#force-feedback-rumble-and-motion) | [Audio and music](#audio-and-music) | [Controls and input](#controls-and-input) | [Menus, saves and the save editor](#menus-saves-and-the-save-editor) | [Graphics and rendering](#graphics-and-rendering) | [Status, backlogs and overnight runs](#status-backlogs-and-overnight-runs) | [Install, kits and releases](#install-kits-and-releases) | [Reverse engineering, versions and research](#reverse-engineering-versions-and-research)
@@ -46,6 +46,7 @@ the file name (or the title), the first match in the script's table.
 
 ## Multiplayer, co-op and AI opponents
 
+- 2026-11-02 [AI dropper gate in retail 1.0: drops at every pursuer speed, no 27.8 m/s ceiling (2026-11-02)](AI-DROPPER-GATE-RETAIL-2026-11-02.md)
 - 2026-10-25 [Internet relay on the desktop: tools/relay/ + PLAY.bat --relay, 2026-10-25](RELAY-DESKTOP-2026-10-25.md)
 - 2026-10-25 [Nitro on the community lobby (INTERNET button), naming, and stock compatibility, 2026-10-25 (nitro-lobby lane)](NITRO-LOBBY-2026-10-25.md)
 - 2026-10-25 [MP with AI cars: who simulates, the 'AT' rate, the damage visuals, the Esc menu's keys (2026-10-25, investigation + plan)](MP-AI-DAMAGE-RATE-2026-10-25.md)
@@ -198,6 +199,8 @@ the file name (or the title), the first match in the script's table.
 
 ## Reverse engineering, versions and research
 
+- 2026-11-02 [Turret lead and carrier velocity in retail 1.0: the +0.09 s lead holds, rounds never inherit the carrier (2026-11-02)](TURRET-LEAD-RETAIL-2026-11-02.md)
+- 2026-11-02 [Radar sweep in retail 1.0: clockwise, 30 steps, 6.0 s a turn, frame-rate neutral (2026-11-02)](RADAR-SWEEP-RETAIL-2026-11-02.md)
 - 2026-10-20 [I76 Debug as the debug / cheat tool, 2026-10-20: full car state store / restore, DEBUG.bat, the haptics button](DEBUG-TOOL-2026-10-20.md)
 - 2026-10-18 [Handing the reverse-engineering to the remakes: Godot remake and Unreal port (2026-10-18)](REMAKE-RE-HANDOVER-2026-10-18.md)
 - 2026-10-17 [TRAINER-LOGGER: the physics / memory logger in I76 Debug (modern port)](TRAINER-LOGGER.md)

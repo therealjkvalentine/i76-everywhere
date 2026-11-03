@@ -109,6 +109,10 @@ The Special 1 / 2 / 3 keys fire whatever special sits in that slot, and only thr
 the Radar Jammer, Nitrous and the X-Aust Brake. The other specials work on their own. What each one does, with
 its numbers: [PARTS-REFERENCE.md](../engine/PARTS-REFERENCE.md#specials-spc01spc09).
 
+The cockpit radar sweeps **clockwise, once every 6 seconds**, in 30 steps, at any frame rate. That is the original
+(measured in the 1997 CD build: [RADAR-SWEEP-RETAIL-2026-11-02.md](../records/RADAR-SWEEP-RETAIL-2026-11-02.md)), not a
+fault of the kit.
+
 Not in `input.map` at all (engine keys, from the comments in [`windows/i76-remap.ahk`](../../windows/i76-remap.ahk)): `F1` cockpit,
 `F3` chase camera, `F2` `F7` `F8` `F9` `F10` other views, `Esc` pause menu and skip a cutscene.
 
