@@ -1129,7 +1129,7 @@ if ($gameEnv.Count) {
     # under a 20 fps cap, which looks exactly like "the preset does nothing". Say so; renaming
     # it is a file change to the install and is left to the owner (RELEASE-PLAN section 2).
     if (Test-Path (Join-Path $GameDir 'I76PATCH.DLL')) {
-        Write-Host "note: I76PATCH.DLL (GOG's 20 fps cap) is present in $GameDir - the frame rate stays ~20 until it is renamed (e.g. I76PATCH.DLL.disabled). This launcher does not rename it." -ForegroundColor Yellow
+        Write-Host "note: I76PATCH.DLL (the AiO patch's 20 fps cap) is present in $GameDir - the frame rate stays ~20 until it is renamed (e.g. I76PATCH.DLL.disabled). This launcher does not rename it." -ForegroundColor Yellow
     }
 }
 

@@ -4,7 +4,7 @@
 // The Mac port of the Windows daily driver's best-wide set (2026-10-03):
 //   i76.exe -glide -> dgVoodoo 2.78.2 Glide2x.dll -> D3D11 FL10.1 -> DXVK -> MoltenVK -> Metal
 //   + music-fix/Strlkup.dll (the proxy carrying the I76_* engine switches below)
-//   + I76PATCH.DLL renamed (it is GOG's 20 fps cap)
+//   + I76PATCH.DLL renamed (it is the AiO patch's 20 fps cap)
 // Render target = the panel's native pixels: Wine RetinaMode=y in this prefix (so Wine
 // sees 3456x2234, not 1728x1117 points), a virtual desktop of exactly that size (explorer
 // makes a screen-sized desktop a borderless popup, i.e. fullscreen), and dgVoodoo

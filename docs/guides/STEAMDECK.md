@@ -58,7 +58,7 @@ documented for reuse across ports in [STEAMDECK-INPUT-MODES.md](STEAMDECK-INPUT-
 > switches set for the 1280x800 panel (`I76_ASPECT=1280x800` Hor+ widescreen, HUD squeeze, fixed
 > 24 Hz physics step + render interpolation at 60 Hz (90 on an OLED), far clip 1200 m, detail x8,
 > terrain-flash and TMU fixes, mp3 music), dgVoodoo at native 1280x800 + 4x MSAA with TMU 8192,
-> GOG's 20 fps cap (`I76PATCH.DLL`) off, and IPXWrapper + `WINEDLLOVERRIDES` for LAN play
+> the AiO patch's 20 fps cap (`I76PATCH.DLL`) off, and IPXWrapper + `WINEDLLOVERRIDES` for LAN play
 > ([MULTIPLAYER.md](MULTIPLAYER.md)). Switches live in `~/Games/Interstate76/i76-env.sh`, loaded by
 > [`i76-deck-launch.sh`](../../deck/i76-deck-launch.sh), which needs the launch options
 > `"/home/deck/Games/Interstate76/i76-deck-launch.sh" %command% -glide`. `--revert` restores every

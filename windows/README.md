@@ -22,7 +22,7 @@ Every original is kept beside the file it replaces. In order, as `setup-windows.
   [`shared/renderer/`](../shared/README.md) (only the resolution digits change for your display).
 - `Strlkup.dll` becomes our proxy (GOG's kept as `strlkup_orig.dll`); `u32x.dll` is added and the USER32 import of
   `i76.exe` and `i76shell.dll` points at it (originals `i76.exe.u32xorig`, `i76shell.dll.orig`).
-- `I76PATCH.DLL` (GOG's 20 fps cap) is renamed `I76PATCH.DLL.disabled`.
+- `I76PATCH.DLL` (the AiO patch's 20 fps cap) is renamed `I76PATCH.DLL.disabled`.
 - `input.map` becomes this project's control map (GOG's kept as `input.map.stock-<time>`; `-Controls stock` keeps
   GOG's keys, `-Controls own` keeps yours); the AutoHotkey layers go to `_ahk\`.
 - The launcher `PLAY-i76.ps1`, `presets\*.psd1`, `PLAY-i76.bat` / `PLAY-stock.bat` and a desktop shortcut are added;

@@ -277,7 +277,7 @@ foreach ($o in $overlays) {
 $dstPresets = Join-Path $dstGame 'presets'
 foreach ($p in Get-ChildItem -LiteralPath (Join-Path $repo 'shared\presets') -Filter '*.psd1') { CopyVerified $p.FullName (Join-Path $dstPresets $p.Name) 'repo: presets' }
 
-# GOG's 20 fps cap: with it loaded a 60/120 preset runs under the cap and looks like it does nothing
+# the AiO patch's 20 fps cap: with it loaded a 60/120 preset runs under the cap and looks like it does nothing
 if ($disablePatch) {
     $patch = Join-Path $dstGame 'I76PATCH.DLL'
     if (Test-Path -LiteralPath $patch) {
@@ -346,7 +346,7 @@ $stock16 = if ($WideConf) { 'copy /y "%~dp0Interstate 76\dgVoodoo.16x10.conf" "%
 WriteAscii (Join-Path $Dest 'PLAY-stock.bat') @"
 @echo off
 REM The same folder with NO engine switches (preset stock). Frame rate is whatever dgVoodoo paces
-REM (60) unless I76PATCH.DLL.disabled is renamed back to I76PATCH.DLL (GOG's 20 fps cap).
+REM (60) unless I76PATCH.DLL.disabled is renamed back to I76PATCH.DLL (the AiO patch's 20 fps cap).
 ${stock16}start "" /min powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Interstate 76\PLAY-i76.ps1" -GameDir "%~dp0Interstate 76" -Exe i76.exe -Preset stock -LosslessScaling none
 "@
 if ($haveLS) {

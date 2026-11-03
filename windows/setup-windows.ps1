@@ -734,12 +734,12 @@ if (-not $isNitro) {
     $patchOff = "$patchDll.disabled"
     if ($fastPreset -and (Test-Path $patchDll)) {
         Move-Item $patchDll $patchOff -Force
-        Write-Host "I76PATCH.DLL -> I76PATCH.DLL.disabled (GOG's 20 fps cap off; preset $Preset paces the game)."
+        Write-Host "I76PATCH.DLL -> I76PATCH.DLL.disabled (the AiO patch's 20 fps cap off; preset $Preset paces the game)."
     } elseif ($fastPreset) {
         Write-Host "I76PATCH.DLL: not present$(if (Test-Path $patchOff) { ' (already disabled)' }) - nothing to do."
     } elseif ((Test-Path $patchOff) -and -not (Test-Path $patchDll)) {
         Move-Item $patchOff $patchDll
-        Write-Host "I76PATCH.DLL.disabled -> I76PATCH.DLL (preset stock: GOG's 20 fps cap back on)."
+        Write-Host "I76PATCH.DLL.disabled -> I76PATCH.DLL (preset stock: the AiO patch's 20 fps cap back on)."
     }
 }
 
@@ -942,7 +942,7 @@ if ($fastPreset) {
         if (Test-Path $play16) { Remove-Item $play16 -Force }   # left by an earlier best-wide setup
         if (Test-Path $playBal) { Remove-Item $playBal -Force }
     }
-    Set-Content (Join-Path $GameDir 'PLAY-stock.bat') "@echo off`r`nREM The same folder with NO engine switches (preset stock). This is NOT the 20 fps game: this`r`nREM install has GOG's 20 fps cap off (I76PATCH.DLL.disabled, where GOG shipped one) and FPSLimit 0, so`r`nREM the frame rate is whatever dgVoodoo paces (60) and the physics are not corrected for it.`r`nREM For the game as GOG ships it (20 fps), re-run the setup with -Preset stock:`r`nREM   setup-windows.ps1 -GameDir <this folder> -Preset stock`r`n$use16$launch -Preset stock -LosslessScaling none" -Encoding ascii
+    Set-Content (Join-Path $GameDir 'PLAY-stock.bat') "@echo off`r`nREM The same folder with NO engine switches (preset stock). This is NOT the 20 fps game: this`r`nREM install has the AiO patch's 20 fps cap off (I76PATCH.DLL.disabled, where the folder had one: the AiO patch's, GOG ships none) and FPSLimit 0, so`r`nREM the frame rate is whatever dgVoodoo paces (60) and the physics are not corrected for it.`r`nREM For the 20 fps game (the AiO cap back on), re-run the setup with -Preset stock:`r`nREM   setup-windows.ps1 -GameDir <this folder> -Preset stock`r`n$use16$launch -Preset stock -LosslessScaling none" -Encoding ascii
 } else {
     Set-Content $bat "@echo off`r`n$launch`r`n" -Encoding ascii
     if (Test-Path $play16) { Remove-Item $play16 -Force }   # left by an earlier best-wide setup

@@ -172,6 +172,10 @@ nothing from the exe: no byte tables, no decompiled routines, no addresses in co
    says every cap was added later). The resolution is a measurement with their method on our hardware, offered, not asserted.
 2. **What I76PATCH.DLL does.** I26: 60 fps with focus, 20 without. We: 20 fps with focus (played that way until 2026-10-03,
    capture 014). Possibly two builds of the DLL (GOG's vs the AiO patch's). Measure both before saying anything.
+   *2026-11-03: half settled. GOG's installer has no `I76PATCH.DLL` (a full extraction of 2.1.0.17, 458 files, the
+   Nitro pack's 7,313, and two GOG test installs the kit was applied to: none, renamed or not), so there is one DLL, the AiO
+   patch's; `stock.psd1`, the kit README and the installers' messages now say so. Its 60-vs-20 behaviour is still
+   unmeasured.*
 3. **Suspension model.** Our HANDLING-MODEL.md says "no suspension model"; our later TWO-CLOCKS found a second-order filter run
    once per substep (period 15 calls, pole 0.7). Trust TWO-CLOCKS. I26 ports the vehicle step from the code, so it has the
    filter; our note is only that its tempo scales with the step (heave half-period 0.233 s at 33 ms vs 0.292 s at 42 ms).

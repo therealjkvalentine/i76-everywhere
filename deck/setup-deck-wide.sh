@@ -14,7 +14,7 @@ if [ "${I76_FORCE_OLD_SETUP:-0}" != "1" ]; then echo "setup-deck-wide.sh is reti
 #   * dgVoodoo.conf: stretched to the panel, rendered at 2x (2560x1600) and averaged down
 #     bilinear, 4x MSAA, TMU 8192 (only together with I76_ZGLIDE_TMUFIX), FPSLimit off, forced
 #     32-bit dithering, fake fullscreen, CaptureMouse off; gamma 1.3 through the proxy
-#   * I76PATCH.DLL (GOG's ~20 fps cap) disabled: the fixed step keeps physics at stock pace
+#   * I76PATCH.DLL (the AiO patch's ~20 fps cap) disabled: the fixed step keeps physics at stock pace
 #   * LAN play: IPXWrapper's three DLLs (if the push brought them) + WINEDLLOVERRIDES for
 #     wsock32/mswsock, the recipe that put the Mac into a PC-hosted IPX game (docs/guides/MULTIPLAYER.md)
 #
@@ -123,7 +123,7 @@ cp -f "$PROXY" "$GAME/Strlkup.dll"
 [ "$(md5 "$GAME/Strlkup.dll")" = "$PROXY_MD5" ] || die "copy check failed"
 say "proxy installed ($PROXY_MD5)"
 
-# ---------------------------------------------------- 2. GOG's 20 fps cap ----
+# ---------------------------------------------------- 2. AiO's 20 fps cap ----
 echo "== 2. I76PATCH.DLL =="
 if [ -f "$GAME/I76PATCH.DLL" ]; then
     mv -f "$GAME/I76PATCH.DLL" "$GAME/I76PATCH.DLL.disabled"; say "disabled (I76PATCH.DLL.disabled)"

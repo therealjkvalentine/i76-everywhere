@@ -166,7 +166,7 @@ do_install() {
     D="$(mktemp -d "$DEST/.kit-ipx.XXXX")"; unzip -q -o "$IPX" -d "$D"
     for f in ipxwrapper.dll wsock32.dll mswsock.dll; do s="$(find "$D" -iname "$f" -print -quit)"; [ -n "$s" ] || die "IPXWrapper zip has no $f"; place "$s" "$f"; done
     rm -rf "$D"; ok "IPXWrapper 0.7.2 (LAN games)"
-    if p="$(ci "$G" I76PATCH.DLL)"; then keep "$p"; mv "$p" "$p.disabled"; ok "I76PATCH.DLL disabled (GOG's 20 fps cap; the fixed step paces the game)"; fi
+    if p="$(ci "$G" I76PATCH.DLL)"; then keep "$p"; mv "$p" "$p.disabled"; ok "I76PATCH.DLL disabled (the AiO patch's 20 fps cap; the fixed step paces the game)"; fi
     if (cd "$KIT/tools" && python3 gpw-envelopes.py "$G" --out "$G/rumble-envelopes.ini") >/dev/null 2>&1; then
         echo "$(md5of "$G/rumble-envelopes.ini")  game/rumble-envelopes.ini" >> "$LIST"
         ok "rumble envelopes from your sound files: $(grep -c = "$G/rumble-envelopes.ini") (textures the slip / road rumble)"

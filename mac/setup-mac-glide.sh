@@ -65,7 +65,7 @@ else
     keep "$G/Strlkup.dll"
 fi
 cp "$CACHE/Strlkup.mac.dll" "$G/Strlkup.dll"
-[ -f "$G/I76PATCH.DLL" ] && mv "$G/I76PATCH.DLL" "$G/I76PATCH.DLL.disabled" && echo "  I76PATCH.DLL (GOG's 20 fps cap) -> .disabled"
+[ -f "$G/I76PATCH.DLL" ] && mv "$G/I76PATCH.DLL" "$G/I76PATCH.DLL.disabled" && echo "  I76PATCH.DLL (the AiO patch's 20 fps cap) -> .disabled"
 
 echo "== 3/6 DxWnd profile (target 0 only)"
 keep "$DX"
