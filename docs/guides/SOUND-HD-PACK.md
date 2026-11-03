@@ -59,6 +59,12 @@ out of scope for anything in this document (memory: never experiment on the dail
 - `.gpw` = `GAS0` + 7 x i32 (priority, max instances, play mode, volume %, random-pitch flag, frequency) + RIFF
   (FORMATS.md section 8; `data\fmt\other_formats.py` GPW struct). The frequency field is overwritten by the WAVE
   rate at load (`mov [ebp+0x48],edx` 0x425753), the other fields default when -1.
+- **Play mode is the i32 at file offset +12** (the third field): 0 = one-shot, 1 = loop, 2 = shared loop (static reading
+  of the loader, carried over from the I26 sound work, 2026-11-03); -1 = the default. In the stock archive 26 of the 123
+  `.gpw` are 1 (loop) and 97 are -1; none is 0 or 2 (counted 2026-11-03 over an extraction of `I76.ZFS`). The loops are
+  the skid / turn / surface beds (`tskid1-4`, `tturn1-4`, `vcd*`, `vskid`, `tflat`), the flame and MG loops (`w*flame`,
+  `w*mgun`), `xfire1`, `adwind`, `aheli`, `eimarx`, `eitank` and the police siren `aps2`. **A replacement must keep the
+  stock header**: a siren written with mode -1 or 0 plays once and stops.
 - One stem has both forms (`xmv1.wav` and `xmv1.gpw`); 122 effects exist only as `.gpw`; the 507 `.wav` are the CB
   lines, shell-UI chirps and a few effects.
 - Level: 611 of 631 files peak above -1 dBFS (8-bit material was normalised to full scale), median |DC offset|
