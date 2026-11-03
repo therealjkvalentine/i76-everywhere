@@ -1,5 +1,9 @@
 # Nitro Pack against stock 1997 retail: the difference map (2026-10-20)
 
+> **Note 2026-11-03.** Open item 9 ("live A/B of the dropper cadence: static only"): the dropper *gate* is now measured in
+> retail 1.0 (drops at 20-60 m/s on a straight-line prediction, 2.5 m, no speed ceiling;
+> [AI-DROPPER-GATE-RETAIL-2026-11-02.md](AI-DROPPER-GATE-RETAIL-2026-11-02.md)). The *cadence* rows stay static.
+
 Lane `nitro`. Owner request (verbatim): "Please analyze nitro engine to find the differences if any from stock 1997
 retail". Static analysis of the three exes, a full parse of the Nitro data through the data track's byte-exact parsers,
 and nine headless boots of a lab copy (exp-nitro). Nothing outside the lab copy was touched.

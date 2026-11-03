@@ -191,7 +191,9 @@ source (channel expr or event filter)
 - Pad: **MAX per motor, not sum**; dead-zone lift to 0.30; one `XInputSetState` per frame; longest one-shot wins;
   ERM spin-up ~20-30 ms so no pulse under ~40 ms (SIM-RUMBLE-RESEARCH Part E).
 - Shaker: <= 3 continuous sources, spaced in frequency; per-source rig compensation at its own frequency
-  (`LfeCore.Comp`); blast ducks beds (the uncommitted `LfeExplodeDuck`); HP 22 / LP 90; soft limiter is the
+  (`LfeCore.Comp`); blast ducks beds (the uncommitted `LfeExplodeDuck`); HP 11 / LP 85 as shipped (the LP corner is
+  raised x1.35 inside `LfeCore`; `tools/haptics/rigs/desk-t300-evo4.json`; the 22 / 90 pair is the loopback block's,
+  which is disabled); soft limiter is the
   last stage and no single source may reach it alone (ffb-lfe-live header).
 - Motion: no mixing; raw SI body-frame accel and rates, declared units, never pre-filtered.
 

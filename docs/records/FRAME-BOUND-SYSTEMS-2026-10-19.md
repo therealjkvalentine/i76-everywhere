@@ -1,5 +1,10 @@
 # Frame-bound systems: what ran at 1997's frame rate, and what 33 / 66 / promotion 18 do with it (2026-10-19)
 
+> **Note 2026-11-03.** "No dropper-armed AI car was staged": one has since been, in retail 1.0 in the emulator (T05's Oil
+> Slick car, 4 boots, 33 trials): it drops on a pursuer at 20-60 m/s, 2.5 m on a straight-line prediction
+> ([AI-DROPPER-GATE-RETAIL-2026-11-02.md](AI-DROPPER-GATE-RETAIL-2026-11-02.md)). The oil-slick damage rate under the
+> tick is still from the code. The "1997 = 24 frames/s" framing below is GOG on Windows; the emulated P166 ran 21-35 fps.
+
 The owner's question (verbatim): "in comparing 33 to 66 it would be good to know what ran at half speed in 1997 retail;
 like maybe damage is too fast in 33, could have seemed like that, so a specific list would be helpful."
 
