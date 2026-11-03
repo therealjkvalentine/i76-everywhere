@@ -32,7 +32,7 @@ with modifier bits 0x300). The last 15 characters are kept in 0x6092f0 and suffi
 |---|---|---|
 | `wiggleburger` | toggles 0x5a6158 (read by 0x498720..0x498910; described in the community as double vision) | 0x498700 |
 | `freelance` | toggles 0x4c2718 (next to the camera block; `camera_ApplyViewOptions` sets it to 1; effect to confirm) | 0x405b30 |
-| `getdown` | every type-9 object gets 0x40bc40 (turned hostile), `gdsgc69.wav` plays, 0x51f5c0 = 1; the script VM 0x40a320 then treats the player's death as mission success | 0x40a050 |
+| `getdown` | every type-9 object gets 0x40bc40 (turned hostile; doubted 2026-11-03: type 9 is the helicopter class and 0x40bc40 sits among the FSM action handlers, so it is probably set-heli-height, as I26 implements it; re-read 0x40bc40 before relying on either), `gdsgc69.wav` plays, 0x51f5c0 = 1; the script VM 0x40a320 then treats the player's death as mission success | 0x40a050 |
 | `flflat` / `frflat` / `blflat` / `brflat` | one wheel (component slots +0x3ac / +0x3a8 / +0x3bc / +0x3b8) gets 0x46da30(wheel, 0, 80) (health 0, max 80), then 0x46ddd0 (flat flag +0x44 = 1, radius +0x1c x 0.688, `tblow.wav`) | 0x46da30, 0x46ddd0 |
 | `thirdnostril` | shares the flat-tyre tail (component slot +0x3b8 in the decompile); exact effect to confirm | |
 

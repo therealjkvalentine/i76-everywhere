@@ -136,7 +136,7 @@ The switch is at 0x412d00-0x412d09 (`cmp eax,0x5f; ja 0x4144ae; jmp [eax*4+0x414
 | 10 | rand | O out, I n | - | `*out = rand() % n` | 0x4133ad | CRT rand | 330/25 |
 | 11 | whoRammed | E, O out | - | out = entity-table index of ai+0xa6e4 (last rammer). Appends a 'NoLabel%d' entity if the object is not in the table | 0x4133c9 | 0x40aff0 | 0 |
 | 12 | whoShot | E, O out | - | same for ai+0xa6e8 (last shooter) | 0x41340e | 0x40b0f0 | 5/3 |
-| 13 | startTimer | O t | - | `*t = ftol(simclock_GetAccumDt())` (whole seconds, inferred) | 0x41368b | 0x49c7e0, 0x4ba090 | 579/25 |
+| 13 | startTimer | O t | - | `*t = ftol(simclock_GetAccumDt() - (-0.5))`: rounds to the nearest whole second (`fsub [0x4bc798]` = -0.5 before `_ftol`; corrected 2026-11-03, this row missed the +0.5; the kit's T01 runs agree, n 6) | 0x41368b | 0x49c7e0, 0x4ba090 | 579/25 |
 | 14 | success | N | - | objective n: set bit 2 (succeeded), play cnote.wav. Logs if missing / already failed / hidden | 0x4136a8 | 0x45e9e0 | 87/24 |
 | 15 | successAll | I delay | - | 0x5244e4 = 1, 0x5244e0 = now+delay, 0x609438 = -2. When now >= 0x5244e0, 0x4149f0 sets game_state = 1 (mission won, inferred) | 0x4136d4 | 0x45eb30(-1) | 34/25 |
 | 16 | fail | N | - | objective n: set bit 4 (failed) | 0x4136be | 0x45ea90 | 2/2 |

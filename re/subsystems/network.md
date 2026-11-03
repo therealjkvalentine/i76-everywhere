@@ -32,7 +32,7 @@ re-read in disassembly.
   | +0x34 | latest state time |
   | +0x38 | dead-reckoned-to time |
   | +0x3c / +0x3e | kills / deaths |
-  | +0x40 | score (kill x 1000) |
+  | +0x40 | score: a kill adds ftol(victim mass (veh+0xa4) x killer 1/mass (veh+0xa8) x 1000.0) (0x455029..0x4550a3); a death with no killer (killer id 0) takes 500, floor 0 (0x455130..0x4551b4); `score >= max score` (unsigned) records the winner once (0x453a90). (Was "kill x 1000"; corrected 2026-11-03.) |
 
 - **Globals.** Local id 0x541028, host 0x541064, game group 0x541060. entity+0x480 is the owning player of a vehicle.
 - **Join handshake** (`net_JoinHandshakeStep` 0x452f20). Beacons 0xcc43. After 5 s of silence a player makes itself

@@ -84,7 +84,7 @@ grid.
 |---|---|---|---|
 | 1, 6, 0x12 | MGs and turrets; 20-30 mm, HADES, tank cannons; .45 handgun | `weapon_StepBullet` 0x4abe60 | straight or ballistic (ORDF gravity: 0 guns, 0.1 handgun), batched rounds |
 | 2 | FireRite rocket | `weapon_StepRocket` 0x4aa5b0 | unguided; speed eases to the ORDF speed at 0.5 x dt |
-| 3 | Aim-Nein heat missile | `weapon_StepHeatMissile` 0x4ab920 | re-acquires a heat target every step and **snaps** its facing to it: no turn limit |
+| 3 | Aim-Nein heat missile | `weapon_StepHeatMissile` 0x4ab920 | keeps its target while that target stays valid, else acquires a heat target, and **snaps** its facing to it every step: no turn limit (corrected 2026-11-03 from an I26 code audit; this row said "re-acquires every step") |
 | 4, 7 | HE / EZK / WP mortar, Howitzer | `weapon_StepMortarShell` 0x4ac3d0 | ballistic at 4 g |
 | 5 | Cluster-Bomb | `weapon_StepClusterBomb` 0x4ace20 | mortar flight, then 9-12 bomblets, +-10 m spread, fuses over 1.8 s |
 | 8 | DrRadar, Cherub | `weapon_StepRadarMissile` 0x4aa9f0 | turns only when dot(nose, target) < 0.998, by 0.75 x cross, clamped to sin 3 / 15 / 20 deg per step for < 15 / 15-150 / > 150 m flown; drops a jammed or dead target; floor = terrain + 0.5 m |
@@ -118,11 +118,14 @@ Flame weapons draw and damage from the renderer. All of this is per render call 
     1.0 / 0.75 by difficulty when the flamer's owner is the player, otherwise 1.0.
   - FlameThrower 15, Gas Launcher 30, Napalm Hose 45, Pyro-Tomic 60.
 - On contact the update also spawns the ORDF car-impact explosion (`entity_SpawnExplosion` from 0x44471d; xflht1
-  for stock flamers, blast damage 0), once per call.
+  for stock flamers, blast damage 0), once per touching segment (corrected 2026-11-03 from an I26 code audit; this
+  line said "once per call").
 - **Draw-path sweep (2026-09-27).** Every callee of the scene draws 0x401cc0 / 0x401fa0 and the mirror draw was
   checked for damage, sound, spawn and object-creation calls. Only this flamer chain has any.
 - **The rear mirror** (`renderer_DrawRearMirror` 0x445750) calls the update again with its own camera, so with the
-  mirror on, flamer damage is applied twice per frame, even at stock 20 fps.
+  mirror on, flamer damage is applied twice on every frame that draws the mirror, even at stock 20 fps. In Gold the
+  mirror is drawn every second frame (renderer.md "Refresh"), so x1.5 on average, not x2 (corrected 2026-11-03; retail
+  1.0 redraws the full mirror every frame, measured in the emulator).
 - **Per second.** At 20 fps, a hitting segment deals 20 x max(1, int(D x f / 20)). At 60 fps, the per-frame minimum
   of 1 dominates for D x f < 60. The retraction bug works against it, so the net effect of frame rate on flamer
   damage is not a simple ratio.

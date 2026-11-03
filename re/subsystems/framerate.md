@@ -63,7 +63,9 @@ Steering keys are **not** frame-dependent: steer is set absolutely to ±sqrt(hol
 ## Measured (capture 014, 2026-09-27)
 
 Confirmed live: #1 (dt on a 3.9 ms grid at 15.8 h uptime; `I76_HIRES_CLOCK` gives exact dt), #4 (clouds 0.0299 /s at
-20 fps vs 0.0899 /s at 60 fps, 3.0x), #6 (keyboard throttle full in 2 frames at either rate). Acceleration shows no
+20 fps vs 0.0899 /s at 60 fps, 3.0x), #6 (keyboard throttle full in 2 frames at either rate; disputed 2026-11-03:
+physics.md's static read of 0x44f1c0 gives 0.393, 0.780, then the clamp, 3 frames; one per-frame read of entity+0xe4
+settles it). Acceleration shows no
 difference beyond the run-to-run spread. **Cockpit bounce / chassis buzz** (8): the body's angular velocity
 reverses about 3x as often at 60 fps, and the cause is the **physics substep size**. Forcing smaller substeps at a
 fixed frame rate raises the buzz, and a fixed 25 ms step (`I76_FIXED_STEP=40`, an accumulator replacing
