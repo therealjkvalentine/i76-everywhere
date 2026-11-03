@@ -395,6 +395,39 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
    table + the section 4 numbers.
 9. Pages: `index.html` and `i76-save-editor.html` still load after the doc moves (all its links are `blob/main/docs/...`).
 
+**1.0 additions (2026-11-03, the port-back from the I26 round-3 measurements).** Done items name their commit.
+
+1. [x] README and kit README: "simulated 24 times a second like on a 1997 Pentium" -> GOG on Windows; a 1997 Pentium
+       ran 11-35 steps a second (`2ebd459`). "The physics are untouched" stays.
+2. [ ] **Owner's decision:** `I76_FIX_HEALTH_PCT=1` in `best-wide` / `best-wide-balanced` / `nitro-tick42`: drop it from
+       the default presets (the purist default is GOG's raw ratio, with its target-bar and early-flee quirks), or keep it
+       and name it in "What changes" ("the enemy health readout is fixed; this also delays AI retreat and damage smoke
+       against GOG"). It is neither GOG's formula nor 1997's (BUILD-RULES s.1). One owner play either way.
+3. [x] `I76PATCH.DLL`: GOG's 2.1.0.17 installer ships none (full extraction + two GOG test installs); `stock.psd1`, the kit
+       README and the installers' messages fixed (`76a339b`). Its 60-vs-20 behaviour (the AiO DLL) is still unmeasured.
+4. [x] [BUILD-RULES.md](../engine/BUILD-RULES.md) written and linked; the difficulty paragraph in the kit README,
+       README-DETAILS and `i76-settings.txt` (`f6c6c66`).
+5. [x] Dated caveats and notes: AI-DAMAGE-BALANCE, AI-DAMAGE-METRICS, BASE-DECISION, EXE-DIFF-MAP (`5b5587b`);
+       WEAPON-STATS / TICK-FINISH (`c94b6af`); NITRO-VS-RETAIL / FRAME-BOUND, HAPTICS-ARCHITECTURE (`bbccbf4`);
+       SCOPE-AND-LEGITIMACY (`f08f88c`).
+6. [x] Records: AI-DROPPER-GATE-RETAIL, TURRET-LEAD-RETAIL, RADAR-SWEEP-RETAIL (2026-11-02), indexed (`3d85822`).
+7. [ ] Spec: the public `re/` lines are done (`0a86ced`); the private spec's `ai.md` rule 7 / `constants.md` C-ai-03
+       (dropper ceiling) and the rest of the B5 list are open in the RE archive.
+8. [ ] `tools/coop-install.py` titles: **not changed.** The kit grows the WRLD body for titles over 15 characters and the
+       host's list showed the full names (COOP-LIST-ENTRIES s.8.1); the I26 "16-byte cut" was read with a 16-byte parser.
+       Open: what a joiner's list shows (a QA check), then decide.
+9. [x] `SOUND-HD-PACK.md`: the `.gpw` play-mode field (`4ee90ba`).
+10. [x] Music wrap: one mission log shows N..14 then 2..14, never 15 (`f752a8a`, MUSIC-TRACK-MAP). n = 1.
+11. [ ] Legal gate, inspected 2026-11-03 (nothing deleted): no `ADDON` textures, no `.pak`, no texture files in any of the
+        three packagers. Derived from game files and shipped: the Mac kit's precomputed `rumble-envelopes.ini` (envelopes
+        of the game's own sounds; the Deck kit computes it on the device instead), the Windows kit's bookmark saves
+        (`shared/saves`), and the Mac / Deck BSDIFF40 patches (diff only, extra block capped at 64 KiB). The Windows
+        name guard has no texture or level extensions. Release notes must say upscaled or HD content is
+        player-generated and never redistributed.
+12. [x] Exe fingerprint at install names the builds; retail 1.0 and a renamed `nitro.exe` get a sentence (`fa5b118`).
+13. [ ] GOG forum post "for the purists": lead with what is not changed (physics, AI, damage: GOG's, by measurement against
+        the 1997 CD and the GOG exe in an emulator), then the fixes; link BUILD-RULES.md.
+
 Pre-release, Mac and Deck: run the existing install path once from a clean machine/prefix each and record the result;
 say "verified on <date>, <hardware>" or "untested since <date>" in the README. Do not claim 60 fps on either.
 
