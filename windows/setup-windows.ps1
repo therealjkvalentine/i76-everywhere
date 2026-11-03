@@ -1,8 +1,9 @@
 # Interstate '76 - one-shot Windows setup (the WINDOWS-PLAYBOOK.md recipe, scripted).
 #
 # What it does, in order:
-#   1. Verifies the game folder (i76.exe) and reports whether it's the known-good
-#      GOG 2019 / AiO build (MD5 60abf7bc699da72476128ddce991a3d1).
+#   1. Verifies the game folder (i76.exe) and reports which build it is: GOG's own 9a232dcc (as sold,
+#      2.1.0.17) or the AiO community build 60abf7bc (the daily driver); a 1997 CD exe or a renamed
+#      nitro.exe gets a sentence saying what to do (docs/engine/BUILD-RULES.md has the builds).
 #   2. Moves GOG's bundled OpenGLide DLLs aside (so dgVoodoo's Glide2x.dll wins).
 #   3. Copies dgVoodoo2's x86 Glide DLLs + control panel into the game folder.
 #   4. Installs the game folder's dgVoodoo.conf. Since 2026-10-03, for the base game with the
@@ -226,12 +227,16 @@ if ($isNitro) {
     $md5From = if (Test-Path "$exePath.u32xorig") { "$exePath.u32xorig" } else { $exePath }
     $md5 = (Get-FileHash $md5From -Algorithm MD5).Hash.ToLower()
     if ($md5 -eq '60abf7bc699da72476128ddce991a3d1') {
-        Write-Host "i76.exe is the known-good GOG 2019 / AiO build (20 FPS limiter built in)." -ForegroundColor Green
+        Write-Host "i76.exe is the AiO community build (60abf7bc), the developer's daily driver: expected, nothing to do." -ForegroundColor Green
     } elseif ($md5 -eq '9a232dcc2c164648cff20c414c1f9698') {
         # clean-install 2026-10-25: the build GOG ships today (2.1.0.17); every Patch Kit test ran on it. Informational, not a warning.
         Write-Host "i76.exe is GOG build 2.1.0.17 (9a232dcc): expected, nothing to do."
+    } elseif ($md5 -eq '6cc509adf0a980dd233104bf916db377') {
+        Write-Host "i76.exe is the March 1997 CD build (retail 1.0, 6cc509ad). The kit needs the Gold exe that GOG sells (9a232dcc): its fixes are written for that build and skip every patch site they do not recognise here. What differs between the two: docs/engine/BUILD-RULES.md in the project." -ForegroundColor Yellow
+    } elseif ($md5 -eq '28b8ae276e88f4ffb13f17df159f09dc') {
+        Write-Host "i76.exe is the Nitro Pack exe (28b8ae27) under the Gold name. For Nitro, set up its own folder (the one with nitro.exe) and start it with PLAY-Nitro.bat." -ForegroundColor Yellow
     } else {
-        Write-Host "i76.exe MD5 = $md5 - NOT the GOG 2019 build (60abf7bc...) the presets were gated on." -ForegroundColor Yellow
+        Write-Host "i76.exe MD5 = $md5 - neither GOG's build (9a232dcc) nor the AiO build (60abf7bc) the presets were gated on." -ForegroundColor Yellow
         if ($fastPreset) {
             Write-Host "Setup continues. Preset $Preset has NOT been run on this build: the proxy checks the bytes at every patch site and skips a mismatch (<game>\mciproxy.log lists each). If the game runs too fast, re-run with -Preset stock."
         } else {
