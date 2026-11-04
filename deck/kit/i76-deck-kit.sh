@@ -171,7 +171,7 @@ do_install() {
         echo "$(md5of "$G/rumble-envelopes.ini")  game/rumble-envelopes.ini" >> "$LIST"
         ok "rumble envelopes from your sound files: $(grep -c = "$G/rumble-envelopes.ini") (textures the slip / road rumble)"
     else
-        note "rumble envelopes not made (needs liblzo2; SteamOS has it): rumble runs physics-only"
+        note "rumble envelopes not made (python3 failed on your I76.ZFS; see the kit log): rumble runs physics-only"
     fi
 
     say "5. launchers, preset, pad layer"

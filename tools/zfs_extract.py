@@ -51,9 +51,9 @@ def parse(data):
 
 _lzo = None
 def decompress(payload, comp, dlen):
-    """comp 2 = LZO1X, 4 = LZO1Y - decompressed with liblzo2 via ctypes, the same
-    library Open76 P/Invokes. macOS: brew install lzo. Windows: point LZO2_DLL at
-    an lzo2.dll (e.g. from the conda-forge `lzo` package, Library/bin/lzo2.dll)."""
+    """comp 2 = LZO1X, 4 = LZO1Y - decompressed with liblzo2 via ctypes when present (the
+    library Open76 P/Invokes; macOS: brew install lzo; Windows: point LZO2_DLL at an lzo2.dll,
+    e.g. the conda-forge `lzo` package's Library/bin/lzo2.dll), else with tools/lzo.py (pure Python)."""
     if comp == 0:
         return payload
     global _lzo
@@ -73,7 +73,11 @@ def decompress(payload, comp, dlen):
             except OSError:
                 continue
         if _lzo is None:
-            sys.exit("liblzo2 not found - set LZO2_DLL or install lzo")
+            _lzo = False   # no library: the pure-Python decoder (tools/lzo.py; slower, same bytes)
+    if _lzo is False:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import lzo as pylzo
+        return pylzo.decompress(payload, "1x" if comp == 2 else "1y", dlen)[0]
     fn = _lzo.lzo1x_decompress_safe if comp == 2 else _lzo.lzo1y_decompress_safe
     dst = ctypes.create_string_buffer(dlen)
     out_len = ctypes.c_size_t(dlen)
