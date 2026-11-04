@@ -53,13 +53,16 @@ def guard_out(path):
 
 def guard_check(path):
     """SystemExit if `path` is inside a game install; creates nothing."""
-    real = os.path.normcase(os.path.realpath(path))
+    # both the path as given and its resolved form: a junction such as <lab>/game-dd-<date> -> D:/.../twin-driver
+    # resolves outside every root, yet it is a game copy (2026-11-04)
+    forms = {os.path.normcase(os.path.abspath(path)), os.path.normcase(os.path.realpath(path))}
     for g in GAME_ROOTS:
-        gn = os.path.normcase(os.path.realpath(g))
-        if real == gn or real.startswith(gn + os.sep) or (os.path.basename(gn) == "game" and
-                                                          os.path.dirname(real) == os.path.dirname(gn) and
-                                                          os.path.basename(real).startswith("game")):
-            sys.exit("refused: output %s is inside a game folder (%s)" % (path, g))
+        for gn in {os.path.normcase(os.path.abspath(g)), os.path.normcase(os.path.realpath(g))}:
+            for real in forms:
+                if real == gn or real.startswith(gn + os.sep) or (os.path.basename(gn) == "game" and
+                                                                  os.path.dirname(real) == os.path.dirname(gn) and
+                                                                  os.path.basename(real).startswith("game")):
+                    sys.exit("refused: output %s is inside a game folder (%s)" % (path, g))
 
 
 def jdump(obj, path):

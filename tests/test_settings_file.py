@@ -75,7 +75,7 @@ def test_written_file_is_clean_and_changes_nothing(game):
     for i, l in enumerate(lines):
         if l in settings:
             assert lines[i - 1].startswith("# allowed: ") and "now: " in lines[i - 1], l
-    assert "now: 1800 (preset tick19-42)" in t                       # draw distance from the preset
+    assert "now: 2300 (preset tick19-42)" in t                       # draw distance from the preset
     assert "now: 2 = the 3D drawn at 6880x2880" in t                   # render scale on this display
     bat = (game / "SETTINGS.bat").read_text(encoding="ascii")
     assert "notepad.exe" in bat and "-WriteSettings" in bat
