@@ -88,6 +88,12 @@ def main():
         if skipped(name):
             continue
         copy(src, os.path.join(win if name.lower() in WIN_ONLY else common, name))
+    # every Windows download needs dgVoodoo 2.87.5: 2.87.3's DirectDraw crashes at the first frame on Windows 11 26100.9711+
+    # (docs/records/NITRO-WIN11-2026-10-25.md s.5; md5s from DGVOODOO-UPDATE-2026-10-24 s.5)
+    ddraw = next((os.path.join(win, n) for n in os.listdir(win) if n.lower() == "ddraw.dll"), "")
+    if not ddraw or md5(ddraw) != "c70a0ee641c3c349176fca39e4d78777":
+        sys.exit("%s is not dgVoodoo 2.87.5's DDraw.dll (c70a0ee6...; 2.87.3 is ab19386d) - put the 2.87.5 x86 set in the source "
+                 "folder first (the Patch Kit's _i76e/dgVoodoo, or dgVoodoo2_87_5.zip MS/x86 + 3Dfx/x86)" % (ddraw or win))
     # the unified control map and the matching wheel/pad layer
     shutil.copy2(os.path.join(REPO, "shared", "controls", "input.map"), os.path.join(common, "input.map"))
     shutil.copy2(os.path.join(REPO, "windows", "i76-remap.ahk"), os.path.join(win, "_ahk", "i76-remap.ahk"))

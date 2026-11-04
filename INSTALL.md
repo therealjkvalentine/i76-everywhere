@@ -59,7 +59,7 @@ Since 2026-10-03 the installer sets the base game up like the owner's daily driv
    `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOICONS /DIR=…`.) Windows shows
    **one UAC prompt** for the GOG installer — click **Yes** (that's normal; it's
    the only click in the whole process).
-2. Downloads **dgVoodoo2** 2.87.3 into `C:\Games\_tools` and installs
+2. Downloads **dgVoodoo2** 2.87.5 into `C:\Games\_tools` and installs
    `shared/renderer/dgVoodoo.daily-driver-2026-10-03.conf` as the game's `dgVoodoo.conf`: no dgVoodoo frame cap
    (the preset paces the game), 16:10 picture in a borderless window, 2× internal resolution,
    4× MSAA. On a display 1440 lines tall or taller the file is copied byte for byte; on a

@@ -88,11 +88,18 @@ if ($md5 -ne '60abf7bc699da72476128ddce991a3d1') {
 
 # --- 2. tools -----------------------------------------------------------------
 New-Item -ItemType Directory -Force $ToolsDir | Out-Null
-$dgv = Join-Path $ToolsDir 'dgVoodoo2_87_3'
+# dgVoodoo 2.87.5: 2.87.3's DirectDraw crashes at the first frame on Windows 11 26100.9711+ (docs/records/NITRO-WIN11-2026-10-25.md);
+# the release zip is sha256-checked (the asset digest read 2026-10-25, the same pin tools/Build-From-GOG.ps1 uses)
+$dgv = Join-Path $ToolsDir 'dgVoodoo2_87_5'
 if (-not (Test-Path (Join-Path $dgv '3Dfx\x86\Glide2x.dll'))) {
-    Say "Downloading dgVoodoo2 2.87.3 ..."
+    Say "Downloading dgVoodoo2 2.87.5 ..."
     $z = Join-Path $ToolsDir 'dgv.zip'
-    Invoke-WebRequest 'https://github.com/dege-diosg/dgVoodoo2/releases/download/v2.87.3/dgVoodoo2_87_3.zip' -OutFile $z
+    Invoke-WebRequest 'https://github.com/dege-diosg/dgVoodoo2/releases/download/v2.87.5/dgVoodoo2_87_5.zip' -OutFile $z
+    $sha = (Get-FileHash $z -Algorithm SHA256).Hash.ToLower()
+    if ($sha -ne '5ffde6927f7355ca3fdd5d785b581256a8e6539fa13e395a891ade6ba1040850') {
+        Remove-Item $z -ErrorAction SilentlyContinue
+        throw "dgVoodoo2_87_5.zip sha256 $sha is not the release's 5ffde692...40850 - download stopped (delete $ToolsDir\dgVoodoo2_87_5 and retry)"
+    }
     Expand-Archive $z $dgv -Force; Remove-Item $z
 }
 Say "dgVoodoo2 ready." 'Green'
