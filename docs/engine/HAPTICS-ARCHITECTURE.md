@@ -500,7 +500,7 @@ Each milestone names its files, its test, and whether it needs the console. Phas
 ### Phase C: owner-console tests (short list; each one a sitting, lab sandbox, A/A before A/B, report n)
 
 1. **Proxy v3 live** (`I76_TELEMETRY=1 I76_SOUND_EVENTS=1 I76MUSIC_LOG=1`): `6/6 event hooks` in `mciproxy.log`; one `SOUND_START` per audible effect, `is_player` 1 for own weapons and 0 for an AI car's; `SOUND_STOP` when a skid loop ends; counts vs the voice list (P4's acceptance).
-2. **Shakers + wheel + pad together** for the first time (FFB-STACKS fight 3 / READY-TO-TEST A7): drive t01, log everything, no judgement of feel yet; the question is interference and dropouts.
+2. **Shakers + wheel + pad together** for the first time (FFB-STACKS fight 3; the 2026-08-16 READY-TO-TEST A7 item, retired 2026-11-04): drive t01, log everything, no judgement of feel yet; the question is interference and dropouts.
 3. **Latency**: fire one shot and ram one wall; compare the `IMPACT` event's `frame` time against the host's render log time stamp per output; for the shaker, a phone microphone on the shaker recording alongside the host log gives event-to-output within a few ms (crude, but no accelerometer exists here).
 4. **Coexistence question** (mode A): with the host holding the wheel, pull the trigger; does the game's DLL still play anything? Answers whether mode C is required for both feels.
 5. **Hardpoint `+0x10` freq-vs-direction** (FFB-STACKS pick-up 1): fire the same weapon aimed two ways with `ffb-watch-effects.ps1`.
@@ -534,7 +534,7 @@ not needed while the DLL formulas exist), and anything that touches the daily dr
 
 Repo: `docs/engine/FFB-DESIGN-LIBRARY.md`, `docs/engine/FFB-STACKS.md`, `docs/engine/FORCE-FEEDBACK-AND-VISUALS.md`,
 `docs/records/FFB-DATA-AUDIT.md`, `FFB-DEEP-DIVE.md`, `FFB-LAPTOP-RECON.md`, `FFB-MORNING-TEST.md`,
-`SIM-RUMBLE-RESEARCH.md`, `SOUND-INTERPOSER-REVIEW.md`, `MOTION-SIM.md`, `READY-TO-TEST.md` A7,
+`SIM-RUMBLE-RESEARCH.md`, `SOUND-INTERPOSER-REVIEW.md`, `MOTION-SIM.md`, the retired `READY-TO-TEST.md` A7 (git history),
 `BACKLOG-2026-10-02.md` (P3-01, P3-17, P3-18, P3-24, P4-20); `tools/ffb/README.md` and the scripts named in
 section 1; `tools/telemetry/README.md`, `i76tel.h`, `verification-2026-10-01.txt`; `music-fix/strlkproxy.c`
 (telemetry export, `frame_sound_wrap`, `apply_joy_routing`), `music-fix/README.md`; `ffb-shim/README.md`,

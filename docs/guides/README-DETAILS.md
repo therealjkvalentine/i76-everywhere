@@ -120,12 +120,12 @@ until the A/B in [docs/process/RELEASE-PLAN.md](../process/RELEASE-PLAN.md) sect
 renderer tested ([docs/records/RENDERER-ALTERNATIVES.md](../records/RENDERER-ALTERNATIVES.md) section 11). Two things have to
 be true for a preset to do anything: the game folder's `Strlkup.dll` must be the current music-fix build
 (the launcher compares it and tells you to run `windows/setup-windows.ps1` if not; it copies nothing), and
-GOG's `I76PATCH.DLL` (the 20 fps cap) must be renamed out of the way (the launcher only says so;
+an `I76PATCH.DLL` (the AiO patch's 20 fps cap; GOG ships none) must be renamed out of the way (the launcher only says so;
 `windows/setup-windows.ps1` does it).
 
 **Installing on Windows from your own GOG copy** ([INSTALL.md](../../INSTALL.md)): since 2026-10-03 `INSTALL.bat`
 (`windows/Setup-From-GOG.ps1` -> `windows/install.ps1` -> `windows/setup-windows.ps1`) sets a fresh install up like that daily driver:
-the daily-driver `dgVoodoo.conf`, the music-fix proxy, `u32x.dll`, `I76PATCH.DLL` renamed, and `PLAY-i76.bat`
+the daily-driver `dgVoodoo.conf`, the music-fix proxy, `u32x.dll`, any `I76PATCH.DLL` renamed, and `PLAY-i76.bat`
 starting `-Preset best-120`, with `PLAY-stock.bat` beside it. `-Preset stock` on any of the three scripts
 installs the earlier 20 fps recipe instead. Evidence: the apply step was run on an unpacked copy of GOG's
 2.1.0.17 installer and checked by file listing, md5, the `input.map` lint and the launcher's `-DryRun`;
@@ -202,7 +202,8 @@ open in-game checks: `docs/records/SAVE-EDITOR-STATUS-2026-10-02.md`.
   the community called unfixable. Ordinal-exact export forwarding; works on Mac and Windows.
 - **20 FPS as shipped** everywhere by default (stock, the engine's behaviour changes with the frame rate; the
   60 / 120 fps switch set above is what corrects that): DxWnd delay on Mac, dgVoodoo `FPSLimit` on the Deck,
-  GOG's `I76PATCH.DLL` on Windows. (Corrected 2026-10-03: this said dgVoodoo `FPSLimit` on Windows. The lab's
+  the AiO patch's `I76PATCH.DLL` on Windows where a player installed it (corrected 2026-11-04: this said "GOG's"; GOG
+  ships no limiter, [BUILD-RULES.md](../engine/BUILD-RULES.md)). (Corrected 2026-10-03: this said dgVoodoo `FPSLimit` on Windows. The lab's
   "FPSLimit is ignored" result is void, measured while dgVoodoo was rejecting the sandbox conf; whether
   `FPSLimit` caps on Windows has not been re-measured.) Since 2026-10-03 the Windows installer is the exception:
   it sets up `best-120` unless run with `-Preset stock` ([INSTALL.md](../../INSTALL.md)).

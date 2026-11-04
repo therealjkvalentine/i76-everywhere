@@ -290,8 +290,8 @@ Not features: widescreen (camera is 4:3 in the exe), HD textures (retired), Vood
 | `docs/process/LEGITIMACY-AND-SCOPE.md` | `docs/process/SCOPE-AND-LEGITIMACY.md` | same content, written a day apart; `docs/README.md` links both. **Done 2026-10-10** the other way round: folded into `SCOPE-AND-LEGITIMACY.md` (the longer, more-linked one); `LEGITIMACY-AND-SCOPE.md` is a pointer |
 | `docs/guides/MAC-BUILD.md` | `docs/records/MAC-SETUP.md` (handoff brief, 2026-07-04) | MAC-SETUP describes a package (`i76-stable-gog.zip`, `I76_CD1.ISO`) that must not be referenced publicly |
 | `docs/guides/WINDOWS-PLAYBOOK.md` | `docs/records/MODERN-SETUP.md`, `docs/records/WHAT-THIS-IS-dgvoodoo.txt`, `docs/records/i76-research-full.txt` | pre-July notes; the playbook supersedes them |
-| `music-fix/README.md` (switch table) + `docs/guides/MUSIC.md` (diagnosis) | the "NOT YET BUILT", "needs 32-bit gcc", "Not yet observed: MCI_PLAY" paragraphs inside `music-fix/README.md` | the DLL has been built and `MCI_PLAY` was observed (MUSIC.md); the README now contradicts itself top to bottom. Rewrite as: what it does, switches, build, history link |
-| `docs/engine/VERIFIED-FIXES.md` | `docs/records/READY-TO-TEST.md` | READY-TO-TEST is a dated checklist (2026-08-16); its camera-rate "deployed" claim was corrected in place on 2026-10-01 (L004) and its other stale items on 2026-10-02. Still slated: close its items into VERIFIED-FIXES rows and delete |
+| `music-fix/README.md` (switch table) + `docs/guides/MUSIC.md` (diagnosis) | the "NOT YET BUILT", "needs 32-bit gcc", "Not yet observed: MCI_PLAY" paragraphs inside `music-fix/README.md` | the DLL has been built and `MCI_PLAY` was observed (MUSIC.md); the README now contradicts itself top to bottom. Rewrite as: what it does, switches, build, history link. **Done** (checked 2026-11-04): the README is what-it-does / switches / build / history, and each overtaken paragraph in the history carries a dated "Superseded" note |
+| `docs/engine/VERIFIED-FIXES.md` | `docs/records/READY-TO-TEST.md` | READY-TO-TEST is a dated checklist (2026-08-16); its camera-rate "deployed" claim was corrected in place on 2026-10-01 (L004) and its other stale items on 2026-10-02. **Done 2026-11-04**: the draw-distance ceiling row added to VERIFIED-FIXES (its save items were already rows there, its FFB items live in FFB-STACKS / HAPTICS-ARCHITECTURE), the file deleted, the living docs that cited it reworded |
 | `README.md` "Open improvements" table | the whole table | it is a 2026-08-16 status snapshot (u32x "awaiting verification", FFB "never run together"); release README has no live backlog |
 | `CHANGELOG.md` "Unreleased" | its first bullet ("raising the real frame rate is plausible... nothing field-tested") | done 2026-10-01: the bullet carries the superseding update (`CHANGELOG.md` "2026-10-01 update") and `docs/records/FRAMERATE-UNCAP-RESEARCH.md` its superseded header; close in v1.1.0 (backlog P3-06) |
 | uncap-lab `docs/framerate/README.md` | `docs/records/MODERN-SETUP.md` "20 FPS... above ~30 FPS the sim over-integrates" and `WINDOWS-PLAYBOOK.md` section 1 point 4 "Do not raise it" | measured false (gravity dt-correct, jump clears at 60); the playbook still teaches the lore as fact |
@@ -388,8 +388,10 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
    under Smooth 60; a full mission to a save and reload.
 5. Promote: copy the released `Strlkup.dll` to the daily driver as its own step, keep `*.pre-<release>` beside it,
    and play one evening before tagging.
-6. Doc pass from section 5: remove READY-TO-TEST, merge the legitimacy pair, fix the ffb-shim conflict, rewrite
-   music-fix/README, regenerate `docs/README.md`, `python3 tools/lint-input-map.py` on the shipped `input.map`.
+6. Doc pass from section 5: remove READY-TO-TEST (done 2026-11-04), merge the legitimacy pair (done 2026-10-10), fix the
+   ffb-shim conflict (resolved 2026-10-01), rewrite music-fix/README (done: dated Superseded notes), regenerate
+   `docs/README.md` (the 2026-10-26 hub), `python3 tools/lint-input-map.py` on the shipped `input.map` (clean against the
+   Gold exe, 2026-11-04; the 2026-11-03 profile work linted it against both exes).
 7. `THIRD-PARTY.md` additions from section 5; LICENSE unchanged (MIT, with the "does not cover" paragraph).
 8. CHANGELOG: close "Unreleased" into `v1.1.0` with status brackets; tag; GitHub release notes = the README preset
    table + the section 4 numbers.
@@ -453,9 +455,10 @@ Order (proposed), each step gated on the previous one not producing a bug report
 1. **PCGamingWiki edit** first: passive, factual, highest search reach. Rows: in-mission music fix (no optical drive),
    cutscene-music proxy, the `FPSLimit`-is-ignored / `I76PATCH.DLL` finding, FFB on modern wheels (T300RS, Combined
    pedal mode, close the vendor panel), input.map joystick5 fix, Mac/Deck rows. Cite the repo.
-2. **GOG forum** post in the Interstate series board: lead with "your GOG copy already contains the AiO 20 fps
-   limiter; here is in-mission music with no CD drive and the cutscene fix". The `OUTREACH-DRAFT.md` body, trimmed;
-   remove the "optional HD texture pack" line (retired) and "~19.2 FPS" (now known to be the DxWnd cap, Mac only).
+2. **GOG forum** post in the Interstate series board: [GOG-FORUM-POST-PURISTS.md](../release/GOG-FORUM-POST-PURISTS.md)
+   (2026-11-04). Not the old lead: GOG ships no `I76PATCH.DLL` and its exe is Gold 1.2, not the AiO build (s.7, 1.0 item 3);
+   the `OUTREACH-DRAFT.md` body carries that claim, the retired HD texture pack and "~19.2 FPS" (the Mac's DxWnd cap).
+   Lead with what is not changed (physics, AI, damage: GOG's, by measurement against the 1997 CD in an emulator).
 3. **interstate76.com forum**: the community-first framing from the draft; add the Tuesday-night angle (the proxy is
    untested in multiplayer: say so, ask for a tester).
 4. **VOGONS**: internals thread. The measured `FPSLimit` matrix, the Strlkup IAT hook (why a winmm proxy fails under

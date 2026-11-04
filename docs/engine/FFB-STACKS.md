@@ -111,8 +111,8 @@ is installed"), but nobody has run that check on a real Windows or Deck install,
 wrong guess here reads as "my rumble broke" rather than as an error.
 
 **3. Three outputs, never run together.** Wheel, shakers and pad have each only ever
-run alone. `docs/records/READY-TO-TEST.md` §A7 already flags wheel-vs-shaker interference as
-unproven; the pad is now a third claimant on the same events.
+run alone. The 2026-08-16 READY-TO-TEST checklist (A7; retired 2026-11-04 into VERIFIED-FIXES) already flagged
+wheel-vs-shaker interference as unproven; the pad is now a third claimant on the same events.
 
 ## Telemetry: two wires carrying the same picture
 
@@ -131,7 +131,7 @@ need the shim running on Windows, which has never been done.
 - `+0x10`: frequency or direction (above).
 - The shim has only ever run under Wine on the Mac. It is an ordinary win32 DLL, so it
   should load on Windows, but that is an expectation, not a result.
-- Everything in `docs/records/READY-TO-TEST.md` §A7: shift-detection thresholds have never seen
+- The 2026-08-16 checklist's FFB items (READY-TO-TEST A7, retired 2026-11-04): shift-detection thresholds have never seen
   a real drive, and whether world explosions reach the effect table at all is unknown.
 - Whether the shim's `.gpw`-derived skid texture and the Windows mixer's synthesised
   road texture describe the same surface the same way.

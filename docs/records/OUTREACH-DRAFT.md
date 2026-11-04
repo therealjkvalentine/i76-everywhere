@@ -1,5 +1,11 @@
 # Outreach — announcing i76-everywhere (v1.0)
 
+> **2026-11-04:** the "PSA" below is wrong and must not be posted as written: GOG's installer ships the Gold 1.2 exe and
+> **no** `I76PATCH.DLL`; the AiO exe and its limiter came from the community patch on the developer's copy
+> ([BUILD-RULES.md](../engine/BUILD-RULES.md), 2026-11-03). "~19.2 FPS" is the Mac's DxWnd cap and the HD texture pack
+> is retired. The corrected GOG post is [docs/release/GOG-FORUM-POST-PURISTS.md](../release/GOG-FORUM-POST-PURISTS.md);
+> the venue table and the per-venue angles here still hold.
+
 Ready-to-post drafts for sharing the project. **Nothing here is auto-posted** — copy, tweak the
 greeting per venue, and post from your own accounts. Repo: **https://github.com/therealjkvalentine/i76-everywhere**
 · Hosted save editor: **https://therealjkvalentine.github.io/i76-everywhere/**

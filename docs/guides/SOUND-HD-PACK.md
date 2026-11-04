@@ -249,7 +249,7 @@ sound-hd\                       (lab staging, e.g. <lab>\staging\sound-hd\v0.1)
 
 - Allowed targets are an explicit list: `<lab>\game*` only. Any other path (the daily driver
   especially) is refused unless a `-Gated` switch is passed together with a path listed in a future
-  `docs/records/READY-TO-TEST.md` entry. Default is `--dry-run`.
+  QA issue (the 2026-08-16 READY-TO-TEST checklist it named was retired 2026-11-04). Default is `--dry-run`.
 - Before writing, `install` refuses if a target name already exists in `ADDON\` with an md5 that is not in the
   manifest (the sandbox ADDON carries the owner's mods; nothing of theirs may be overwritten).
 - Writes the files, then **reads each back and compares md5** (memory: verify the write landed), and records

@@ -9,7 +9,7 @@ was written (the repository was reorganised on 2026-10-03 and 2026-10-26; [the d
 things are now). Living docs are in [`../guides/`](../guides/), [`../engine/`](../engine/), [`../research/`](../research/)
 and [`../process/`](../process/).
 
-171 records. Date from the file name (else the first date in the title or the opening lines); topic from a keyword in
+170 records. Date from the file name (else the first date in the title or the opening lines); topic from a keyword in
 the file name (or the title), the first match in the script's table.
 
 [Frame rate, simulation and physics](#frame-rate-simulation-and-physics) | [Multiplayer, co-op and AI opponents](#multiplayer-co-op-and-ai-opponents) | [Mac](#mac) | [Steam Deck](#steam-deck) | [Nitro Pack](#nitro-pack) | [Force feedback, rumble and motion](#force-feedback-rumble-and-motion) | [Audio and music](#audio-and-music) | [Controls and input](#controls-and-input) | [Menus, saves and the save editor](#menus-saves-and-the-save-editor) | [Graphics and rendering](#graphics-and-rendering) | [Status, backlogs and overnight runs](#status-backlogs-and-overnight-runs) | [Install, kits and releases](#install-kits-and-releases) | [Reverse engineering, versions and research](#reverse-engineering-versions-and-research)
@@ -167,6 +167,7 @@ the file name (or the title), the first match in the script's table.
 
 ## Status, backlogs and overnight runs
 
+- 2026-11-04 [Outreach — announcing i76-everywhere (v1.0)](OUTREACH-DRAFT.md)
 - 2026-10-25 [Owner test list (things only the developer at the console can check)](OWNER-NOTES-ARCHIVE-2026-10-25.md)
 - 2026-10-17 [Owner feedback fixes (2026-10-17, evening)](OWNER-FEEDBACK-FIXES-2026-10-17.md)
 - 2026-10-17 [Overnight run 2026-10-17 (evening) / 18: synthesis](OVERNIGHT-2026-10-17.md)
@@ -176,8 +177,6 @@ the file name (or the title), the first match in the script's table.
 - 2026-10-02 [Status 2026-10-02: the autonomous session after the first console playtest](STATUS-2026-10-02.md)
 - 2026-10-02 [Playtest record: 2026-10-02, the developer at the console, sandbox, TEST-FRAMERATE mode 5 ("all")](PLAYTEST-2026-10-02.md)
 - 2026-10-02 [Backlog 2026-10-02: every open problem and unknown, one prioritised table](BACKLOG-2026-10-02.md)
-- 2026-08-16 [Ready to test — next hands-on session](READY-TO-TEST.md)
-- undated [Outreach — announcing i76-everywhere (v1.0)](OUTREACH-DRAFT.md)
 
 ## Install, kits and releases
 
