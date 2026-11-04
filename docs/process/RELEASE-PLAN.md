@@ -421,14 +421,23 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
 9. [x] `SOUND-HD-PACK.md`: the `.gpw` play-mode field (`4ee90ba`).
 10. [x] Music wrap: one mission log shows N..14 then 2..14, never 15 (`f752a8a`, MUSIC-TRACK-MAP). n = 1.
 11. [ ] Legal gate, inspected 2026-11-03 (nothing deleted): no `ADDON` textures, no `.pak`, no texture files in any of the
-        three packagers. Derived from game files and shipped: the Mac kit's precomputed `rumble-envelopes.ini` (envelopes
-        of the game's own sounds; the Deck kit computes it on the device instead), the Windows kit's bookmark saves
-        (`shared/saves`), and the Mac / Deck BSDIFF40 patches (diff only, extra block capped at 64 KiB). The Windows
-        name guard has no texture or level extensions. Release notes must say upscaled or HD content is
-        player-generated and never redistributed.
+        three packagers. Derived from game files and shipped: ~~the Mac kit's precomputed `rumble-envelopes.ini`~~ (**done
+        2026-11-04**, `58fcb56`: the Mac Kit builds it on the Mac with `tools/mac-kit/gpw-envelopes.pl`, byte-identical to the
+        file it shipped; the Deck kit's generator no longer needs liblzo2, `fb0c177`), the Windows kit's bookmark saves
+        (`shared/saves`), and the Mac / Deck BSDIFF40 patches (diff only, extra block capped at 64 KiB): **owner's ruling
+        still open for those two.** The Windows name guard has no texture or level extensions. The release notes draft
+        ([RELEASE-NOTES-v1.0.md](../release/RELEASE-NOTES-v1.0.md)) carries the "player-generated, never redistributed" paragraph.
 12. [x] Exe fingerprint at install names the builds; retail 1.0 and a renamed `nitro.exe` get a sentence (`fa5b118`).
-13. [ ] GOG forum post "for the purists": lead with what is not changed (physics, AI, damage: GOG's, by measurement against
-        the 1997 CD and the GOG exe in an emulator), then the fixes; link BUILD-RULES.md.
+13. [x] GOG forum post "for the purists": [GOG-FORUM-POST-PURISTS.md](../release/GOG-FORUM-POST-PURISTS.md) (`9f33178`); two
+    bracketed lines wait for item 2 and the release link.
+14. [x] dgVoodoo 2.87.5 on every Windows path (#6, `763bda3`): `windows/install.ps1` fetched 2.87.3; the LAN pack builder now
+    refuses a 2.87.3 source. Open on #6: the lab Nitro tiers, the Macs' Nitro (consistency), a visible Windows 11 run.
+15. [x] `pytest tests` green again (`c1401cb`): the settings test expected the pre-0.8.2 draw distance, the sound-pack guard
+    missed a game copy behind a junction (a real guard hole, fixed in code), the save editor's HTML part table had drifted
+    from the Python one.
+16. [ ] Tag name: `v1.0.0` already exists on the repository (s.6 note); pick the kit's 1.0 tag before publishing.
+17. [ ] Owner QA rows that gate 1.0 (the previous session's list): #4 / #3 re-run on a fresh machine, #96 / #99 hardware rows,
+    #5 and #8 / #105 first-time installs by a person, #9 (map authors), #97 publish; #127 ships as a known issue.
 
 Pre-release, Mac and Deck: run the existing install path once from a clean machine/prefix each and record the result;
 say "verified on <date>, <hardware>" or "untested since <date>" in the README. Do not claim 60 fps on either.
