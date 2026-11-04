@@ -134,7 +134,8 @@ Drag the two apps to the Trash. You can also delete `~/Library/Caches/i76-mac-ki
 
 - Ours (MIT, source in the project): the launch stubs (`stubs/`, Swift), the game add-on `Strlkup.dll` (the fixes), `u32x.dll` (menu
   mouse), the byte patches (`payload/patches`, which carry only our changes and are checked against your GOG file before and after), the
-  cutscene-music and rumble add-ons, the key map, the Wine settings.
+  cutscene-music and rumble add-ons (the rumble table `rumble-envelopes.ini` is computed on your Mac from your own sound
+  files by `gpw-envelopes.pl`; nothing made from the game's data is in the zip), the key map, the Wine settings.
 - **OpenGLide-HD** (`payload/openglide`): OpenGLide (LGPL 2.1) with this project's patches (`tools/openglide-hd` in the project).
 - **AutoHotkey 1.1** (GPL v2, `payload/ahk`, with its licence).
 - Downloaded on your Mac, not in the zip (the addresses and fingerprints are in `pins.txt`):

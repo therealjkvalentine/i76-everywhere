@@ -5,11 +5,11 @@
   Wine runtime, DxWnd, IPXWrapper) is fetched on the Mac from its own site, pinned by SHA-256 (tools\mac-kit\pins.txt).
 
   ONE zip with one folder, Interstate76-Mac-Kit\:
-    BUILD-I76-APPS.command, i76-mac-kit.sh, README.md (= tools\mac-kit\README.md), pins.txt, VERSION.txt, MD5SUMS, LICENSE, THIRD-PARTY.md
+    BUILD-I76-APPS.command, i76-mac-kit.sh, gpw-envelopes.pl, README.md (= tools\mac-kit\README.md), pins.txt, VERSION.txt, MD5SUMS, LICENSE, THIRD-PARTY.md
     stubs\     the launch stubs (tools\mac-kit\stubs: our Swift sources, fixed Mach-O UUIDs, ad-hoc signed)
     payload\   env\ + dxwnd-profile.ini (tools\mac-kit\payload), graphics\base.env / fast.env (from shared\presets\graphics-mac*.psd1),
                patches\ (tools\mac-kit\make-patches.py output: BSDIFF40 patches, our bytes only), gold\ (the Gold proxy as STRLKUP.DLL,
-               u32x.dll, shared\controls\input.map, the cutscene-music proxy SMACKW32.DLL, the rumble proxy i7_sfrce.dll + rumble-envelopes.ini),
+               u32x.dll, shared\controls\input.map, the cutscene-music proxy SMACKW32.DLL, the rumble proxy i7_sfrce.dll; its envelope table is built on the Mac by gpw-envelopes.pl),
                nitro\Strlkup.dll, openglide\ (OpenGLide-HD glide2x.dll + OpenGLid.INI), ahk\ (AutoHotkeyU32.exe 1.1 GPL + licence + i76-remap.ahk)
 
     tools\package-mac-kit.ps1 -GoldProxy <Strlkup.dll> -NitroProxy <Strlkup.dll> -MacPayloadDir <dir> -PatchesDir <dir>
@@ -50,7 +50,7 @@ function Put([string]$from, [string]$rel) {
 }
 
 # ---- the kit's own files --------------------------------------------------------------------------------------------
-foreach ($n in 'BUILD-I76-APPS.command', 'i76-mac-kit.sh', 'README.md', 'pins.txt') { Put (Join-Path $kit $n) $n }
+foreach ($n in 'BUILD-I76-APPS.command', 'i76-mac-kit.sh', 'gpw-envelopes.pl', 'README.md', 'pins.txt') { Put (Join-Path $kit $n) $n }
 Put (Join-Path $repo 'LICENSE') 'LICENSE'; Put (Join-Path $repo 'THIRD-PARTY.md') 'THIRD-PARTY.md'
 Get-ChildItem -LiteralPath (Join-Path $kit 'stubs') -File | ForEach-Object { Put $_.FullName "stubs\$($_.Name)" }
 Get-ChildItem -LiteralPath (Join-Path $kit 'payload\env') -File | ForEach-Object { Put $_.FullName "payload\env\$($_.Name)" }
@@ -81,7 +81,6 @@ $macPins = [ordered]@{
     'OpenGLid.INI'         = @('4b9f29cce81dd9edcbf7f907a1d5ded2', 'payload\openglide\OpenGLid.INI')
     'SMACKW32.DLL'         = @('3dd72cfc823d95b2a560276f07d0fb90', 'payload\gold\SMACKW32.DLL')       # smack-music-fix (ours)
     'i7_sfrce.dll'         = @('3b7b0fe8effd5d44cf74dfe1975475ae', 'payload\gold\i7_sfrce.dll')       # the rumble proxy (ours)
-    'rumble-envelopes.ini' = @('362bd617', 'payload\gold\rumble-envelopes.ini')
     'AutoHotkeyU32.exe'    = @('b6af97aa32c636c3c4e87bb768a3ceb7', 'payload\ahk\AutoHotkeyU32.exe')   # AutoHotkey 1.1.37.02, GPL v2
     'license.txt'          = @('e3f2ad7733f3166fe770e4dc00af6c45', 'payload\ahk\license.txt')
     'i76-remap.ahk'        = @('098fdde95b891669d991aabb75927a98', 'payload\ahk\i76-remap.ahk')       # the Mac apps' remapper (mouse 4/5, wheel)

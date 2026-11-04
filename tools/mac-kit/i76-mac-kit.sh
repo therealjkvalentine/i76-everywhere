@@ -291,7 +291,14 @@ build_app() {   # build_app <gold|nitro> <GOG folder>
         keep "$GD" input.map input.map.stock-gog; put "$PAY/gold/input.map" "$GD/input.map"
         keep "$GD" SMACKW32.DLL smackorg.dll;     put "$PAY/gold/SMACKW32.DLL" "$GD/SMACKW32.DLL"
         keep "$GD" i7_sfrce.dll i7_sfrce_org.dll; put "$PAY/gold/i7_sfrce.dll" "$GD/i7_sfrce.dll"
-        put "$PAY/gold/rumble-envelopes.ini" "$GD/rumble-envelopes.ini"
+        # the rumble shim's envelope table, built here from the player's own sound files (gpw-envelopes.pl: the same
+        # table tools/gpw-envelopes.py writes; derived from the game's data, so the kit does not ship it; the Deck kit does the same)
+        if perl "$KIT/gpw-envelopes.pl" "$GD" --out "$GD/rumble-envelopes.ini" >/dev/null 2>"$WORK/envelopes.err"; then
+            MANIFEST="$MANIFEST$(md5of "$GD/rumble-envelopes.ini")  rumble-envelopes.ini"$'\n'
+            ok "rumble envelopes from your sound files: $(grep -c = "$GD/rumble-envelopes.ini") (texture the slip / road rumble)"
+        else
+            note "rumble envelopes not made ($(tail -1 "$WORK/envelopes.err" 2>/dev/null)): rumble runs physics-only"
+        fi
         # the graphic-detail options the Windows Patch Kit sets, only while they are GOG's defaults (rear mirror full)
         local def; def="$(ci "$GD" I76PLYR.DEF)"
         if [ -f "$def" ] && [ "$(md5of "$def")" = 1bff014676ba4fb370d2524383a0a145 ]; then
