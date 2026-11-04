@@ -8,8 +8,11 @@ All notable milestones for **i76-everywhere**. Dates are ISO. This project follo
 Everything since `v1.0.0` (`99863f5`, 2026-07-14): 640 commits to 2026-10-10. This block summarises the
 2026-10-03 evening to 2026-10-10 work by area; the dated sections below it are the detailed log of the earlier
 part. Status brackets as before: `[measured, lab]` = lab twin or sandbox, `[driver]` = promoted into the daily
-driver (golden `PROMOTIONS.md` row), `[built, untested]`, `[owner test pending]`. **Blocking the release:** a
-fresh `Setup-From-GOG.ps1` install has never booted a game (backlog R-04); THIRD-PARTY dgVoodoo sentence (R-12).
+driver (golden `PROMOTIONS.md` row), `[built, untested]`, `[owner test pending]`. **2026-11-04:** the kit's
+releases v0.7.3 and v0.8.0-v0.8.2 (2026-10-24..27, `docs/release/RELEASE-NOTES-v0.8.0.md`) came out of this work; `v1.1.0`
+is the kit's first full release. Its player-facing text is `docs/release/RELEASE-NOTES-v1.1.md`, its gates RELEASE-PLAN s.7.
+The R-04 blocker (a fresh install never booted) was cleared by the clean Windows 11 install of 2026-10-25
+(`docs/records/CLEAN-INSTALL-2026-10-25.md`).
 
 ### Frame rate and physics (music-fix proxy switches, all opt-in)
 - **Input latch** `I76_INPUT_LATCH=1` (`f71392f`): ignition / lights presses survive frames without a physics

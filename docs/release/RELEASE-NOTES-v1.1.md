@@ -1,19 +1,19 @@
-# Interstate '76 Patch Kit (i76-everywhere) v1.0 (draft, 2026-11-04; not published)
+# Interstate '76 Patch Kit (i76-everywhere) v1.1.0 (draft, 2026-11-04; not published)
 
 The release text for the GitHub release page, in the shape of [RELEASE-NOTES-v0.8.0.md](RELEASE-NOTES-v0.8.0.md).
-Lines in **[brackets]** are open: two owner decisions and the facts only known at tag time. The pre-release gates are
+Lines in **[brackets]** are open: two owner decisions and the facts only known at tag time. The tag is `v1.1.0` (owner, 2026-11-04). The pre-release gates are
 [RELEASE-PLAN.md](../process/RELEASE-PLAN.md) section 7.
 
-**Download:** https://github.com/therealjkvalentine/i76-everywhere/releases/tag/**[tag]**
-(`Interstate76-Patch-Kit-i76-everywhere-v1.0-<sha>.zip` for Windows 10 / 11; `Interstate76-Mac-Kit-i76-everywhere-v1.0-<sha>.zip`
+**Download:** https://github.com/therealjkvalentine/i76-everywhere/releases/tag/v1.1.0
+(`Interstate76-Patch-Kit-i76-everywhere-v1.1.0-<sha>.zip` for Windows 10 / 11; `Interstate76-Mac-Kit-i76-everywhere-v1.1.0-<sha>.zip`
 for Apple Silicon Macs **[if the Mac Kit ships in the same release]**). Nothing of the game is in either zip: they install
 over your own GOG copy and keep every original file.
 
-> **[Tag name]** The repository already carries a `v1.0.0` tag (the July 2026 "Vacation Build", before the kit existed), so the
-> kit's 1.0 cannot be tagged `v1.0.0`. Pick `v1.0.1` or a kit-prefixed tag before publishing; RELEASE-PLAN s.6 was written
-> before the kit's own version line (v0.7.x, v0.8.0-0.8.2) and does not cover this.
+> **Why 1.1.0 and not 1.0:** the repository's `v1.0.0` tag is the July 2026 "Vacation Build" (before the kit
+> existed), so the kit's first full release is `v1.1.0` (owner's call, 2026-11-04). The kit's own line before it:
+> v0.7.3, v0.8.0, v0.8.1, v0.8.2 (October 2026); RELEASE-PLAN s.6 has the version rule.
 
-## What 1.0 means
+## What 1.1 means
 
 The kit's fixes are GOG's game with the things that broke on a modern PC put right, and the simulation left alone. Since
 0.8.2 that claim is measured rather than assumed: the 1997 retail CD build was run in an emulator on an emulated Pentium
@@ -32,7 +32,7 @@ the same. Where 1997 and GOG differ, the kit keeps GOG's rule in every case; the
   from the game's data.
 - **Your own `input.map` is kept** through setup, re-setup, update and uninstall (0.8.1), with the wheel / stick layers off
   it; **[confirm the hardware rows from issue #99 / #103 or say "not yet run on a wheel"]**.
-- **[Owner decision, release plan s.7 1.0 item 2]** either: "the enemy health readout: the kit's formula (closer to 1997's
+- **[Owner decision, release plan s.7 1.1 item 2]** either: "the enemy health readout: the kit's formula (closer to 1997's
   banding than GOG's raw ratio, but neither) stays on in the default presets; it also delays AI retreat and damage smoke
   slightly against GOG; `I76_FIX_HEALTH_PCT=0` in `i76-settings.txt` turns it off" / or: "the default presets now show
   GOG's enemy health readout, quirks included; `I76_FIX_HEALTH_PCT=1` changes it".
@@ -47,14 +47,14 @@ copy. Anything made from the game's data (an HD texture pack, an upscaled sound 
 makes from their own files on their own machine; the project does not redistribute it. What the zips do contain beyond the
 project's own code: unmodified dgVoodoo 2.87.5 components (Dege's readme permits shipping them with a game mod, quoted in
 `_i76e\dgVoodoo\README-dgVoodoo.txt`; 2.87.3 beside it as a fallback) and AutoHotkey 1.1 (GPL v2, with its licence).
-**[Owner ruling, release plan s.7 1.0 item 11:** the Windows kit's bookmark saves (`shared/saves`: the developer's own
+**[Owner ruling, release plan s.7 1.1 item 11:** the Windows kit's bookmark saves (`shared/saves`: the developer's own
 bookmark files, installed only into a folder with no saves) and the Mac / Deck kits' BSDIFF patches (our bytes only, including
 the co-op missions derived from GOG's) stay or go.**]**
 
 ## Known issues
 
 - **Co-op campaign host crash in T05** after the AI fill spawns a second car (issue #127): a game crash in the draw loop, seen
-  once on a Mac host. Co-op over LAN is experimental in 1.0; a single-player game is not affected.
+  once on a Mac host. Co-op over LAN is experimental in 1.1; a single-player game is not affected.
 - The menus and movies stay 4:3 (pillarboxed) in widescreen; only the 3D view is wide.
 - **[Any QA row still open at tag time: issues labelled `needs-qa`.]**
 

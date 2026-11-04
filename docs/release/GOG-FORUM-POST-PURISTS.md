@@ -1,6 +1,6 @@
 # GOG forum post: "for the purists" (draft, 2026-11-04)
 
-For the Interstate series board on the GOG forum, once the 1.0 kit is published. Release plan s.7, 1.0 item 13; s.8
+For the Interstate series board on the GOG forum, once the 1.1 kit (`v1.1.0`) is published. Release plan s.7, 1.1 item 13; s.8
 item 2. Nothing here is auto-posted: copy it, check the two bracketed lines, post from your own account. The old
 "your GOG copy already contains the 20 fps limiter" lead ([OUTREACH-DRAFT.md](../records/OUTREACH-DRAFT.md)) is wrong
 and is not in this text: GOG ships the Gold 1.2 exe and no `I76PATCH.DLL`.
@@ -55,7 +55,7 @@ patch is checked byte by byte against GOG's file before it is applied, so a diff
 **Download and source:** `<release link>` (Windows 10 / 11; Mac Kit for Apple Silicon in the same release). Every
 claim above has a dated measurement record in the repository, and the issue tracker is where to say what feels wrong.
 If there is a 1997 rule you would want back as a switch (the old tactic chooser, the slower turrets, the banded health
-readout), say which: those are planned as opt-in switches after 1.0, each behind an A/B test.
+readout), say which: those are planned as opt-in switches after 1.1, each behind an A/B test.
 
 ---
 

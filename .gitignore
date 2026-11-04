@@ -143,3 +143,7 @@ tools/lan-test/hosts.local.sh
 
 # the relay host log (tools/relay/relay.ini "log file"), written by RUN-RELAY.bat
 tools/relay/relay.log
+
+# private/: the owner's private trees (the uncap lab, the data track, the press scans) live here on the desktop since the
+# 2026-11-04 folder clean-up, with a junction at each old path. Never committed, whatever is copied in.
+private/

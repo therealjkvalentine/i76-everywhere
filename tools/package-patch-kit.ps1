@@ -43,7 +43,7 @@ param(
     [string]$IpxRelayDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\ipxwrapper-master-20261025\out'),
     [string]$IpxRelaySrc = (Join-Path $env:USERPROFILE 'i76-uncap-lab\builds\ipxwrapper-master-20261025\src'),
     [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\patch-kit'),
-    [string]$Version = '0.8.2',
+    [string]$Version = '1.1.0',
     [string]$Stamp = (Get-Date -Format 'yyyyMMdd'),
     [string]$Stage = ''
 )

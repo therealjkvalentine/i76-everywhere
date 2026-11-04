@@ -26,7 +26,7 @@ param(
     [string]$GogGold = (Join-Path $env:USERPROFILE 'i76-map\sandbox-gog\main\app'),
     [string]$GogNitro = (Join-Path $env:USERPROFILE 'i76-map\sandbox-gog\nitro-full\app'),
     [string]$OutDir = (Join-Path $env:USERPROFILE 'i76-uncap-lab\downloads\mac-kit'),
-    [string]$Version = '0.8.0',
+    [string]$Version = '1.1.0',
     [string]$Stage = ''
 )
 $ErrorActionPreference = 'Stop'

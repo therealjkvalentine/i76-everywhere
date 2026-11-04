@@ -359,7 +359,7 @@ agree; Deck baseline tier; `mac-install.command`; phone ports; multiplayer with 
   features (FFB works, in-mission music, u32x, head tracking, frame-gen, savegame.dir guard) plus the experimental
   proxy. **Proposed**: `v1.1.0` = everything verified today, with the Smooth 60 presets shipped **off by default and
   labelled experimental**; `v2.0.0` = Smooth 60 becomes a default-offered preset after the console verification in
-  section 7 (it changes what the game *is* at the physics level, which deserves a major).
+  section 7 (it changes what the game *is* at the physics level, which deserves a major). **Decided 2026-11-04 (owner):** the kit's first full release is **`v1.1.0`** (`v1.0.0` is the July tag; the kit's own line ran v0.7.3 and v0.8.0-v0.8.2 in October 2026, plain `vX.Y.Z` tags, release titles "Interstate '76 Patch Kit (i76-everywhere) vX.Y.Z"). The Smooth 60 / tick presets ship as the default launcher since v0.8.2, so the "off by default" clause above is overtaken.
 - **<re-archive> versions by date and coverage**, not SemVer (`2026.10`, with the `GOAL-COVERAGE.md` baseline line copied
   into the release notes: functions named, bytes named, round-trip count). Tag the public export commit.
 - **CHANGELOG format**: keep "Keep a Changelog" headings (`Added / Changed / Fixed / Removed`) and add one word of
@@ -397,7 +397,7 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
    table + the section 4 numbers.
 9. Pages: `index.html` and `i76-save-editor.html` still load after the doc moves (all its links are `blob/main/docs/...`).
 
-**1.0 additions (2026-11-03, the port-back from the I26 round-3 measurements).** Done items name their commit.
+**1.1 additions (2026-11-03, the port-back from the I26 round-3 measurements; called "1.0" until the owner named the release `v1.1.0` on 2026-11-04).** Done items name their commit.
 
 1. [x] README and kit README: "simulated 24 times a second like on a 1997 Pentium" -> GOG on Windows; a 1997 Pentium
        ran 11-35 steps a second (`2ebd459`). "The physics are untouched" stays.
@@ -426,7 +426,7 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
         file it shipped; the Deck kit's generator no longer needs liblzo2, `fb0c177`), the Windows kit's bookmark saves
         (`shared/saves`), and the Mac / Deck BSDIFF40 patches (diff only, extra block capped at 64 KiB): **owner's ruling
         still open for those two.** The Windows name guard has no texture or level extensions. The release notes draft
-        ([RELEASE-NOTES-v1.0.md](../release/RELEASE-NOTES-v1.0.md)) carries the "player-generated, never redistributed" paragraph.
+        ([RELEASE-NOTES-v1.1.md](../release/RELEASE-NOTES-v1.1.md)) carries the "player-generated, never redistributed" paragraph.
 12. [x] Exe fingerprint at install names the builds; retail 1.0 and a renamed `nitro.exe` get a sentence (`fa5b118`).
 13. [x] GOG forum post "for the purists": [GOG-FORUM-POST-PURISTS.md](../release/GOG-FORUM-POST-PURISTS.md) (`9f33178`); two
     bracketed lines wait for item 2 and the release link.
@@ -435,8 +435,8 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
 15. [x] `pytest tests` green again (`c1401cb`): the settings test expected the pre-0.8.2 draw distance, the sound-pack guard
     missed a game copy behind a junction (a real guard hole, fixed in code), the save editor's HTML part table had drifted
     from the Python one.
-16. [ ] Tag name: `v1.0.0` already exists on the repository (s.6 note); pick the kit's 1.0 tag before publishing.
-17. [ ] Owner QA rows that gate 1.0 (the previous session's list): #4 / #3 re-run on a fresh machine, #96 / #99 hardware rows,
+16. [x] Tag name: **`v1.1.0`** (owner, 2026-11-04): `v1.0.0` already exists on the repository (s.6 note). Release title "Interstate '76 Patch Kit (i76-everywhere) v1.1.0"; `tools/package-patch-kit.ps1` and `package-mac-kit.ps1` default to `-Version 1.1.0`; the notes draft is [RELEASE-NOTES-v1.1.md](../release/RELEASE-NOTES-v1.1.md).
+17. [ ] Owner QA rows that gate 1.1 (the previous session's list): #4 / #3 re-run on a fresh machine, #96 / #99 hardware rows,
     #5 and #8 / #105 first-time installs by a person, #9 (map authors), #97 publish; #127 ships as a known issue.
 
 Pre-release, Mac and Deck: run the existing install path once from a clean machine/prefix each and record the result;
@@ -465,7 +465,7 @@ Order (proposed), each step gated on the previous one not producing a bug report
    cutscene-music proxy, the `FPSLimit`-is-ignored / `I76PATCH.DLL` finding, FFB on modern wheels (T300RS, Combined
    pedal mode, close the vendor panel), input.map joystick5 fix, Mac/Deck rows. Cite the repo.
 2. **GOG forum** post in the Interstate series board: [GOG-FORUM-POST-PURISTS.md](../release/GOG-FORUM-POST-PURISTS.md)
-   (2026-11-04). Not the old lead: GOG ships no `I76PATCH.DLL` and its exe is Gold 1.2, not the AiO build (s.7, 1.0 item 3);
+   (2026-11-04). Not the old lead: GOG ships no `I76PATCH.DLL` and its exe is Gold 1.2, not the AiO build (s.7, 1.1 item 3);
    the `OUTREACH-DRAFT.md` body carries that claim, the retired HD texture pack and "~19.2 FPS" (the Mac's DxWnd cap).
    Lead with what is not changed (physics, AI, damage: GOG's, by measurement against the 1997 CD in an emulator).
 3. **interstate76.com forum**: the community-first framing from the draft; add the Tuesday-night angle (the proxy is

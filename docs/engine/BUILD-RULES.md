@@ -60,7 +60,7 @@ different" report most often lands on.
   default, and only health % has a kit switch, which is its own formula, not R's.
 - AI comparisons between R and G compare two different tactic choosers (section 1, row 1); a gap in AI rounds per
   minute between them is partly the chooser, not the frame rate.
-- Switches that put R's rules back (turret slew, cone, banded health %, the chooser stub) are proposed for after 1.0,
+- Switches that put R's rules back (turret slew, cone, banded health %, the chooser stub) are proposed for after 1.1 (the kit's first full release, `v1.1.0`),
   each behind an A/B (BASE-DECISION s.5).
 
 ## Sources
