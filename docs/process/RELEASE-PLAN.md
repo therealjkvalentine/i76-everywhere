@@ -438,6 +438,9 @@ Pre-release, Windows (at the physical console, never over RDP, `TerminalServerSe
 16. [x] Tag name: **`v1.1.0`** (owner, 2026-11-04): `v1.0.0` already exists on the repository (s.6 note). Release title "Interstate '76 Patch Kit (i76-everywhere) v1.1.0"; `tools/package-patch-kit.ps1` and `package-mac-kit.ps1` default to `-Version 1.1.0`; the notes draft is [RELEASE-NOTES-v1.1.md](../release/RELEASE-NOTES-v1.1.md).
 17. [ ] Owner QA rows that gate 1.1 (the previous session's list): #4 / #3 re-run on a fresh machine, #96 / #99 hardware rows,
     #5 and #8 / #105 first-time installs by a person, #9 (map authors), #97 publish; #127 ships as a known issue.
+18. [ ] Terrain morph band (owner, 2026-11-05: the terrain "still adjusting / truing up" at 0.5; the main copy is back at 0.25,
+    TERRAIN-STATIC-PLAN s.4.2). The shipped presets still carry 0.5: `tick19-42` (the kit's PLAY.bat), graphics-balanced /
+    -high / -mid (08c8bcf). After the owner's drive on 0.25: set them to the value he keeps, in one commit, before the tag.
 
 Pre-release, Mac and Deck: run the existing install path once from a clean machine/prefix each and record the result;
 say "verified on <date>, <hardware>" or "untested since <date>" in the README. Do not claim 60 fps on either.

@@ -135,6 +135,34 @@ Recommendation: 0.5 if the preset is to change at all (halves carried snaps, sam
 (no tester-visible evidence yet). 1.0 is not worth it. Accuracy cost of L1 (s.3): at 0.5 a 732 m-ring split is half-blended at ~550 m, so mid-field
 detail (err40 p90 10.6 m) is drawn about 2-3 m low at 370-550 m for longer, ~3-6 px on the laptop view; at 1.0 about twice that.
 
+### 4.2 Owner follow-up, 2026-11-05: the band goes back to 0.25 on the daily driver
+
+The owner, on the main Gold copy (`PLAY.bat` = OWNER-2300-ALL, proxy 5d6f9828, boots of 2026-11-04 / 05 logging `band 0.50 x the
+ring distance`): *"the terrain is still adjusting / truing up quite a bit. I thought we had a solution where we were seeing almost
+none of that and it was really far away when it was happening, but we lost that somewhere along the way."*
+
+**What was lost.** The main copy's preset carried `I76_TERRAIN_MORPH 0.25` from the RC install (2026-10-24) until 2026-10-26, when
+it was set to 0.5 on s.4.1's recommendation (the file beside it, `OWNER-2300-ALL.psd1.bak-20261026-morph025`, is the 0.25 state;
+08c8bcf did the same to the shipped graphics-balanced / -high / -mid presets). The proxy did not change the morph between the two
+(terrainmorph.c's last change is 9fe3510 of 2026-10-23). What the owner remembers is the 0.25 band of 2026-10-23..26.
+
+**Why 0.5 reads as "always truing up".** In the stateless form a split's blend runs from its ring D in to (1 - band) D. With LOD 24
+the rings are 1464 m (80 m nodes), 732 m (40 m), 366 m (20 m), 183 m (10 m, steep ground only). At 0.25 the blends occupy the outer
+quarter of each ring only (1464 -> 1098 m, 732 -> 549 m, 366 -> 275 m) and the ground between 1098 and 732 m and between 549 and
+100 m is still. At 0.5 they occupy the outer half (1464 -> 732, 732 -> 366, 366 -> 183): the blends of consecutive levels butt against
+each other, so from 1464 m all the way in to NEAR 100's edge something is always sliding, and the largest shapes (the 80 m level's
+err80 p90 17 m) finish truing up at 732 m instead of 1098 m. s.4.1 measured exactly this and said so ("it does NOT lower the slide
+motion: p90 +15-20 %, more vertices in motion at once"; "the instrument cannot say whether the eye prefers fewer snaps or less
+slide"). The eye has now said: less slide, farther out.
+
+**Done 2026-11-05:** the main copy's preset is back at 0.25 (the 0.5 file kept as `OWNER-2300-ALL.psd1.bak-20261105-morph05`); no
+proxy change, no fps change (s.4.1: 0.25 and 0.5 measured the same). The shipped presets still carry 0.5 (graphics-balanced /
+-high / -mid since 08c8bcf, and `tick19-42`, the preset the kit's own `PLAY.bat` loads, so v0.8.2 and the v1.1.0 candidate play the
+0.5 band); they wait for the owner's drive on 0.25 before they move: a 1.1 gate (RELEASE-PLAN s.7). The lab's static-far-field
+prototype (L5 `I76_TERRAIN_FAR_LEAF`, L6 `I76_TERRAIN_FORCE_SPLIT`, s.3.1) is the next lever if 0.25 is still not far enough: its
+source is the archived worktree patch `<archive>\cleanup-2026-11-04\terrain-static-20261025-wt-uncommitted.patch` (7 hunks; the
+strlkproxy.c hunks no longer apply to main as is and need re-basing by hand), never measured for pop or fps.
+
 ## 5. Execution plan for the Opus lane
 
 (filled after s.4)
